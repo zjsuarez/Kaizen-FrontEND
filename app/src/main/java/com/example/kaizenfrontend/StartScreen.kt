@@ -38,7 +38,7 @@ import com.example.kaizenfrontend.R
 private val provider = GoogleFont.Provider(
     providerAuthority = "com.google.android.gms.fonts",
     providerPackage = "com.google.android.gms",
-    certificates = R.array.com_google_android_gms_fonts_certs
+    certificates = ComposeUiR.array.com_google_android_gms_fonts_certs
 )
 
 private val OswaldFont = GoogleFont("Oswald")
