@@ -1,8 +1,17 @@
-package com.example.kaizen.ui
+package com.example.kaizenfrontend
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -11,18 +20,40 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.googlefonts.FontRequests
+import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Image
+import com.example.kaizenfrontend.R
+
+
+private val provider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
+    certificates = R.array.com_google_android_gms_fonts_certs
+)
+
+private val OswaldFont = GoogleFont("Oswald")
+private val InterFont = GoogleFont("Inter")
+
+private val OswaldFontFamily = FontFamily(
+    Font(googleFont = OswaldFont, fontProvider = provider)
+)
+
+private val InterFontFamily = FontFamily(
+    Font(googleFont = InterFont, fontProvider = provider)
+)
 
 private val BackgroundColor = Color(0xFF060814)
-private val BluePrimary = Color(0xFF2F80ED)
 private val WhiteSoft = Color(0xFFEDEDED)
 private val GraySoft = Color(0xFFBDBDBD)
 
@@ -56,18 +87,19 @@ fun StartScreen(
                 Text(
                     text = "KAIZEN",
                     fontSize = 42.sp,
+                    fontFamily = OswaldFontFamily,
                     fontWeight = FontWeight.Bold,
                     color = WhiteSoft
                 )
 
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // Aquí deberías poner tu PNG/SVG de la mancuerna
                 Image(
-                    painter = painterResource(id = R.drawable.ic_dumbbell),
+                    painter = painterResource(id = R.drawable.logo),
                     contentDescription = "Dumbbell",
+                    contentScale = ContentScale.Fit,
                     modifier = Modifier
-                        .height(120.dp)
+                        .size(200.dp)
                 )
 
                 Spacer(modifier = Modifier.height(40.dp))
@@ -75,7 +107,9 @@ fun StartScreen(
                 Text(
                     text = "CONTINUOUS\nIMPROVEMENT",
                     fontSize = 14.sp,
-                    letterSpacing = 4.sp,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.5.em, // 50% of font size
                     textAlign = TextAlign.Center,
                     color = GraySoft
                 )
@@ -99,7 +133,8 @@ fun StartScreen(
                     Text(
                         text = "GET STARTED",
                         color = Color.Black,
-                        fontWeight = FontWeight.Medium,
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.Normal,
                         fontSize = 16.sp
                     )
                 }
@@ -109,6 +144,8 @@ fun StartScreen(
                 Text(
                     text = "I already have an account",
                     color = GraySoft,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Normal,
                     modifier = Modifier.clickable { onLoginClick() }
                 )
 
