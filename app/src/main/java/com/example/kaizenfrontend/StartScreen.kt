@@ -23,11 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.FontRequests
 import androidx.compose.ui.text.googlefonts.GoogleFont
+import androidx.compose.ui.text.googlefonts.Font as GoogleFontFace
+import androidx.compose.ui.R as ComposeUiR
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -39,18 +39,18 @@ import com.example.kaizenfrontend.R
 private val provider = GoogleFont.Provider(
     providerAuthority = "com.google.android.gms.fonts",
     providerPackage = "com.google.android.gms",
-    certificates = R.array.com_google_android_gms_fonts_certs
+    certificates = ComposeUiR.array.com_google_android_gms_fonts_certs
 )
 
 private val OswaldFont = GoogleFont("Oswald")
 private val InterFont = GoogleFont("Inter")
 
 private val OswaldFontFamily = FontFamily(
-    Font(googleFont = OswaldFont, fontProvider = provider)
+    GoogleFontFace(googleFont = OswaldFont, fontProvider = provider)
 )
 
 private val InterFontFamily = FontFamily(
-    Font(googleFont = InterFont, fontProvider = provider)
+    GoogleFontFace(googleFont = InterFont, fontProvider = provider)
 )
 
 private val BackgroundColor = Color(0xFF060814)
