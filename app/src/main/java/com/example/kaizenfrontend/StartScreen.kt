@@ -34,6 +34,9 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.R
 
+
+
+
 private val provider = GoogleFont.Provider(
     providerAuthority = "com.google.android.gms.fonts",
     providerPackage = "com.google.android.gms",
@@ -44,16 +47,21 @@ private val OswaldFont = GoogleFont("Oswald")
 private val InterFont = GoogleFont("Inter")
 
 private val OswaldFontFamily = FontFamily(
-    Font(googleFont = OswaldFont, fontProvider = provider)
+    Font(googleFont = OswaldFont, fontProvider = provider, weight = FontWeight.Normal),
+    Font(googleFont = OswaldFont, fontProvider = provider, weight = FontWeight.Bold)
 )
 
 private val InterFontFamily = FontFamily(
-    Font(googleFont = InterFont, fontProvider = provider)
+    Font(googleFont = InterFont, fontProvider = provider, weight = FontWeight.Normal),
+    Font(googleFont = InterFont, fontProvider = provider, weight = FontWeight.Medium)
 )
 
-private val BackgroundColor = Color(0xFF060814)
+
+
+// COLOR VALUES ( TO CHANGE LATER AND PUT IT ON RES/VALUES)
+private val BackgroundColor = Color(0xFF0B0A0F)
 private val WhiteSoft = Color(0xFFEDEDED)
-private val GraySoft = Color(0xFFBDBDBD)
+private val GraySoft = Color(0x80FFFFFF)
 
 @Composable
 fun StartScreen(
@@ -77,7 +85,6 @@ fun StartScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Parte superior
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -113,7 +120,7 @@ fun StartScreen(
                 )
             }
 
-            // Parte inferior
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -152,6 +159,8 @@ fun StartScreen(
         }
     }
 }
+
+
 
 @Preview(
     showBackground = true,
