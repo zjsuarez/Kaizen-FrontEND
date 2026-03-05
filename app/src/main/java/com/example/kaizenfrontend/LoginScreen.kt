@@ -47,11 +47,11 @@ fun LoginScreen(
 
         // Title
         Text(
-            text = "Welcome back!", // Texto actualizado
+            text = "Welcome\nback", // Salto de línea aplicado aquí
             color = Color.White,
             fontSize = 44.sp,
             fontWeight = FontWeight.Bold,
-            lineHeight = 50.sp,
+            lineHeight = 50.sp, // Esto mantendrá el interlineado perfecto entre ambas palabras
             modifier = Modifier.padding(bottom = 48.dp)
         )
 
@@ -85,7 +85,7 @@ fun LoginScreen(
             shape = RoundedCornerShape(28.dp)
         ) {
             Text(
-                text = "LOG IN", // Ajustado para que tenga sentido con la acción
+                text = "LOG IN",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
@@ -136,7 +136,7 @@ fun LoginScreen(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "LOG IN WITH GOOGLE", // Texto actualizado y en mayúsculas para mantener el estilo
+                text = "LOG IN WITH GOOGLE",
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
             )
