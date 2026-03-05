@@ -32,13 +32,19 @@ fun KaizenNavHost() {
         composable("start") {
             StartScreen(
                 onGetStartedClick = { 
-                    // Navigate to a screen, e.g., navController.navigate("home")
+                    navController.navigate("signup")
                 },
                 onLoginClick = {
                     // Navigate to login, e.g., navController.navigate("login")
                 }
             )
         }
-        // Add more screens here as you create them
+        composable("signup") {
+            SignUpScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
