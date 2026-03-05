@@ -22,12 +22,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 
 // Color Palette based on the image
-val DarkBackground = Color(0xFF121215)
-val InputFieldColor = Color(0xFF282832)
-val LightGrayText = Color(0xFFA0A0B0)
+private val DarkBackground = Color(0xFF121215)
+private val InputFieldColor = Color(0xFF282832)
+private val LightGrayText = Color(0xFFA0A0B0)
 
 @Composable
-fun SignUpScreen(onBackClick: () -> Unit = {}) {
+fun SignUpScreen(
+    onBackClick: () -> Unit = {},
+    onSignUpClick: () -> Unit = {}
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -84,7 +87,7 @@ fun SignUpScreen(onBackClick: () -> Unit = {}) {
 
         // Sign Up Button
         Button(
-            onClick = { /* Handle Sign Up */ },
+            onClick = onSignUpClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

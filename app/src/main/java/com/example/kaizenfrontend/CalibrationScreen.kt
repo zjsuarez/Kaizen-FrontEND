@@ -1,6 +1,5 @@
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
+package com.example.kaizenfrontend
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,26 +22,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // Color Palette based on the design
-val DarkBackground = Color(0xFF0F0F13)
-val SurfaceColor = Color(0xFF2C2C35)
-val SurfaceDarker = Color(0xFF1E1E24)
-val AccentBlue = Color(0xFF337BFF)
-val TextGray = Color(0xFFA0A0B0)
-val LabelGray = Color(0xFF808090)
-
-class CalibrationActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            MaterialTheme {
-                CalibrationScreen()
-            }
-        }
-    }
-}
+private val DarkBackground = Color(0xFF0B0A0F)
+private val SurfaceColor = Color(0xFF2A2733)
+private val SurfaceDarker = Color(0xFF18181B)
+private val AccentBlue = Color(0xFF2979FF)
+private val TextGray = Color(0xFFA0A0B0)
+private val LabelGray = Color(0xFF808090)
 
 @Composable
-fun CalibrationScreen() {
+fun CalibrationScreen(onStartClick: () -> Unit = {}) {
     // State variables to hold user selections
     var selectedUnit by remember { mutableStateOf("KG") }
     var bodyWeight by remember { mutableStateOf("") }
@@ -112,7 +100,7 @@ fun CalibrationScreen() {
                 .padding(24.dp)
         ) {
             Button(
-                onClick = { /* Handle Start Action */ },
+                onClick = onStartClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -133,7 +121,7 @@ fun CalibrationScreen() {
 }
 
 @Composable
-fun SectionLabel(text: String) {
+private fun SectionLabel(text: String) {
     Text(
         text = text,
         color = LabelGray,
@@ -144,7 +132,7 @@ fun SectionLabel(text: String) {
 }
 
 @Composable
-fun SegmentedControl(
+private fun SegmentedControl(
     options: List<String>,
     selectedOption: String,
     onOptionSelected: (String) -> Unit
@@ -178,7 +166,7 @@ fun SegmentedControl(
 }
 
 @Composable
-fun WeightInputField(
+private fun WeightInputField(
     value: String,
     onValueChange: (String) -> Unit,
     unit: String

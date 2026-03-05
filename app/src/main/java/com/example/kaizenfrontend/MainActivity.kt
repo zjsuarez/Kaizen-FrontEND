@@ -35,7 +35,7 @@ fun KaizenNavHost() {
                     navController.navigate("signup")
                 },
                 onLoginClick = {
-                    // Navigate to login, e.g., navController.navigate("login")
+                    // Navigate to login
                 }
             )
         }
@@ -43,6 +43,16 @@ fun KaizenNavHost() {
             SignUpScreen(
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onSignUpClick = {
+                    navController.navigate("calibration")
+                }
+            )
+        }
+        composable("calibration") {
+            CalibrationScreen(
+                onStartClick = {
+                    // Navigate to next screen after calibration
                 }
             )
         }
