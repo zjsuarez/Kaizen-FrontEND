@@ -18,10 +18,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// Nota: Asumo que DarkBackground, InputFieldColor, LightGrayText y CustomTextField
-// ya están disponibles en tu proyecto por el código anterior. Si pones esto en un
-// archivo nuevo, asegúrate de importar/copiar esos valores.
 
+private val DarkBackground = Color(0xFF121215)
+private val InputFieldColor = Color(0xFF282832)
+private val LightGrayText = Color(0xFFA0A0B0)
 @Composable
 fun LoginScreen(
     onBackClick: () -> Unit = {},
@@ -30,13 +30,13 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121215)) // DarkBackground
+            .background(DarkBackground) // Usa el color que ya definiste
             .padding(horizontal = 24.dp, vertical = 32.dp)
     ) {
-        // Botón de retroceso
+        // Back Button
         IconButton(
             onClick = onBackClick,
-            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
+            modifier = Modifier.padding(top = 16.dp, bottom = 32.dp)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -45,52 +45,34 @@ fun LoginScreen(
             )
         }
 
-        // Contenedor central (Logo y campos) que empuja los botones hacia abajo
-        Column(
-            modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Placeholder para el Logo (el cuadrado del wireframe)
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .background(Color(0xFF282832), RoundedCornerShape(24.dp)), // InputFieldColor
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "LOGO",
-                    color = Color(0xFFA0A0B0), // LightGrayText
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(56.dp))
-
-            // Campo de Email
-            CustomTextField(
-                hint = "Email",
-                leadingIcon = Icons.Outlined.Email
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Campo de Contraseña
-            CustomTextField(
-                hint = "Password",
-                leadingIcon = Icons.Outlined.Lock,
-                isPassword = true
-            )
-        }
-
-        // Sección inferior (Separador y Botones)
-        HorizontalDivider(
-            modifier = Modifier.padding(bottom = 24.dp),
-            color = Color(0xFFA0A0B0).copy(alpha = 0.2f) // LightGrayText transparente
+        // Title
+        Text(
+            text = "Welcome back!", // Texto actualizado
+            color = Color.White,
+            fontSize = 44.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 50.sp,
+            modifier = Modifier.padding(bottom = 48.dp)
         )
 
-        // Botón "GET STARTED"
+        // Email Field
+        CustomTextField(
+            hint = "Email",
+            leadingIcon = Icons.Outlined.Email
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Password Field
+        CustomTextField(
+            hint = "Password",
+            leadingIcon = Icons.Outlined.Lock,
+            isPassword = true
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Log In Button
         Button(
             onClick = onLoginClick,
             modifier = Modifier
@@ -103,22 +85,45 @@ fun LoginScreen(
             shape = RoundedCornerShape(28.dp)
         ) {
             Text(
-                text = "GET STARTED",
+                text = "LOG IN", // Ajustado para que tenga sentido con la acción
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // Botón "SIGN IN WITH GOOGLE"
+        // "OR" Divider
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            HorizontalDivider(
+                modifier = Modifier.weight(1f),
+                color = LightGrayText.copy(alpha = 0.5f)
+            )
+            Text(
+                text = "or",
+                color = Color.White,
+                fontSize = 16.sp,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            HorizontalDivider(
+                modifier = Modifier.weight(1f),
+                color = LightGrayText.copy(alpha = 0.5f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Google Log In Button
         Button(
             onClick = { /* Handle Google Auth */ },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF282832), // InputFieldColor
+                containerColor = InputFieldColor,
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(28.dp)
@@ -131,7 +136,7 @@ fun LoginScreen(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "SIGN IN WITH GOOGLE",
+                text = "LOG IN WITH GOOGLE", // Texto actualizado y en mayúsculas para mantener el estilo
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
             )
