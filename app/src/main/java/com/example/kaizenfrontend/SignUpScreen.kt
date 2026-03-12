@@ -1,5 +1,6 @@
 package com.example.kaizenfrontend
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -20,6 +22,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.kaizenfrontend.network.RegisterRequest
+import com.example.kaizenfrontend.network.RetrofitClient
+import kotlinx.coroutines.launch
 
 // Color Palette based on the image
 private val DarkBackground = Color(0xFF121215)
@@ -34,6 +39,11 @@ fun SignUpScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -57,7 +67,7 @@ fun SignUpScreen(
         Text(
             text = "Let's Get\nStarted",
             color = Color.White,
-            fontSize = 44.sp,
+            fontSize = 36.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 50.sp,
             modifier = Modifier.padding(bottom = 48.dp)
@@ -93,11 +103,70 @@ fun SignUpScreen(
             isPassword = true
         )
 
+        TextButton(onClick = onBackClick) {
+            Text(
+                text = "Already have an account? Log In",
+                color = Color.LightGray,
+                fontSize = 14.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Small Error Message
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(28.dp)
+                .padding(top = 8.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage!!,
+                    color = Color.Red,
+                    fontSize = 14.sp
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Sign Up Button
         Button(
-            onClick = onSignUpClick,
+            onClick = {
+                errorMessage = null
+
+                if (password != confirmPassword) {
+                    errorMessage = "Passwords don't match"
+                    return@Button
+                }
+
+                if (email.isEmpty() || password.isEmpty()) {
+                    errorMessage = "Please fill in all fields"
+                    return@Button
+                }
+
+                coroutineScope.launch {
+                    try {
+                        val request = RegisterRequest(
+                            username = "kaizen_user",
+                            email = email,
+                            password = password
+                        )
+
+                        val response = RetrofitClient.authService.registerUser(request)
+
+                        if (response.isSuccessful) {
+                            Toast.makeText(context, "¡Registro Exitoso!", Toast.LENGTH_LONG).show()
+                            onSignUpClick()
+                        } else {
+                            errorMessage = "Error: ${response.errorBody()?.string() ?: "Fallo en el registro"}"
+                        }
+                    } catch (e: Exception) {
+                        errorMessage = e.message ?: "Error en el registro"
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -170,7 +239,7 @@ fun SignUpScreen(
 
 @Composable
 fun CustomTextField(
-    value: String,                  
+    value: String,
     onValueChange: (String) -> Unit,
     hint: String,
     leadingIcon: ImageVector,
