@@ -31,6 +31,10 @@ fun SignUpScreen(
     onBackClick: () -> Unit = {},
     onSignUpClick: () -> Unit = {}
 ) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -61,6 +65,8 @@ fun SignUpScreen(
 
         // Email Field
         CustomTextField(
+            value = email,
+            onValueChange = { email = it },
             hint = "Email",
             leadingIcon = Icons.Outlined.Email
         )
@@ -69,6 +75,8 @@ fun SignUpScreen(
 
         // Password Field
         CustomTextField(
+            value = password,
+            onValueChange = { password = it },
             hint = "Password",
             leadingIcon = Icons.Outlined.Lock,
             isPassword = true
@@ -78,6 +86,8 @@ fun SignUpScreen(
 
         // Confirm Password Field
         CustomTextField(
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it },
             hint = "Confirm password",
             leadingIcon = Icons.Outlined.Lock,
             isPassword = true
@@ -160,15 +170,15 @@ fun SignUpScreen(
 
 @Composable
 fun CustomTextField(
+    value: String,                  
+    onValueChange: (String) -> Unit,
     hint: String,
     leadingIcon: ImageVector,
     isPassword: Boolean = false
 ) {
-    var text by remember { mutableStateOf("") }
-
     TextField(
-        value = text,
-        onValueChange = { text = it },
+        value = value,
+        onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
         placeholder = {
             Text(text = hint, color = LightGrayText)

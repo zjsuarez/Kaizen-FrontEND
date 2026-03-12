@@ -27,6 +27,9 @@ fun LoginScreen(
     onBackClick: () -> Unit = {},
     onLoginClick: () -> Unit = {}
 ) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -57,6 +60,8 @@ fun LoginScreen(
 
         // Email Field
         CustomTextField(
+            value = email,
+            onValueChange = { email = it },
             hint = "Email",
             leadingIcon = Icons.Outlined.Email
         )
@@ -65,6 +70,8 @@ fun LoginScreen(
 
         // Password Field
         CustomTextField(
+            value = password,
+            onValueChange = { password = it },
             hint = "Password",
             leadingIcon = Icons.Outlined.Lock,
             isPassword = true
