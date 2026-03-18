@@ -15,9 +15,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import com.example.kaizenfrontend.network.LoginRequest
+import com.example.kaizenfrontend.network.RetrofitClient
+import com.example.kaizenfrontend.network.TokenManager
+import kotlinx.coroutines.launch
 
 private val DarkBackground = Color(0xFF121215)
 private val InputFieldColor = Color(0xFF282832)
@@ -29,6 +34,10 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -77,11 +86,57 @@ fun LoginScreen(
             isPassword = true
         )
 
+        // Small Error Message
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(28.dp)
+                .padding(top = 8.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage!!,
+                    color = Color.Red,
+                    fontSize = 14.sp
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(32.dp))
 
         // Log In Button
         Button(
-            onClick = onLoginClick,
+            onClick = {
+                errorMessage = null
+
+                if (email.isEmpty() || password.isEmpty()) {
+                    errorMessage = "Please fill in all fields"
+                    return@Button
+                }
+
+                coroutineScope.launch {
+                    try {
+                        val request = LoginRequest(
+                            email = email,
+                            password = password
+                        )
+
+                        val response = RetrofitClient.authService.loginUser(request)
+
+                        if (response.isSuccessful && response.body() != null) {
+                            val token = response.body()?.token ?: ""
+                            TokenManager.saveToken(context, token)
+                            Toast.makeText(context, "¡Login Exitoso!", Toast.LENGTH_LONG).show()
+                            onLoginClick()
+                        } else {
+                            errorMessage = "Error: ${response.errorBody()?.string() ?: "Fallo en el login"}"
+                        }
+                    } catch (e: Exception) {
+                        errorMessage = e.message ?: "Error en el login"
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
