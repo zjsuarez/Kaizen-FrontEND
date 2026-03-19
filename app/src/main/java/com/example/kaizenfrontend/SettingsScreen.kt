@@ -12,10 +12,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.network.RetrofitClient
+import com.example.kaizenfrontend.network.TokenManager
+import com.example.kaizenfrontend.network.UserUpdateRequest
+import kotlinx.coroutines.launch
 
 private val Onyx = Color(0xFF0B0A0F)
 private val ShadowGrey = Color(0xFF242328)
@@ -34,7 +40,6 @@ data class SettingsUiState(
 @Composable
 fun SettingsScreen(
     uiState: SettingsUiState = SettingsUiState(),
-    onChangePasswordClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
     onDeleteAccountClick: () -> Unit = {},
     onUnitToggle: (String) -> Unit = {},
@@ -43,6 +48,28 @@ fun SettingsScreen(
     onExportClick: () -> Unit = {},
     onManageApiClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+
+    if (showChangePasswordDialog) {
+        ChangePasswordDialog(
+            onDismiss = { showChangePasswordDialog = false },
+            onConfirm = { newPassword ->
+                coroutineScope.launch {
+                    val token = TokenManager.getToken(context)
+                    if (token != null) {
+                        RetrofitClient.authService.updateUserProfile(
+                            "Bearer $token",
+                            UserUpdateRequest(password = newPassword)
+                        )
+                    }
+                }
+                showChangePasswordDialog = false
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -60,7 +87,7 @@ fun SettingsScreen(
         )
         AccountSection(
             email = uiState.email,
-            onChangePasswordClick = onChangePasswordClick,
+            onChangePasswordClick = { showChangePasswordDialog = true },
             onLogoutClick = onLogoutClick,
             onDeleteAccountClick = onDeleteAccountClick
         )
@@ -77,6 +104,82 @@ fun SettingsScreen(
             onManageApiClick = onManageApiClick
         )
     }
+}
+
+@Composable
+private fun ChangePasswordDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = ShadowGrey,
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Text(text = "Change Password", color = PureWhite, fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it; error = null },
+                    label = { Text("New Password", color = LightGrey) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PureWhite,
+                        unfocusedTextColor = PureWhite,
+                        focusedBorderColor = CrayolaBlue,
+                        unfocusedBorderColor = LightGrey,
+                        cursorColor = CrayolaBlue
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it; error = null },
+                    label = { Text("Confirm Password", color = LightGrey) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PureWhite,
+                        unfocusedTextColor = PureWhite,
+                        focusedBorderColor = CrayolaBlue,
+                        unfocusedBorderColor = LightGrey,
+                        cursorColor = CrayolaBlue
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (error != null) {
+                    Text(text = error!!, color = SubtleRed, fontSize = 13.sp)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    when {
+                        newPassword.length < 6 -> error = "Password must be at least 6 characters."
+                        newPassword != confirmPassword -> error = "Passwords do not match."
+                        else -> onConfirm(newPassword)
+                    }
+                }
+            ) {
+                Text("Save", color = CrayolaBlue, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = LightGrey)
+            }
+        }
+    )
 }
 
 @Composable
