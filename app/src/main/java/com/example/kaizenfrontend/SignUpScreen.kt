@@ -158,8 +158,19 @@ fun SignUpScreen(
                         val response = RetrofitClient.authService.registerUser(request)
 
                         if (response.isSuccessful) {
-                            Toast.makeText(context, "¡Registro Exitoso!", Toast.LENGTH_LONG).show()
-                            onSignUpClick()
+                            val loginRequest = com.example.kaizenfrontend.network.LoginRequest(
+                                email = email,
+                                password = password
+                            )
+                            val loginResponse = RetrofitClient.authService.loginUser(loginRequest)
+                            if (loginResponse.isSuccessful && loginResponse.body() != null) {
+                                val token = loginResponse.body()?.token ?: ""
+                                com.example.kaizenfrontend.network.TokenManager.saveToken(context, token)
+                                Toast.makeText(context, "¡Registro Exitoso!", Toast.LENGTH_LONG).show()
+                                onSignUpClick()
+                            } else {
+                                errorMessage = "Registered successfully, but auto-login failed."
+                            }
                         } else {
                             errorMessage = "Error: ${response.errorBody()?.string() ?: "Fallo en el registro"}"
                         }
