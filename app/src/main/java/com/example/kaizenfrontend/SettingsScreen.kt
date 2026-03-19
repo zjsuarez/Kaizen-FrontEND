@@ -42,30 +42,32 @@ fun SettingsScreen(
     uiState: SettingsUiState = SettingsUiState(),
     onLogoutClick: () -> Unit = {},
     onDeleteAccountClick: () -> Unit = {},
-    onUnitToggle: (String) -> Unit = {},
-    onEffortToggle: (String) -> Unit = {},
-    onRestClick: () -> Unit = {},
     onExportClick: () -> Unit = {},
     onManageApiClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
     var showChangePasswordDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showRestDialog by remember { mutableStateOf(false) }
+
+    var currentUnit by remember { mutableStateOf(uiState.unitSystem) }
+    var currentEffort by remember { mutableStateOf(uiState.effortMetric) }
+    var currentRest by remember { mutableStateOf(uiState.defaultRest) }
+
+    fun updateProfile(request: UserUpdateRequest) {
+        coroutineScope.launch {
+            val token = TokenManager.getToken(context) ?: return@launch
+            RetrofitClient.authService.updateUserProfile("Bearer $token", request)
+        }
+    }
 
     if (showChangePasswordDialog) {
         ChangePasswordDialog(
             onDismiss = { showChangePasswordDialog = false },
             onConfirm = { newPassword ->
-                coroutineScope.launch {
-                    val token = TokenManager.getToken(context)
-                    if (token != null) {
-                        RetrofitClient.authService.updateUserProfile(
-                            "Bearer $token",
-                            UserUpdateRequest(password = newPassword)
-                        )
-                    }
-                }
+                updateProfile(UserUpdateRequest(password = newPassword))
                 showChangePasswordDialog = false
             }
         )
@@ -96,6 +98,18 @@ fun SettingsScreen(
         )
     }
 
+    if (showRestDialog) {
+        RestTimerDialog(
+            currentSeconds = currentRest.removeSuffix(" s").toIntOrNull() ?: 90,
+            onDismiss = { showRestDialog = false },
+            onConfirm = { seconds ->
+                currentRest = "$seconds s"
+                updateProfile(UserUpdateRequest(restTimerDefault = seconds))
+                showRestDialog = false
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -118,12 +132,18 @@ fun SettingsScreen(
             onDeleteAccountClick = onDeleteAccountClick
         )
         PreferencesSection(
-            unitSystem = uiState.unitSystem,
-            effortMetric = uiState.effortMetric,
-            defaultRest = uiState.defaultRest,
-            onUnitToggle = onUnitToggle,
-            onEffortToggle = onEffortToggle,
-            onRestClick = onRestClick
+            unitSystem = currentUnit,
+            effortMetric = currentEffort,
+            defaultRest = currentRest,
+            onUnitToggle = { selected ->
+                currentUnit = selected
+                updateProfile(UserUpdateRequest(unitSystem = selected))
+            },
+            onEffortToggle = { selected ->
+                currentEffort = selected
+                updateProfile(UserUpdateRequest(effortMeasurement = selected))
+            },
+            onRestClick = { showRestDialog = true }
         )
         DataPrivacySection(
             onExportClick = onExportClick,
@@ -209,6 +229,66 @@ private fun ChangePasswordDialog(
 }
 
 @Composable
+private fun RestTimerDialog(
+    currentSeconds: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var input by remember { mutableStateOf(currentSeconds.toString()) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = ShadowGrey,
+        shape = RoundedCornerShape(16.dp),
+        title = { Text("Default Rest Timer", color = PureWhite, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Set rest time in seconds", color = LightGrey, fontSize = 13.sp)
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it; error = null },
+                    label = { Text("Seconds", color = LightGrey) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PureWhite,
+                        unfocusedTextColor = PureWhite,
+                        focusedBorderColor = CrayolaBlue,
+                        unfocusedBorderColor = LightGrey,
+                        cursorColor = CrayolaBlue
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (error != null) {
+                    Text(text = error!!, color = SubtleRed, fontSize = 13.sp)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val seconds = input.toIntOrNull()
+                when {
+                    seconds == null || seconds <= 0 -> error = "Enter a valid number of seconds."
+                    seconds > 600 -> error = "Maximum rest is 600 seconds."
+                    else -> onConfirm(seconds)
+                }
+            }) {
+                Text("Save", color = CrayolaBlue, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = LightGrey)
+            }
+        }
+    )
+}
+
+@Composable
 private fun AccountSection(
     email: String,
     onChangePasswordClick: () -> Unit,
@@ -266,7 +346,7 @@ private fun PreferencesSection(
     SettingsSectionCard(label = "TRAINING PREFERENCES") {
         PreferenceRow(label = "Unit System") {
             SegmentedToggle(
-                options = listOf("KG", "LBS"),
+                options = listOf("METRIC", "IMPERIAL"),
                 selected = unitSystem,
                 onSelect = onUnitToggle
             )
@@ -276,7 +356,7 @@ private fun PreferencesSection(
 
         PreferenceRow(label = "Effort Metric") {
             SegmentedToggle(
-                options = listOf("RPE", "RIR"),
+                options = listOf("RPE", "RIR", "NONE"),
                 selected = effortMetric,
                 onSelect = onEffortToggle
             )
