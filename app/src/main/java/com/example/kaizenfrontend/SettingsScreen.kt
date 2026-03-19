@@ -1,21 +1,17 @@
 package com.example.kaizenfrontend
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -24,129 +20,283 @@ import androidx.compose.ui.unit.sp
 private val Onyx = Color(0xFF0B0A0F)
 private val ShadowGrey = Color(0xFF242328)
 private val CrayolaBlue = Color(0xFF2979FF)
+private val PureWhite = Color.White
 private val LightGrey = Color(0xFFAAAAAA)
+private val SubtleRed = Color(0xFFCF6679)
+
+data class SettingsUiState(
+    val email: String = "user@example.com",
+    val unitSystem: String = "KG",
+    val effortMetric: String = "RPE",
+    val defaultRest: String = "90 s"
+)
 
 @Composable
 fun SettingsScreen(
-    // TODO: Inject real UiState / callbacks from ViewModel
-    onProfileClick: () -> Unit = {},
-    onNotificationsClick: () -> Unit = {},
-    onPrivacyClick: () -> Unit = {},
-    onAboutClick: () -> Unit = {}
+    uiState: SettingsUiState = SettingsUiState(),
+    onChangePasswordClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {},
+    onDeleteAccountClick: () -> Unit = {},
+    onUnitToggle: (String) -> Unit = {},
+    onEffortToggle: (String) -> Unit = {},
+    onRestClick: () -> Unit = {},
+    onExportClick: () -> Unit = {},
+    onManageApiClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Onyx)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
-            .padding(top = 48.dp)
+            .padding(top = 48.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Text(
             text = "Settings",
-            color = Color.White,
+            color = PureWhite,
             fontSize = 38.sp,
             fontWeight = FontWeight.Bold
         )
-        Text(
-            text = "Manage your account",
-            color = LightGrey,
-            fontSize = 14.sp,
-            modifier = Modifier.padding(top = 4.dp, bottom = 32.dp)
+        AccountSection(
+            email = uiState.email,
+            onChangePasswordClick = onChangePasswordClick,
+            onLogoutClick = onLogoutClick,
+            onDeleteAccountClick = onDeleteAccountClick
+        )
+        PreferencesSection(
+            unitSystem = uiState.unitSystem,
+            effortMetric = uiState.effortMetric,
+            defaultRest = uiState.defaultRest,
+            onUnitToggle = onUnitToggle,
+            onEffortToggle = onEffortToggle,
+            onRestClick = onRestClick
+        )
+        DataPrivacySection(
+            onExportClick = onExportClick,
+            onManageApiClick = onManageApiClick
+        )
+    }
+}
+
+@Composable
+private fun AccountSection(
+    email: String,
+    onChangePasswordClick: () -> Unit,
+    onLogoutClick: () -> Unit,
+    onDeleteAccountClick: () -> Unit
+) {
+    SettingsSectionCard(label = "ACCOUNT") {
+        // Email display
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(text = "Email", color = LightGrey, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = email,
+                color = PureWhite,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        SettingsDivider()
+
+        SettingsTextButton(
+            text = "Change Password",
+            textColor = PureWhite,
+            onClick = onChangePasswordClick
         )
 
-        SettingsGroup(label = "ACCOUNT") {
-            SettingsRow(
-                icon = Icons.Default.Person,
-                title = "Profile",
-                subtitle = "Edit your name, email & photo",
-                onClick = onProfileClick
+        SettingsDivider()
+
+        SettingsTextButton(
+            text = "Log Out",
+            textColor = SubtleRed,
+            onClick = onLogoutClick
+        )
+
+        SettingsDivider()
+
+        SettingsTextButton(
+            text = "Delete Account",
+            textColor = SubtleRed,
+            onClick = onDeleteAccountClick
+        )
+    }
+}
+
+@Composable
+private fun PreferencesSection(
+    unitSystem: String,
+    effortMetric: String,
+    defaultRest: String,
+    onUnitToggle: (String) -> Unit,
+    onEffortToggle: (String) -> Unit,
+    onRestClick: () -> Unit
+) {
+    SettingsSectionCard(label = "TRAINING PREFERENCES") {
+        PreferenceRow(label = "Unit System") {
+            SegmentedToggle(
+                options = listOf("KG", "LBS"),
+                selected = unitSystem,
+                onSelect = onUnitToggle
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
-        SettingsGroup(label = "PREFERENCES") {
-            SettingsRow(
-                icon = Icons.Default.Notifications,
-                title = "Notifications",
-                subtitle = "Manage push notifications",
-                onClick = onNotificationsClick
+        PreferenceRow(label = "Effort Metric") {
+            SegmentedToggle(
+                options = listOf("RPE", "RIR"),
+                selected = effortMetric,
+                onSelect = onEffortToggle
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
-        SettingsGroup(label = "LEGAL") {
-            SettingsRow(
-                icon = Icons.Default.Lock,
-                title = "Privacy Policy",
-                subtitle = "Read our privacy terms",
-                onClick = onPrivacyClick
-            )
-            HorizontalDivider(color = Onyx, thickness = 1.dp)
-            SettingsRow(
-                icon = Icons.Default.Info,
-                title = "About",
-                subtitle = "App version & info",
-                onClick = onAboutClick
-            )
+        PreferenceRow(label = "Default Rest") {
+            Box(
+                modifier = Modifier
+                    .border(1.dp, CrayolaBlue, RoundedCornerShape(10.dp))
+                    .clickable { onRestClick() }
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = defaultRest,
+                    color = CrayolaBlue,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun SettingsGroup(
+private fun DataPrivacySection(
+    onExportClick: () -> Unit,
+    onManageApiClick: () -> Unit
+) {
+    SettingsSectionCard(label = "DATA & PRIVACY") {
+        SettingsTextButton(
+            text = "Export Workout History (CSV)",
+            textColor = PureWhite,
+            onClick = onExportClick
+        )
+        SettingsDivider()
+        SettingsTextButton(
+            text = "Manage API Permissions",
+            textColor = PureWhite,
+            onClick = onManageApiClick
+        )
+    }
+}
+
+@Composable
+private fun SettingsSectionCard(
     label: String,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Text(
-        text = label,
-        color = LightGrey,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
-    )
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = ShadowGrey),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column { content() }
+    Column {
+        Text(
+            text = label,
+            color = LightGrey,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.8.sp,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = ShadowGrey)
+        ) {
+            Column { content() }
+        }
     }
 }
 
 @Composable
-private fun SettingsRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
+private fun SettingsTextButton(
+    text: String,
+    textColor: Color,
     onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = text,
+            color = textColor,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun PreferenceRow(
+    label: String,
+    control: @Composable () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = CrayolaBlue,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-            Text(text = subtitle, color = LightGrey, fontSize = 12.sp)
-        }
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = LightGrey,
-            modifier = Modifier.size(20.dp)
-        )
+        Text(text = label, color = PureWhite, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+        control()
     }
+}
+
+@Composable
+private fun SegmentedToggle(
+    options: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .background(Onyx, RoundedCornerShape(10.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        options.forEach { option ->
+            val isSelected = option == selected
+            Box(
+                modifier = Modifier
+                    .background(
+                        if (isSelected) CrayolaBlue else Color.Transparent,
+                        RoundedCornerShape(8.dp)
+                    )
+                    .clickable { onSelect(option) }
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = option,
+                    color = if (isSelected) PureWhite else LightGrey,
+                    fontSize = 13.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        color = Onyx,
+        thickness = 1.dp
+    )
 }
 
 @Preview(showBackground = true)
