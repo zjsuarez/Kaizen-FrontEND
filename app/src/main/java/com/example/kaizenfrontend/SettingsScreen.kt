@@ -32,7 +32,7 @@ private val SubtleRed = Color(0xFFCF6679)
 
 data class SettingsUiState(
     val email: String = "user@example.com",
-    val unitSystem: String = "KG",
+    val unitSystem: String = "METRIC",
     val effortMetric: String = "RPE",
     val defaultRest: String = "90 s"
 )
@@ -52,9 +52,15 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showRestDialog by remember { mutableStateOf(false) }
 
-    var currentUnit by remember { mutableStateOf(uiState.unitSystem) }
-    var currentEffort by remember { mutableStateOf(uiState.effortMetric) }
+    var savedUnit by remember { mutableStateOf(uiState.unitSystem) } // "METRIC" or "IMPERIAL"
+    var savedEffort by remember { mutableStateOf(uiState.effortMetric) }
+
+    var currentUnit by remember { mutableStateOf(savedUnit) }
+    var currentEffort by remember { mutableStateOf(savedEffort) }
     var currentRest by remember { mutableStateOf(uiState.defaultRest) }
+
+    var isSavingPrefs by remember { mutableStateOf(false) }
+    val hasUnsavedChanges = currentUnit != savedUnit || currentEffort != savedEffort
 
     fun updateProfile(request: UserUpdateRequest) {
         coroutineScope.launch {
@@ -135,15 +141,29 @@ fun SettingsScreen(
             unitSystem = currentUnit,
             effortMetric = currentEffort,
             defaultRest = currentRest,
-            onUnitToggle = { selected ->
-                currentUnit = selected
-                updateProfile(UserUpdateRequest(unitSystem = selected))
-            },
-            onEffortToggle = { selected ->
-                currentEffort = selected
-                updateProfile(UserUpdateRequest(effortMeasurement = selected))
-            },
-            onRestClick = { showRestDialog = true }
+            onUnitToggle = { currentUnit = it },
+            onEffortToggle = { currentEffort = it },
+            onRestClick = { showRestDialog = true },
+            showSaveButton = hasUnsavedChanges,
+            isSaving = isSavingPrefs,
+            onSaveClick = {
+                isSavingPrefs = true
+                coroutineScope.launch {
+                    val token = TokenManager.getToken(context)
+                    if (token != null) {
+                        val request = UserUpdateRequest(
+                            unitSystem = currentUnit,
+                            effortMeasurement = currentEffort
+                        )
+                        val response = RetrofitClient.authService.updateUserProfile("Bearer $token", request)
+                        if (response.isSuccessful) {
+                            savedUnit = currentUnit
+                            savedEffort = currentEffort
+                        }
+                    }
+                    isSavingPrefs = false
+                }
+            }
         )
         DataPrivacySection(
             onExportClick = onExportClick,
@@ -341,14 +361,20 @@ private fun PreferencesSection(
     defaultRest: String,
     onUnitToggle: (String) -> Unit,
     onEffortToggle: (String) -> Unit,
-    onRestClick: () -> Unit
+    onRestClick: () -> Unit,
+    showSaveButton: Boolean,
+    isSaving: Boolean,
+    onSaveClick: () -> Unit
 ) {
     SettingsSectionCard(label = "TRAINING PREFERENCES") {
         PreferenceRow(label = "Unit System") {
+            val unitDisplay = if (unitSystem == "IMPERIAL") "LB" else "KG"
             SegmentedToggle(
-                options = listOf("METRIC", "IMPERIAL"),
-                selected = unitSystem,
-                onSelect = onUnitToggle
+                options = listOf("KG", "LB"),
+                selected = unitDisplay,
+                onSelect = { selectedLabel -> 
+                    onUnitToggle(if (selectedLabel == "LB") "IMPERIAL" else "METRIC") 
+                }
             )
         }
 
@@ -377,6 +403,28 @@ private fun PreferencesSection(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
+            }
+        }
+
+        if (showSaveButton) {
+            SettingsDivider()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = !isSaving) { onSaveClick() }
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(color = CrayolaBlue, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(
+                        text = "Save Preferences",
+                        color = CrayolaBlue,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
