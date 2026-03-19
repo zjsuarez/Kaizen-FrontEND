@@ -52,15 +52,14 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showRestDialog by remember { mutableStateOf(false) }
 
-    var isLoading by remember { mutableStateOf(true) }
-    var userEmail by remember { mutableStateOf(uiState.email) }
+    var userEmail by remember { mutableStateOf(TokenManager.getUserEmail(context) ?: uiState.email) }
 
-    var savedUnit by remember { mutableStateOf(uiState.unitSystem) } // "METRIC" or "IMPERIAL"
-    var savedEffort by remember { mutableStateOf(uiState.effortMetric) }
+    var savedUnit by remember { mutableStateOf(TokenManager.getUserUnitSystem(context) ?: uiState.unitSystem) } // "METRIC" or "IMPERIAL"
+    var savedEffort by remember { mutableStateOf(TokenManager.getUserEffortMetric(context) ?: uiState.effortMetric) }
 
     var currentUnit by remember { mutableStateOf(savedUnit) }
     var currentEffort by remember { mutableStateOf(savedEffort) }
-    var currentRest by remember { mutableStateOf(uiState.defaultRest) }
+    var currentRest by remember { mutableStateOf(TokenManager.getUserDefaultRest(context) ?: uiState.defaultRest) }
 
     var isSavingPrefs by remember { mutableStateOf(false) }
     val hasUnsavedChanges = currentUnit != savedUnit || currentEffort != savedEffort
@@ -78,19 +77,29 @@ fun SettingsScreen(
                         currentUnit = savedUnit
                         currentEffort = savedEffort
                         currentRest = "${user.restTimerDefault ?: 90} s"
+
+                        TokenManager.saveUserPreferences(
+                            context = context,
+                            email = userEmail,
+                            unitSystem = savedUnit,
+                            effortMetric = savedEffort,
+                            defaultRest = currentRest
+                        )
                     }
                 }
             } catch (e: Exception) {
                 // Proceed with defaults if network fails
             }
         }
-        isLoading = false
     }
 
     fun updateProfile(request: UserUpdateRequest) {
         coroutineScope.launch {
             val token = TokenManager.getToken(context) ?: return@launch
-            RetrofitClient.authService.updateUserProfile("Bearer $token", request)
+            val response = RetrofitClient.authService.updateUserProfile("Bearer $token", request)
+            if (response.isSuccessful) {
+                TokenManager.saveUserPreferences(context, userEmail, currentUnit, currentEffort, currentRest)
+            }
         }
     }
 
@@ -141,16 +150,6 @@ fun SettingsScreen(
         )
     }
 
-    if (isLoading) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Onyx),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(color = CrayolaBlue)
-        }
-        return
     }
 
     Column(
@@ -196,6 +195,7 @@ fun SettingsScreen(
                         if (response.isSuccessful) {
                             savedUnit = currentUnit
                             savedEffort = currentEffort
+                            TokenManager.saveUserPreferences(context, userEmail, savedUnit, savedEffort, currentRest)
                         }
                     }
                     isSavingPrefs = false
