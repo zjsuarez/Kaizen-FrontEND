@@ -52,6 +52,9 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showRestDialog by remember { mutableStateOf(false) }
 
+    var isLoading by remember { mutableStateOf(true) }
+    var userEmail by remember { mutableStateOf(uiState.email) }
+
     var savedUnit by remember { mutableStateOf(uiState.unitSystem) } // "METRIC" or "IMPERIAL"
     var savedEffort by remember { mutableStateOf(uiState.effortMetric) }
 
@@ -61,6 +64,28 @@ fun SettingsScreen(
 
     var isSavingPrefs by remember { mutableStateOf(false) }
     val hasUnsavedChanges = currentUnit != savedUnit || currentEffort != savedEffort
+
+    LaunchedEffect(Unit) {
+        val token = TokenManager.getToken(context)
+        if (token != null) {
+            try {
+                val response = RetrofitClient.authService.getCurrentUser("Bearer $token")
+                if (response.isSuccessful) {
+                    response.body()?.let { user ->
+                        userEmail = user.email
+                        savedUnit = user.unitSystem ?: "METRIC"
+                        savedEffort = user.effortMeasurement ?: "RIR"
+                        currentUnit = savedUnit
+                        currentEffort = savedEffort
+                        currentRest = "${user.restTimerDefault ?: 90} s"
+                    }
+                }
+            } catch (e: Exception) {
+                // Proceed with defaults if network fails
+            }
+        }
+        isLoading = false
+    }
 
     fun updateProfile(request: UserUpdateRequest) {
         coroutineScope.launch {
@@ -116,6 +141,18 @@ fun SettingsScreen(
         )
     }
 
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Onyx),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = CrayolaBlue)
+        }
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -132,7 +169,7 @@ fun SettingsScreen(
             fontWeight = FontWeight.Bold
         )
         AccountSection(
-            email = uiState.email,
+            email = userEmail,
             onChangePasswordClick = { showChangePasswordDialog = true },
             onLogoutClick = { showLogoutDialog = true },
             onDeleteAccountClick = onDeleteAccountClick
@@ -382,7 +419,7 @@ private fun PreferencesSection(
 
         PreferenceRow(label = "Effort Metric") {
             SegmentedToggle(
-                options = listOf("RPE", "RIR", "NONE"),
+                options = listOf("RIR", "RPE", "NONE"),
                 selected = effortMetric,
                 onSelect = onEffortToggle
             )
