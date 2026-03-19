@@ -142,6 +142,7 @@ fun CalibrationScreen(onStartClick: () -> Unit = {}) {
                                     )
                                     val response = RetrofitClient.authService.updateUserProfile("Bearer $token", request)
                                     if (response.isSuccessful) {
+                                        TokenManager.saveCalibrationComplete(context, true)
                                         onStartClick()
                                     } else {
                                         errorMessage = "Failed to update profile: ${response.code()}"
