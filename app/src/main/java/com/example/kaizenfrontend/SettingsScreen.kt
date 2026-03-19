@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
 import com.example.kaizenfrontend.network.RetrofitClient
 import com.example.kaizenfrontend.network.TokenManager
 import com.example.kaizenfrontend.network.UserUpdateRequest
@@ -72,8 +73,8 @@ fun SettingsScreen(
                 if (response.isSuccessful) {
                     response.body()?.let { user ->
                         userEmail = user.email
-                        savedUnit = user.unitSystem ?: "METRIC"
-                        savedEffort = user.effortMeasurement ?: "RIR"
+                        savedUnit = user.unitSystem?.uppercase() ?: "METRIC"
+                        savedEffort = user.effortMeasurement?.uppercase() ?: "RPE"
                         currentUnit = savedUnit
                         currentEffort = savedEffort
                         currentRest = "${user.restTimerDefault ?: 90} s"
@@ -86,9 +87,11 @@ fun SettingsScreen(
                             defaultRest = currentRest
                         )
                     }
+                } else {
+                    Toast.makeText(context, "GET Error: ${response.code()}", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
-                // Proceed with defaults if network fails
+                Toast.makeText(context, "Network Error: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -148,8 +151,6 @@ fun SettingsScreen(
                 showRestDialog = false
             }
         )
-    }
-
     }
 
     Column(
