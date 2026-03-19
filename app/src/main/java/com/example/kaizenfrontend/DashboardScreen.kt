@@ -60,36 +60,36 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (uiState) {
-                is DashboardUiState.Loading -> {
-                    CircularProgressIndicator(
-                        color = CrayolaBlue,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                is DashboardUiState.Success -> {
-                    DashboardContent(
-                        successState = uiState,
-                        onWorkoutClick = onWorkoutClick
-                    )
-                }
-                is DashboardUiState.Error -> {
-                    // Inline Box of fixed height for error handling
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                            .background(ShadowGrey, RoundedCornerShape(16.dp))
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = uiState.message,
-                            color = Color.Red,
-                            fontSize = 14.sp
+            when (selectedTab) {
+                0 -> when (uiState) {
+                    is DashboardUiState.Loading -> {
+                        CircularProgressIndicator(
+                            color = CrayolaBlue,
+                            modifier = Modifier.align(Alignment.Center)
                         )
                     }
+                    is DashboardUiState.Success -> {
+                        DashboardContent(
+                            successState = uiState,
+                            onWorkoutClick = onWorkoutClick
+                        )
+                    }
+                    is DashboardUiState.Error -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp)
+                                .background(ShadowGrey, RoundedCornerShape(16.dp))
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = uiState.message, color = Color.Red, fontSize = 14.sp)
+                        }
+                    }
                 }
+                1 -> WorkoutsScreen()
+                2 -> StatisticsScreen()
+                3 -> SettingsScreen()
             }
         }
     }
