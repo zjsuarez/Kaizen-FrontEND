@@ -97,7 +97,13 @@ fun KaizenNavHost() {
             )
         }
         composable("dashboard") {
-            DashboardScreen()
+            DashboardScreen(
+                onLogoutClick = {
+                    navController.navigate("start") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

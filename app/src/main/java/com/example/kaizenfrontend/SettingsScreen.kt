@@ -51,6 +51,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     if (showChangePasswordDialog) {
         ChangePasswordDialog(
@@ -66,6 +67,31 @@ fun SettingsScreen(
                     }
                 }
                 showChangePasswordDialog = false
+            }
+        )
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            containerColor = ShadowGrey,
+            shape = RoundedCornerShape(16.dp),
+            title = { Text("Log Out", color = PureWhite, fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to log out?", color = LightGrey) },
+            confirmButton = {
+                TextButton(onClick = {
+                    TokenManager.clearToken(context)
+                    TokenManager.saveCalibrationComplete(context, false)
+                    showLogoutDialog = false
+                    onLogoutClick()
+                }) {
+                    Text("Log Out", color = SubtleRed, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancel", color = LightGrey)
+                }
             }
         )
     }
@@ -88,7 +114,7 @@ fun SettingsScreen(
         AccountSection(
             email = uiState.email,
             onChangePasswordClick = { showChangePasswordDialog = true },
-            onLogoutClick = onLogoutClick,
+            onLogoutClick = { showLogoutDialog = true },
             onDeleteAccountClick = onDeleteAccountClick
         )
         PreferencesSection(

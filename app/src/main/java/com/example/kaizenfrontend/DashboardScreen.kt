@@ -42,7 +42,8 @@ fun DashboardScreen(
         date = "16 / 02",
         workoutPlan = "Upper"
     ),
-    onWorkoutClick: () -> Unit = {}
+    onWorkoutClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -89,7 +90,7 @@ fun DashboardScreen(
                 }
                 1 -> WorkoutsScreen()
                 2 -> StatisticsScreen()
-                3 -> SettingsScreen()
+                3 -> SettingsScreen(onLogoutClick = onLogoutClick)
             }
         }
     }
