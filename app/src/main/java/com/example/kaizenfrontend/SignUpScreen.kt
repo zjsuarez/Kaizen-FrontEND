@@ -148,7 +148,7 @@ fun SignUpScreen(
 
                 coroutineScope.launch {
                     try {
-                        val generatedUsername = "Kaizenuser-" + email.replace("@", "-").replace(".", "-")
+                        val generatedUsername = "K-Kaizenuser-" + email.replace("@", "-").replace(".", "-")
                         val request = RegisterRequest(
                             username = generatedUsername,
                             email = email,
