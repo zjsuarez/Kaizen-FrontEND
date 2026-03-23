@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -20,6 +21,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.network.RetrofitClient
+import com.example.kaizenfrontend.network.TokenManager
+import com.example.kaizenfrontend.network.UserUpdateRequest
+import kotlinx.coroutines.launch
 
 // Color Palette based on the design
 private val DarkBackground = Color(0xFF0B0A0F)
@@ -35,6 +40,11 @@ fun CalibrationScreen(onStartClick: () -> Unit = {}) {
     var selectedUnit by remember { mutableStateOf("KG") }
     var bodyWeight by remember { mutableStateOf("") }
     var selectedEffort by remember { mutableStateOf("RIR") }
+    
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -99,22 +109,77 @@ fun CalibrationScreen(onStartClick: () -> Unit = {}) {
                 .background(DarkBackground)
                 .padding(24.dp)
         ) {
-            Button(
-                onClick = onStartClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentBlue,
-                    contentColor = Color.White
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text(
-                    text = "START",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage!!,
+                        color = Color.Red,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                
+                Button(
+                    onClick = {
+                        if (isLoading) return@Button
+                        isLoading = true
+                        errorMessage = null
+                        coroutineScope.launch {
+                            try {
+                                val token = TokenManager.getToken(context)
+                                if (token != null) {
+                                    val unitSystemVal = if (selectedUnit == "KG") "METRIC" else "IMPERIAL"
+
+                                    val parsedWeight = bodyWeight.toDoubleOrNull()
+                                    val weightKgValue = if (parsedWeight != null) {
+                                        if (selectedUnit == "LB") parsedWeight * 0.453592 else parsedWeight
+                                    } else null
+
+                                    val request = UserUpdateRequest(
+                                        unitSystem = unitSystemVal,
+                                        effortMeasurement = selectedEffort,
+                                        weightKg = weightKgValue
+                                    )
+                                    val response = RetrofitClient.authService.updateUserProfile("Bearer $token", request)
+                                    if (response.isSuccessful) {
+                                        TokenManager.saveCalibrationComplete(context, true)
+                                        onStartClick()
+                                    } else {
+                                        errorMessage = "Failed to update profile: ${response.code()}"
+                                    }
+                                } else {
+                                    errorMessage = "No active session. Please log in again."
+                                }
+                            } catch (e: Exception) {
+                                errorMessage = "Error: ${e.message}"
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AccentBlue,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "START",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
         }
     }
