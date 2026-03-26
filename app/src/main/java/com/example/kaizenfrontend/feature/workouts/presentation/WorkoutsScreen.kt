@@ -25,7 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
-import com.example.kaizenfrontend.feature.workouts.presentation.components.CreatePlanDialog
+import com.example.kaizenfrontend.feature.workouts.presentation.components.CreatePlanBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.CreateRoutineDialog
 
 @Composable
@@ -162,7 +162,7 @@ fun WorkoutsScreen(
                     }
 
                     if (showCreatePlanDialog) {
-                        CreatePlanDialog(
+                        CreatePlanBottomSheet(
                             onDismiss = { showCreatePlanDialog = false },
                             onCreate = { name, desc, start ->
                                 showCreatePlanDialog = false
