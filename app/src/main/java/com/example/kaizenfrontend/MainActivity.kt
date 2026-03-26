@@ -5,12 +5,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.kaizenfrontend.network.TokenManager
-import com.example.kaizenfrontend.ui.theme.KaizenFrontEndTheme
+import com.example.kaizenfrontend.core.data.local.SessionManager
+import com.example.kaizenfrontend.core.ui.theme.KaizenFrontEndTheme
+import com.example.kaizenfrontend.feature.auth.presentation.login.LoginScreen
+import com.example.kaizenfrontend.feature.auth.presentation.signup.SignUpScreen
+import com.example.kaizenfrontend.feature.auth.presentation.splash.SplashScreen
+import com.example.kaizenfrontend.feature.auth.presentation.start.StartScreen
+import com.example.kaizenfrontend.feature.dashboard.presentation.DashboardScreen
+import com.example.kaizenfrontend.feature.user.presentation.calibration.CalibrationScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,6 +35,7 @@ class MainActivity : ComponentActivity() {
 fun KaizenNavHost() {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
 
     NavHost(
         navController = navController,
@@ -54,19 +62,13 @@ fun KaizenNavHost() {
         }
         composable("start") {
             StartScreen(
-                onGetStartedClick = {
-                    navController.navigate("signup")
-                },
-                onLoginClick = {
-                    navController.navigate("login")
-                }
+                onGetStartedClick = { navController.navigate("signup") },
+                onLoginClick = { navController.navigate("login") }
             )
         }
         composable("signup") {
             SignUpScreen(
-                onBackClick = {
-                    navController.popBackStack()
-                },
+                onBackClick = { navController.popBackStack() },
                 onSignUpClick = {
                     navController.navigate("calibration") {
                         popUpTo("start") { inclusive = true }
@@ -76,11 +78,9 @@ fun KaizenNavHost() {
         }
         composable("login") {
             LoginScreen(
-                onBackClick = {
-                    navController.popBackStack()
-                },
+                onBackClick = { navController.popBackStack() },
                 onLoginClick = {
-                    val destination = if (TokenManager.isCalibrationComplete(context)) "dashboard" else "calibration"
+                    val destination = if (sessionManager.isCalibrationComplete()) "dashboard" else "calibration"
                     navController.navigate(destination) {
                         popUpTo("start") { inclusive = true }
                     }
@@ -107,4 +107,3 @@ fun KaizenNavHost() {
         }
     }
 }
-
