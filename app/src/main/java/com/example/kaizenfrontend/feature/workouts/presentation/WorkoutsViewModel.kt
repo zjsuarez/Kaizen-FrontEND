@@ -1,0 +1,128 @@
+package com.example.kaizenfrontend.feature.workouts.presentation
+
+import android.content.Context
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.kaizenfrontend.core.data.local.SessionManager
+import com.example.kaizenfrontend.core.network.RetrofitClient
+import com.example.kaizenfrontend.feature.workouts.data.repository.PlanRepositoryImpl
+import com.example.kaizenfrontend.feature.workouts.data.repository.RoutineRepositoryImpl
+import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
+import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
+import com.example.kaizenfrontend.feature.workouts.domain.usecase.CreatePlanUseCase
+import com.example.kaizenfrontend.feature.workouts.domain.usecase.CreateRoutineUseCase
+import com.example.kaizenfrontend.feature.workouts.domain.usecase.GetPlansUseCase
+import com.example.kaizenfrontend.feature.workouts.domain.usecase.GetRoutinesUseCase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+sealed class WorkoutsUiState {
+    object Loading : WorkoutsUiState()
+    data class Success(
+        val plans: List<TrainingPlan>,
+        val routinesByPlanId: Map<String, List<Routine>>,
+        val unassignedRoutines: List<Routine>, // routines where planId is null
+        val expandedPlanIds: Set<String>
+    ) : WorkoutsUiState()
+    data class Error(val message: String) : WorkoutsUiState()
+}
+
+class WorkoutsViewModel(
+    private val getPlansUseCase: GetPlansUseCase,
+    private val getRoutinesUseCase: GetRoutinesUseCase,
+    private val createPlanUseCase: CreatePlanUseCase,
+    private val createRoutineUseCase: CreateRoutineUseCase
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<WorkoutsUiState>(WorkoutsUiState.Loading)
+    val uiState: StateFlow<WorkoutsUiState> = _uiState.asStateFlow()
+
+    init {
+        loadData()
+    }
+
+    fun loadData() {
+        viewModelScope.launch {
+            _uiState.value = WorkoutsUiState.Loading
+            val plansResult = getPlansUseCase()
+            val routinesResult = getRoutinesUseCase()
+
+            if (plansResult.isSuccess && routinesResult.isSuccess) {
+                val plans = plansResult.getOrNull() ?: emptyList()
+                val routines = routinesResult.getOrNull() ?: emptyList()
+
+                val routinesByPlanId = routines.filter { it.planId != null }.groupBy { it.planId!! }
+                val unassignedRoutines = routines.filter { it.planId == null }
+
+                _uiState.value = WorkoutsUiState.Success(
+                    plans = plans,
+                    routinesByPlanId = routinesByPlanId,
+                    unassignedRoutines = unassignedRoutines,
+                    expandedPlanIds = plans.map { it.id }.toSet() // Expand all by default
+                )
+            } else {
+                val errorMsg = plansResult.exceptionOrNull()?.message ?: routinesResult.exceptionOrNull()?.message ?: "Unknown error occurred"
+                _uiState.value = WorkoutsUiState.Error(errorMsg)
+            }
+        }
+    }
+
+    fun togglePlanExpansion(planId: String) {
+        _uiState.update { state ->
+            if (state is WorkoutsUiState.Success) {
+                val newExpanded = if (state.expandedPlanIds.contains(planId)) {
+                    state.expandedPlanIds - planId
+                } else {
+                    state.expandedPlanIds + planId
+                }
+                state.copy(expandedPlanIds = newExpanded)
+            } else state
+        }
+    }
+
+    fun createPlan(name: String, description: String, startingDate: String) {
+        viewModelScope.launch {
+            _uiState.value = WorkoutsUiState.Loading
+            val result = createPlanUseCase(name, description, startingDate)
+            if (result.isSuccess) {
+                loadData()
+            } else {
+                _uiState.value = WorkoutsUiState.Error(result.exceptionOrNull()?.message ?: "Failed to create plan")
+            }
+        }
+    }
+
+    fun createRoutine(planId: String?, name: String, description: String) {
+        viewModelScope.launch {
+            _uiState.value = WorkoutsUiState.Loading
+            val result = createRoutineUseCase(planId, name, description)
+            if (result.isSuccess) {
+                loadData()
+            } else {
+                _uiState.value = WorkoutsUiState.Error(result.exceptionOrNull()?.message ?: "Failed to create routine")
+            }
+        }
+    }
+}
+
+class WorkoutsViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(WorkoutsViewModel::class.java)) {
+            val sessionManager = SessionManager(context)
+            val planRepo = PlanRepositoryImpl(RetrofitClient.planService, sessionManager)
+            val routineRepo = RoutineRepositoryImpl(RetrofitClient.routineService, sessionManager)
+            @Suppress("UNCHECKED_CAST")
+            return WorkoutsViewModel(
+                GetPlansUseCase(planRepo),
+                GetRoutinesUseCase(routineRepo),
+                CreatePlanUseCase(planRepo),
+                CreateRoutineUseCase(routineRepo)
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
