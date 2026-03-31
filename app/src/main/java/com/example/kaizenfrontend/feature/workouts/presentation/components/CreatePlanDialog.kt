@@ -141,12 +141,6 @@ fun CreatePlanBottomSheet(
                 }
             }
 
-            Text(
-                text = "Build your next training cycle in two quick steps.",
-                color = LightGrey,
-                fontSize = 13.sp
-            )
-
             Spacer(modifier = Modifier.height(18.dp))
 
             if (currentStep == 1) {
