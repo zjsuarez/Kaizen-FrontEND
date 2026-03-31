@@ -60,6 +60,7 @@ fun RoutineWizardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showInlineErrors by remember { mutableStateOf(false) }
+    var showExerciseCatalog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.currentStep) {
         showInlineErrors = false
@@ -135,19 +136,24 @@ fun RoutineWizardScreen(
                 )
 
                 else -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Step 3 will be implemented in TAREA 3",
-                            color = LightGrey,
-                            fontSize = 14.sp
-                        )
-                    }
+                    WizardStep3Exercises(
+                        selectedExercises = uiState.selectedExercises,
+                        onAddExerciseClick = { showExerciseCatalog = true },
+                        onRemoveExercise = viewModel::removeExercise
+                    )
                 }
             }
         }
+    }
+
+    if (showExerciseCatalog) {
+        ExerciseCatalogBottomSheet(
+            onDismissRequest = { showExerciseCatalog = false },
+            onExerciseSelected = { exercise ->
+                viewModel.addExercise(exercise)
+                showExerciseCatalog = false
+            }
+        )
     }
 }
 
