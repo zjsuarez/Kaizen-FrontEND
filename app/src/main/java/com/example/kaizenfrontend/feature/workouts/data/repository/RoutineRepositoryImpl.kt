@@ -59,4 +59,20 @@ class RoutineRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun deleteRoutine(routineId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val token = sessionManager.getToken() ?: return@withContext Result.failure(Exception("No auth token found"))
+            val bearerToken = "Bearer $token"
+
+            val response = api.deleteRoutine(bearerToken, routineId)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to delete routine: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -8,6 +8,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -37,6 +41,7 @@ fun WorkoutsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    var isEditMode by remember { mutableStateOf(false) }
     var showFabMenu by remember { mutableStateOf(false) }
     var showCreatePlanDialog by remember { mutableStateOf(false) }
     var showCreateRoutineWizard by remember { mutableStateOf(false) }
@@ -66,34 +71,68 @@ fun WorkoutsScreen(
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
-                Box {
+                if (!isEditMode) {
                     FloatingActionButton(
-                        onClick = { showFabMenu = true },
-                        containerColor = CrayolaBlue,
+                        onClick = { isEditMode = true },
+                        containerColor = ShadowGrey,
                         contentColor = Color.White,
                         modifier = Modifier.size(48.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Menu")
+                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Enter edit mode")
                     }
-
-                    DropdownMenu(
-                        expanded = showFabMenu,
-                        onDismissRequest = { showFabMenu = false }
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("Create Plan") },
-                            onClick = {
-                                showFabMenu = false
-                                showCreatePlanDialog = true
+                        Box {
+                            FloatingActionButton(
+                                onClick = { showFabMenu = true },
+                                containerColor = CrayolaBlue,
+                                contentColor = Color.White,
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Menu")
                             }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Create Workout") },
-                            onClick = {
-                                showFabMenu = false
-                                showCreateRoutineWizard = true
+
+                            DropdownMenu(
+                                expanded = showFabMenu,
+                                onDismissRequest = { showFabMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Create Plan") },
+                                    onClick = {
+                                        showFabMenu = false
+                                        showCreatePlanDialog = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Create Workout") },
+                                    onClick = {
+                                        showFabMenu = false
+                                        showCreateRoutineWizard = true
+                                    }
+                                )
                             }
-                        )
+                        }
+
+                        Button(
+                            onClick = {
+                                isEditMode = false
+                                showFabMenu = false
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = ShadowGrey)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Done,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Done", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }
@@ -122,7 +161,10 @@ fun WorkoutsScreen(
                                 PlanHeaderItem(
                                     plan = plan,
                                     isExpanded = isExpanded,
-                                    onClick = { viewModel.togglePlanExpansion(plan.id) }
+                                    isEditMode = isEditMode,
+                                    onClick = { viewModel.togglePlanExpansion(plan.id) },
+                                    onDeleteClick = { viewModel.deletePlan(plan.id) },
+                                    onMoveDownClick = { viewModel.movePlanDown(plan.id) }
                                 )
                             }
                             
@@ -139,7 +181,12 @@ fun WorkoutsScreen(
                                     }
                                 } else {
                                     items(routines, key = { it.id }) { routine ->
-                                        RoutineCard(routine = routine)
+                                        RoutineCard(
+                                            routine = routine,
+                                            isEditMode = isEditMode,
+                                            onDeleteClick = { viewModel.deleteRoutine(routine.id) },
+                                            onMoveDownClick = { viewModel.moveRoutineDown(routine.id, plan.id) }
+                                        )
                                     }
                                 }
                             }
@@ -157,7 +204,12 @@ fun WorkoutsScreen(
                                 )
                             }
                             items(state.unassignedRoutines, key = { "unassigned_${it.id}" }) { routine ->
-                                RoutineCard(routine = routine)
+                                RoutineCard(
+                                    routine = routine,
+                                    isEditMode = isEditMode,
+                                    onDeleteClick = { viewModel.deleteRoutine(routine.id) },
+                                    onMoveDownClick = { viewModel.moveRoutineDown(routine.id, null) }
+                                )
                             }
                         }
                     }
@@ -203,7 +255,10 @@ fun WorkoutsScreen(
 private fun PlanHeaderItem(
     plan: TrainingPlan,
     isExpanded: Boolean,
-    onClick: () -> Unit
+    isEditMode: Boolean,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onMoveDownClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -225,16 +280,39 @@ private fun PlanHeaderItem(
                 Text(text = plan.description, color = LightGrey, fontSize = 13.sp)
             }
         }
-        Icon(
-            imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
-            contentDescription = null,
-            tint = LightGrey
-        )
+
+        if (isEditMode) {
+            IconButton(onClick = onDeleteClick) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete plan",
+                    tint = SubtleRed
+                )
+            }
+            IconButton(onClick = onMoveDownClick) {
+                Icon(
+                    imageVector = Icons.Default.DragIndicator,
+                    contentDescription = "Reorder plan",
+                    tint = LightGrey
+                )
+            }
+        } else {
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
+                contentDescription = null,
+                tint = LightGrey
+            )
+        }
     }
 }
 
 @Composable
-private fun RoutineCard(routine: Routine) {
+private fun RoutineCard(
+    routine: Routine,
+    isEditMode: Boolean,
+    onDeleteClick: () -> Unit,
+    onMoveDownClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -245,7 +323,9 @@ private fun RoutineCard(routine: Routine) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { /* TODO: Open Workout Details */ }
+                .then(
+                    if (isEditMode) Modifier else Modifier.clickable { /* TODO: Open Workout Details */ }
+                )
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -260,6 +340,23 @@ private fun RoutineCard(routine: Routine) {
                 Text(text = routine.name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 if (routine.description.isNotBlank()) {
                     Text(text = routine.description, color = LightGrey, fontSize = 13.sp)
+                }
+            }
+
+            if (isEditMode) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete workout",
+                        tint = SubtleRed
+                    )
+                }
+                IconButton(onClick = onMoveDownClick) {
+                    Icon(
+                        imageVector = Icons.Default.DragIndicator,
+                        contentDescription = "Reorder workout",
+                        tint = LightGrey
+                    )
                 }
             }
         }

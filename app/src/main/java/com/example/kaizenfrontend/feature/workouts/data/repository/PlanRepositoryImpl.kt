@@ -57,4 +57,20 @@ class PlanRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun deletePlan(planId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val token = sessionManager.getToken() ?: return@withContext Result.failure(Exception("No auth token found"))
+            val bearerToken = "Bearer $token"
+
+            val response = api.deletePlan(bearerToken, planId)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to delete plan: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

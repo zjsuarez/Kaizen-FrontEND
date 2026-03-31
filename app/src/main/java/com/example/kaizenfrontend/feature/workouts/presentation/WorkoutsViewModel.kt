@@ -12,6 +12,8 @@ import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.domain.usecase.CreatePlanUseCase
 import com.example.kaizenfrontend.feature.workouts.domain.usecase.CreateRoutineUseCase
+import com.example.kaizenfrontend.feature.workouts.domain.usecase.DeletePlanUseCase
+import com.example.kaizenfrontend.feature.workouts.domain.usecase.DeleteRoutineUseCase
 import com.example.kaizenfrontend.feature.workouts.domain.usecase.GetPlansUseCase
 import com.example.kaizenfrontend.feature.workouts.domain.usecase.GetRoutinesUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +37,9 @@ class WorkoutsViewModel(
     private val getPlansUseCase: GetPlansUseCase,
     private val getRoutinesUseCase: GetRoutinesUseCase,
     private val createPlanUseCase: CreatePlanUseCase,
-    private val createRoutineUseCase: CreateRoutineUseCase
+    private val createRoutineUseCase: CreateRoutineUseCase,
+    private val deletePlanUseCase: DeletePlanUseCase,
+    private val deleteRoutineUseCase: DeleteRoutineUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<WorkoutsUiState>(WorkoutsUiState.Loading)
@@ -107,6 +111,73 @@ class WorkoutsViewModel(
             }
         }
     }
+
+    fun deletePlan(planId: String) {
+        viewModelScope.launch {
+            _uiState.value = WorkoutsUiState.Loading
+            val result = deletePlanUseCase(planId)
+            if (result.isSuccess) {
+                loadData()
+            } else {
+                _uiState.value = WorkoutsUiState.Error(result.exceptionOrNull()?.message ?: "Failed to delete plan")
+            }
+        }
+    }
+
+    fun deleteRoutine(routineId: String) {
+        viewModelScope.launch {
+            _uiState.value = WorkoutsUiState.Loading
+            val result = deleteRoutineUseCase(routineId)
+            if (result.isSuccess) {
+                loadData()
+            } else {
+                _uiState.value = WorkoutsUiState.Error(result.exceptionOrNull()?.message ?: "Failed to delete routine")
+            }
+        }
+    }
+
+    fun movePlanDown(planId: String) {
+        _uiState.update { state ->
+            if (state !is WorkoutsUiState.Success) return@update state
+            val fromIndex = state.plans.indexOfFirst { it.id == planId }
+            if (fromIndex == -1 || fromIndex == state.plans.lastIndex) return@update state
+
+            val reordered = state.plans.toMutableList().apply {
+                add(fromIndex + 1, removeAt(fromIndex))
+            }
+            state.copy(plans = reordered)
+        }
+    }
+
+    fun moveRoutineDown(routineId: String, planId: String?) {
+        _uiState.update { state ->
+            if (state !is WorkoutsUiState.Success) return@update state
+
+            if (planId == null) {
+                val fromIndex = state.unassignedRoutines.indexOfFirst { it.id == routineId }
+                if (fromIndex == -1 || fromIndex == state.unassignedRoutines.lastIndex) return@update state
+
+                val reorderedUnassigned = state.unassignedRoutines.toMutableList().apply {
+                    add(fromIndex + 1, removeAt(fromIndex))
+                }
+                return@update state.copy(unassignedRoutines = reorderedUnassigned)
+            }
+
+            val planRoutines = state.routinesByPlanId[planId] ?: return@update state
+            val fromIndex = planRoutines.indexOfFirst { it.id == routineId }
+            if (fromIndex == -1 || fromIndex == planRoutines.lastIndex) return@update state
+
+            val reorderedPlanRoutines = planRoutines.toMutableList().apply {
+                add(fromIndex + 1, removeAt(fromIndex))
+            }
+
+            state.copy(
+                routinesByPlanId = state.routinesByPlanId.toMutableMap().apply {
+                    put(planId, reorderedPlanRoutines)
+                }
+            )
+        }
+    }
 }
 
 class WorkoutsViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
@@ -120,7 +191,9 @@ class WorkoutsViewModelFactory(private val context: Context) : ViewModelProvider
                 GetPlansUseCase(planRepo),
                 GetRoutinesUseCase(routineRepo),
                 CreatePlanUseCase(planRepo),
-                CreateRoutineUseCase(routineRepo)
+                CreateRoutineUseCase(routineRepo),
+                DeletePlanUseCase(planRepo),
+                DeleteRoutineUseCase(routineRepo)
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
