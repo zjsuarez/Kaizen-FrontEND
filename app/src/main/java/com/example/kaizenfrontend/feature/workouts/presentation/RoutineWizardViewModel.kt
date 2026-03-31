@@ -1,7 +1,12 @@
 package com.example.kaizenfrontend.feature.workouts.presentation
 
+import android.util.Log
+import com.example.kaizenfrontend.feature.workouts.data.remote.dto.RoutineCreateDTO
+import com.example.kaizenfrontend.feature.workouts.data.remote.dto.RoutineExerciseTargetDTO
+import com.example.kaizenfrontend.feature.workouts.data.remote.dto.RoutineScheduleDataDTO
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
 import com.example.kaizenfrontend.feature.workouts.data.repository.MockExerciseRepository
 import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
@@ -9,8 +14,11 @@ import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineScheduleT
 import com.example.kaizenfrontend.feature.workouts.domain.repository.ExerciseRepository
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -32,10 +40,15 @@ class RoutineWizardViewModel(
     private val exerciseRepository: ExerciseRepository = MockExerciseRepository()
 ) : ViewModel() {
 
+    private val gson = Gson()
+
     private val _uiState = MutableStateFlow(
         RoutineWizardUiState(isLoadingExercises = true)
     )
     val uiState: StateFlow<RoutineWizardUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<RoutineWizardEvent>(extraBufferCapacity = 1)
+    val events: SharedFlow<RoutineWizardEvent> = _events.asSharedFlow()
 
     init {
         loadExercises()
@@ -180,4 +193,54 @@ class RoutineWizardViewModel(
             exercisesError = null
         )
     }
+
+    fun saveRoutine() {
+        viewModelScope.launch {
+            val payload = _uiState.value.toRoutineCreateDTO()
+            Log.d(TAG, "Routine payload: ${gson.toJson(payload)}")
+            _events.emit(RoutineWizardEvent.Success)
+        }
+    }
+
+    private fun RoutineWizardUiState.toRoutineCreateDTO(): RoutineCreateDTO {
+        val scheduleData = when (scheduleType) {
+            RoutineScheduleType.WEEKLY -> RoutineScheduleDataDTO(
+                weekDays = selectedWeekDays
+                    .sortedBy { it.value }
+                    .map { it.name }
+            )
+
+            RoutineScheduleType.INTERVAL -> RoutineScheduleDataDTO(
+                intervalDays = intervalDays
+            )
+
+            RoutineScheduleType.CYCLE -> RoutineScheduleDataDTO(
+                cycleLength = cycleLength
+            )
+        }
+
+        val exerciseTargets = selectedExercises.map {
+            RoutineExerciseTargetDTO(
+                exerciseId = it.exercise.id,
+                targetSets = it.targetSets,
+                targetReps = it.targetReps
+            )
+        }
+
+        return RoutineCreateDTO(
+            name = name.trim(),
+            description = description.trim(),
+            scheduleType = scheduleType.name,
+            scheduleData = scheduleData,
+            exercises = exerciseTargets
+        )
+    }
+
+    companion object {
+        private const val TAG = "RoutineWizardViewModel"
+    }
+}
+
+sealed interface RoutineWizardEvent {
+    data object Success : RoutineWizardEvent
 }

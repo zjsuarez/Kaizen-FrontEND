@@ -1,5 +1,11 @@
 package com.example.kaizenfrontend.feature.workouts.presentation.components
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,17 +56,28 @@ import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineScheduleType
+import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardEvent
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardUiState
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardViewModel
+import kotlinx.coroutines.flow.collectLatest
 import java.time.DayOfWeek
 
 @Composable
 fun RoutineWizardScreen(
-    viewModel: RoutineWizardViewModel
+    viewModel: RoutineWizardViewModel,
+    onWizardClosed: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showInlineErrors by remember { mutableStateOf(false) }
     var showExerciseCatalog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collectLatest { event ->
+            if (event is RoutineWizardEvent.Success) {
+                onWizardClosed()
+            }
+        }
+    }
 
     LaunchedEffect(uiState.currentStep) {
         showInlineErrors = false
@@ -94,10 +111,18 @@ fun RoutineWizardScreen(
         },
         bottomBar = {
             WizardBottomBar(
-                isLastStep = uiState.currentStep == 3,
-                onNextClick = {
+                buttonText = if (uiState.currentStep == 3) {
+                    "SAVE KAIZEN ROUTINE"
+                } else {
+                    "NEXT"
+                },
+                onButtonClick = {
                     if (isCurrentStepValid(uiState)) {
-                        viewModel.nextStep()
+                        if (uiState.currentStep == 3) {
+                            viewModel.saveRoutine()
+                        } else {
+                            viewModel.nextStep()
+                        }
                     } else {
                         showInlineErrors = true
                     }
@@ -112,34 +137,43 @@ fun RoutineWizardScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            when (uiState.currentStep) {
-                1 -> WizardStep1Meta(
-                    name = uiState.name,
-                    description = uiState.description,
-                    onNameChange = viewModel::updateName,
-                    onDescriptionChange = viewModel::updateDescription,
-                    showNameError = showInlineErrors && uiState.name.isBlank()
-                )
+            AnimatedContent(
+                targetState = uiState.currentStep,
+                transitionSpec = {
+                    val isForward = targetState > initialState
+                    (slideInHorizontally { if (isForward) it else -it } + fadeIn()) togetherWith
+                        (slideOutHorizontally { if (isForward) -it else it } + fadeOut())
+                },
+                label = "WizardStepTransition"
+            ) { step ->
+                when (step) {
+                    1 -> WizardStep1Meta(
+                        name = uiState.name,
+                        description = uiState.description,
+                        onNameChange = viewModel::updateName,
+                        onDescriptionChange = viewModel::updateDescription,
+                        showNameError = showInlineErrors && uiState.name.isBlank()
+                    )
 
-                2 -> WizardStep2Schedule(
-                    scheduleType = uiState.scheduleType,
-                    selectedWeekDays = uiState.selectedWeekDays,
-                    intervalDays = uiState.intervalDays,
-                    cycleLength = uiState.cycleLength,
-                    onScheduleTypeSelected = viewModel::updateScheduleType,
-                    onWeekDayToggle = viewModel::toggleWeekDay,
-                    onIntervalChange = viewModel::updateIntervalDays,
-                    onCycleLengthChange = viewModel::updateCycleLength,
-                    showWeeklyError = showInlineErrors &&
-                        uiState.scheduleType == RoutineScheduleType.WEEKLY &&
-                        uiState.selectedWeekDays.isEmpty()
-                )
+                    2 -> WizardStep2Schedule(
+                        scheduleType = uiState.scheduleType,
+                        selectedWeekDays = uiState.selectedWeekDays,
+                        intervalDays = uiState.intervalDays,
+                        cycleLength = uiState.cycleLength,
+                        onScheduleTypeSelected = viewModel::updateScheduleType,
+                        onWeekDayToggle = viewModel::toggleWeekDay,
+                        onIntervalChange = viewModel::updateIntervalDays,
+                        onCycleLengthChange = viewModel::updateCycleLength,
+                        showWeeklyError = showInlineErrors &&
+                            uiState.scheduleType == RoutineScheduleType.WEEKLY &&
+                            uiState.selectedWeekDays.isEmpty()
+                    )
 
-                else -> {
-                    WizardStep3Exercises(
+                    else -> WizardStep3Exercises(
                         selectedExercises = uiState.selectedExercises,
                         onAddExerciseClick = { showExerciseCatalog = true },
-                        onRemoveExercise = viewModel::removeExercise
+                        onRemoveExercise = viewModel::removeExercise,
+                        showEmptyError = showInlineErrors && uiState.selectedExercises.isEmpty()
                     )
                 }
             }
@@ -257,8 +291,8 @@ fun WizardStep2Schedule(
 
 @Composable
 private fun WizardBottomBar(
-    isLastStep: Boolean,
-    onNextClick: () -> Unit
+    buttonText: String,
+    onButtonClick: () -> Unit
 ) {
     Surface(color = Onyx) {
         Column(
@@ -267,8 +301,7 @@ private fun WizardBottomBar(
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Button(
-                onClick = onNextClick,
-                enabled = !isLastStep,
+                onClick = onButtonClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -279,7 +312,7 @@ private fun WizardBottomBar(
                 )
             ) {
                 Text(
-                    text = "NEXT",
+                    text = buttonText,
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
@@ -455,6 +488,8 @@ private fun isCurrentStepValid(state: RoutineWizardUiState): Boolean {
             RoutineScheduleType.INTERVAL -> state.intervalDays > 0
             RoutineScheduleType.CYCLE -> state.cycleLength > 0
         }
+
+        3 -> state.selectedExercises.isNotEmpty()
 
         else -> true
     }

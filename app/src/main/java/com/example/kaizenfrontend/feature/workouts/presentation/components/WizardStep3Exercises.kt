@@ -44,6 +44,7 @@ import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
+import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 import com.example.kaizenfrontend.feature.workouts.data.repository.MockExerciseRepository
 import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.MuscleTarget
@@ -54,7 +55,8 @@ import com.example.kaizenfrontend.feature.workouts.domain.repository.ExerciseRep
 fun WizardStep3Exercises(
     selectedExercises: List<RoutineExercise>,
     onAddExerciseClick: () -> Unit,
-    onRemoveExercise: (String) -> Unit
+    onRemoveExercise: (String) -> Unit,
+    showEmptyError: Boolean
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -91,6 +93,14 @@ fun WizardStep3Exercises(
                             text = "Add first exercise",
                             color = CrayolaBlue,
                             fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    if (showEmptyError) {
+                        Text(
+                            text = "Add at least one exercise",
+                            color = SubtleRed,
+                            fontSize = 12.sp
                         )
                     }
                 }
