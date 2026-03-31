@@ -149,6 +149,19 @@ class WorkoutsViewModel(
         }
     }
 
+    fun movePlanUp(planId: String) {
+        _uiState.update { state ->
+            if (state !is WorkoutsUiState.Success) return@update state
+            val fromIndex = state.plans.indexOfFirst { it.id == planId }
+            if (fromIndex <= 0) return@update state
+
+            val reordered = state.plans.toMutableList().apply {
+                add(fromIndex - 1, removeAt(fromIndex))
+            }
+            state.copy(plans = reordered)
+        }
+    }
+
     fun moveRoutineDown(routineId: String, planId: String?) {
         _uiState.update { state ->
             if (state !is WorkoutsUiState.Success) return@update state
@@ -169,6 +182,36 @@ class WorkoutsViewModel(
 
             val reorderedPlanRoutines = planRoutines.toMutableList().apply {
                 add(fromIndex + 1, removeAt(fromIndex))
+            }
+
+            state.copy(
+                routinesByPlanId = state.routinesByPlanId.toMutableMap().apply {
+                    put(planId, reorderedPlanRoutines)
+                }
+            )
+        }
+    }
+
+    fun moveRoutineUp(routineId: String, planId: String?) {
+        _uiState.update { state ->
+            if (state !is WorkoutsUiState.Success) return@update state
+
+            if (planId == null) {
+                val fromIndex = state.unassignedRoutines.indexOfFirst { it.id == routineId }
+                if (fromIndex <= 0) return@update state
+
+                val reorderedUnassigned = state.unassignedRoutines.toMutableList().apply {
+                    add(fromIndex - 1, removeAt(fromIndex))
+                }
+                return@update state.copy(unassignedRoutines = reorderedUnassigned)
+            }
+
+            val planRoutines = state.routinesByPlanId[planId] ?: return@update state
+            val fromIndex = planRoutines.indexOfFirst { it.id == routineId }
+            if (fromIndex <= 0) return@update state
+
+            val reorderedPlanRoutines = planRoutines.toMutableList().apply {
+                add(fromIndex - 1, removeAt(fromIndex))
             }
 
             state.copy(

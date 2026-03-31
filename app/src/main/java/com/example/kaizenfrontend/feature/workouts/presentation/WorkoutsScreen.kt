@@ -1,10 +1,16 @@
 package com.example.kaizenfrontend.feature.workouts.presentation
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -20,9 +26,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -164,6 +175,7 @@ fun WorkoutsScreen(
                                     isEditMode = isEditMode,
                                     onClick = { viewModel.togglePlanExpansion(plan.id) },
                                     onDeleteClick = { viewModel.deletePlan(plan.id) },
+                                    onMoveUpClick = { viewModel.movePlanUp(plan.id) },
                                     onMoveDownClick = { viewModel.movePlanDown(plan.id) }
                                 )
                             }
@@ -185,6 +197,7 @@ fun WorkoutsScreen(
                                             routine = routine,
                                             isEditMode = isEditMode,
                                             onDeleteClick = { viewModel.deleteRoutine(routine.id) },
+                                            onMoveUpClick = { viewModel.moveRoutineUp(routine.id, plan.id) },
                                             onMoveDownClick = { viewModel.moveRoutineDown(routine.id, plan.id) }
                                         )
                                     }
@@ -208,6 +221,7 @@ fun WorkoutsScreen(
                                     routine = routine,
                                     isEditMode = isEditMode,
                                     onDeleteClick = { viewModel.deleteRoutine(routine.id) },
+                                    onMoveUpClick = { viewModel.moveRoutineUp(routine.id, null) },
                                     onMoveDownClick = { viewModel.moveRoutineDown(routine.id, null) }
                                 )
                             }
@@ -258,11 +272,43 @@ private fun PlanHeaderItem(
     isEditMode: Boolean,
     onClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onMoveUpClick: () -> Unit,
     onMoveDownClick: () -> Unit
 ) {
+    val density = LocalDensity.current
+    val maxVisualOffsetPx = remember(density) { with(density) { 56.dp.toPx() } }
+    var dragVisualOffset by remember(plan.id) { mutableFloatStateOf(0f) }
+    var isDragging by remember(plan.id) { mutableStateOf(false) }
+
+    val animatedDragOffset by animateFloatAsState(
+        targetValue = if (isDragging) dragVisualOffset else 0f,
+        label = "plan_drag_offset"
+    )
+    val liftedScale by animateFloatAsState(
+        targetValue = if (isDragging) 1.015f else 1f,
+        label = "plan_drag_scale"
+    )
+    val liftedElevation by animateDpAsState(
+        targetValue = if (isDragging) 10.dp else 0.dp,
+        label = "plan_drag_elevation"
+    )
+    val dragBackground by animateColorAsState(
+        targetValue = if (isDragging) ShadowGrey.copy(alpha = 0.34f) else Color.Transparent,
+        label = "plan_drag_background"
+    )
+    val liftedElevationPx = with(density) { liftedElevation.toPx() }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                translationY = animatedDragOffset
+                scaleX = liftedScale
+                scaleY = liftedScale
+                shadowElevation = liftedElevationPx
+            }
+            .clip(RoundedCornerShape(14.dp))
+            .background(dragBackground)
             .clickable { onClick() }
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -289,13 +335,22 @@ private fun PlanHeaderItem(
                     tint = SubtleRed
                 )
             }
-            IconButton(onClick = onMoveDownClick) {
-                Icon(
-                    imageVector = Icons.Default.DragIndicator,
-                    contentDescription = "Reorder plan",
-                    tint = LightGrey
-                )
-            }
+            DragReorderHandle(
+                onMoveUp = onMoveUpClick,
+                onMoveDown = onMoveDownClick,
+                iconTint = LightGrey,
+                threshold = 36.dp,
+                contentDescription = "Reorder plan",
+                onDragOffsetChange = { offset ->
+                    dragVisualOffset = offset.coerceIn(-maxVisualOffsetPx, maxVisualOffsetPx)
+                },
+                onDragStateChange = { dragging ->
+                    isDragging = dragging
+                    if (!dragging) {
+                        dragVisualOffset = 0f
+                    }
+                }
+            )
         } else {
             Icon(
                 imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
@@ -311,14 +366,49 @@ private fun RoutineCard(
     routine: Routine,
     isEditMode: Boolean,
     onDeleteClick: () -> Unit,
+    onMoveUpClick: () -> Unit,
     onMoveDownClick: () -> Unit
 ) {
+    val density = LocalDensity.current
+    val maxVisualOffsetPx = remember(density) { with(density) { 72.dp.toPx() } }
+    var dragVisualOffset by remember(routine.id) { mutableFloatStateOf(0f) }
+    var isDragging by remember(routine.id) { mutableStateOf(false) }
+
+    val animatedDragOffset by animateFloatAsState(
+        targetValue = if (isDragging) dragVisualOffset else 0f,
+        label = "routine_drag_offset"
+    )
+    val liftedScale by animateFloatAsState(
+        targetValue = if (isDragging) 1.02f else 1f,
+        label = "routine_drag_scale"
+    )
+    val liftedElevation by animateDpAsState(
+        targetValue = if (isDragging) 12.dp else 0.dp,
+        label = "routine_drag_elevation"
+    )
+    val cardColor by animateColorAsState(
+        targetValue = if (isDragging) ShadowGrey.copy(alpha = 0.9f) else ShadowGrey,
+        label = "routine_drag_color"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isDragging) CrayolaBlue.copy(alpha = 0.45f) else Color.Transparent,
+        label = "routine_drag_border"
+    )
+    val liftedElevationPx = with(density) { liftedElevation.toPx() }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 8.dp),
+            .padding(vertical = 6.dp, horizontal = 8.dp)
+            .graphicsLayer {
+                translationY = animatedDragOffset
+                scaleX = liftedScale
+                scaleY = liftedScale
+                shadowElevation = liftedElevationPx
+            },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = ShadowGrey)
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        border = if (isDragging) BorderStroke(1.dp, borderColor) else null
     ) {
         Row(
             modifier = Modifier
@@ -351,14 +441,104 @@ private fun RoutineCard(
                         tint = SubtleRed
                     )
                 }
-                IconButton(onClick = onMoveDownClick) {
-                    Icon(
-                        imageVector = Icons.Default.DragIndicator,
-                        contentDescription = "Reorder workout",
-                        tint = LightGrey
-                    )
-                }
+                DragReorderHandle(
+                    onMoveUp = onMoveUpClick,
+                    onMoveDown = onMoveDownClick,
+                    iconTint = LightGrey,
+                    threshold = 36.dp,
+                    contentDescription = "Reorder workout",
+                    onDragOffsetChange = { offset ->
+                        dragVisualOffset = offset.coerceIn(-maxVisualOffsetPx, maxVisualOffsetPx)
+                    },
+                    onDragStateChange = { dragging ->
+                        isDragging = dragging
+                        if (!dragging) {
+                            dragVisualOffset = 0f
+                        }
+                    }
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun DragReorderHandle(
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    iconTint: Color,
+    threshold: Dp,
+    contentDescription: String,
+    onDragOffsetChange: (Float) -> Unit = {},
+    onDragStateChange: (Boolean) -> Unit = {}
+) {
+    val density = LocalDensity.current
+    val thresholdPx = remember(threshold, density) { with(density) { threshold.toPx() } }
+    var dragAccumulator by remember { mutableFloatStateOf(0f) }
+    var visualOffset by remember { mutableFloatStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
+
+    val handleBackground by animateColorAsState(
+        targetValue = if (isDragging) CrayolaBlue.copy(alpha = 0.2f) else Color.Transparent,
+        label = "drag_handle_background"
+    )
+
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 2.dp)
+            .clip(CircleShape)
+            .background(handleBackground)
+            .pointerInput(onMoveUp, onMoveDown, thresholdPx, onDragOffsetChange, onDragStateChange) {
+                detectDragGestures(
+                    onDragStart = {
+                        dragAccumulator = 0f
+                        visualOffset = 0f
+                        isDragging = true
+                        onDragStateChange(true)
+                        onDragOffsetChange(0f)
+                    },
+                    onDragEnd = {
+                        dragAccumulator = 0f
+                        visualOffset = 0f
+                        isDragging = false
+                        onDragOffsetChange(0f)
+                        onDragStateChange(false)
+                    },
+                    onDragCancel = {
+                        dragAccumulator = 0f
+                        visualOffset = 0f
+                        isDragging = false
+                        onDragOffsetChange(0f)
+                        onDragStateChange(false)
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        dragAccumulator += dragAmount.y
+                        visualOffset += dragAmount.y
+
+                        while (dragAccumulator >= thresholdPx) {
+                            onMoveDown()
+                            dragAccumulator -= thresholdPx
+                            visualOffset -= thresholdPx * 0.65f
+                        }
+
+                        while (dragAccumulator <= -thresholdPx) {
+                            onMoveUp()
+                            dragAccumulator += thresholdPx
+                            visualOffset += thresholdPx * 0.65f
+                        }
+
+                        onDragOffsetChange(visualOffset)
+                    }
+                )
+            }
+            .padding(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.DragIndicator,
+            contentDescription = contentDescription,
+            tint = iconTint
+        )
     }
 }
