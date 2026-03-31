@@ -1,6 +1,11 @@
 package com.example.kaizenfrontend.feature.workouts.presentation.components
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,9 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,13 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
+import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -39,6 +42,7 @@ fun CreatePlanBottomSheet(
     var currentStep by remember { mutableIntStateOf(1) }
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var showInlineErrors by remember { mutableStateOf(false) }
 
     // defaulting to today
     val today = remember {
@@ -47,7 +51,11 @@ fun CreatePlanBottomSheet(
     }
     var startingDate by remember { mutableStateOf(today) }
     val canContinue = name.isNotBlank()
-    val canCreate = name.isNotBlank() && startingDate.isNotBlank()
+    val canFinish = name.isNotBlank() && startingDate.isNotBlank()
+
+    LaunchedEffect(currentStep) {
+        showInlineErrors = false
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -124,16 +132,18 @@ fun CreatePlanBottomSheet(
                     if (currentStep == 2) {
                         TextButton(
                             onClick = {
-                                if (canCreate) {
+                                if (canFinish) {
                                     onCreate(name, description, startingDate)
+                                } else {
+                                    showInlineErrors = true
                                 }
                             },
-                            enabled = canCreate
+                            enabled = canFinish
                         ) {
                             Text(
-                                text = "Create",
-                                color = if (canCreate) CrayolaBlue else LightGrey,
-                                fontSize = 16.sp,
+                                text = "Finish",
+                                color = if (canFinish) CrayolaBlue else LightGrey,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -143,152 +153,104 @@ fun CreatePlanBottomSheet(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            if (currentStep == 1) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = ShadowGrey.copy(alpha = 0.56f),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Flag,
-                                contentDescription = null,
-                                tint = CrayolaBlue,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+            AnimatedContent(
+                targetState = currentStep,
+                transitionSpec = {
+                    val isForward = targetState > initialState
+                    (slideInHorizontally { if (isForward) it else -it } + fadeIn()) togetherWith
+                        (slideOutHorizontally { if (isForward) -it else it } + fadeOut())
+                },
+                label = "CreatePlanStepTransition"
+            ) { step ->
+                when (step) {
+                    1 -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(
-                                text = "Plan details",
+                                text = "Name",
                                 color = Color.White,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
                             )
-                        }
 
-                        OutlinedTextField(
-                            value = name,
-                            onValueChange = { name = it },
-                            singleLine = true,
-                            label = { Text("Plan name") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = planFieldColors()
-                        )
-
-                        OutlinedTextField(
-                            value = description,
-                            onValueChange = { description = it },
-                            label = { Text("Description (optional)") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 120.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = planFieldColors()
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                Button(
-                    onClick = { currentStep = 2 },
-                    enabled = canContinue,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CrayolaBlue,
-                        disabledContainerColor = ShadowGrey
-                    )
-                ) {
-                    Text("Continue", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-            } else {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = ShadowGrey.copy(alpha = 0.56f),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                tint = CrayolaBlue,
-                                modifier = Modifier.size(18.dp)
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                singleLine = true,
+                                isError = showInlineErrors && name.isBlank(),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = planFieldColors()
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Start date",
-                                color = Color.White,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
 
-                        OutlinedTextField(
-                            value = startingDate,
-                            onValueChange = { startingDate = it },
-                            singleLine = true,
-                            label = { Text("Starting date") },
-                            placeholder = { Text("YYYY-MM-DD") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.CalendarMonth,
-                                    contentDescription = null,
-                                    tint = CrayolaBlue
-                                )
-                            },
-                            supportingText = {
+                            if (showInlineErrors && name.isBlank()) {
                                 Text(
-                                    text = "Use format YYYY-MM-DD",
-                                    color = LightGrey,
+                                    text = "Name is required",
+                                    color = SubtleRed,
                                     fontSize = 12.sp
                                 )
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = planFieldColors()
-                        )
+                            }
 
-                        if (name.isNotBlank()) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = CrayolaBlue.copy(alpha = 0.14f),
-                                border = BorderStroke(1.dp, CrayolaBlue.copy(alpha = 0.35f))
-                            ) {
+                            Text(
+                                text = "Description",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            OutlinedTextField(
+                                value = description,
+                                onValueChange = { description = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = planFieldColors()
+                            )
+                        }
+                    }
+
+                    else -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                text = "Starting date",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            OutlinedTextField(
+                                value = startingDate,
+                                onValueChange = { startingDate = it },
+                                singleLine = true,
+                                isError = showInlineErrors && startingDate.isBlank(),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = planFieldColors()
+                            )
+
+                            if (showInlineErrors && startingDate.isBlank()) {
                                 Text(
-                                    text = "Plan: ${name.trim()}",
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                    text = "Starting date is required",
+                                    color = SubtleRed,
+                                    fontSize = 12.sp
                                 )
                             }
                         }
                     }
                 }
+            }
 
+            if (currentStep == 1) {
                 Spacer(modifier = Modifier.height(18.dp))
 
                 Button(
                     onClick = {
-                        if (canCreate) {
-                            onCreate(name, description, startingDate)
+                        if (canContinue) {
+                            currentStep = 2
+                        } else {
+                            showInlineErrors = true
                         }
                     },
-                    enabled = canCreate,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -298,11 +260,11 @@ fun CreatePlanBottomSheet(
                         disabledContainerColor = ShadowGrey
                     )
                 ) {
-                    Text("Create plan", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("NEXT", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
             }
+
+            Spacer(modifier = Modifier.height(14.dp))
         }
     }
 }
@@ -312,10 +274,8 @@ private fun planFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.color
     focusedTextColor = Color.White,
     unfocusedTextColor = Color.White,
     focusedBorderColor = CrayolaBlue,
-    unfocusedBorderColor = LightGrey.copy(alpha = 0.42f),
-    focusedContainerColor = ShadowGrey.copy(alpha = 0.55f),
-    unfocusedContainerColor = ShadowGrey.copy(alpha = 0.55f),
-    focusedLabelColor = CrayolaBlue,
-    unfocusedLabelColor = LightGrey,
+    unfocusedBorderColor = Color.Transparent,
+    focusedContainerColor = ShadowGrey,
+    unfocusedContainerColor = ShadowGrey,
     cursorColor = CrayolaBlue
 )

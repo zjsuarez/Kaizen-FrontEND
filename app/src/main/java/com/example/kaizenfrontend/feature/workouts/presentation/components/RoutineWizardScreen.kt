@@ -191,10 +191,16 @@ fun WizardStep1Meta(
     showNameError: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = "Name",
+            color = Color.White,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp
+        )
+
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
-            label = { Text("Name") },
             singleLine = true,
             isError = showNameError,
             shape = RoundedCornerShape(16.dp),
@@ -210,10 +216,16 @@ fun WizardStep1Meta(
             )
         }
 
+        Text(
+            text = "Description",
+            color = Color.White,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp
+        )
+
         OutlinedTextField(
             value = description,
             onValueChange = onDescriptionChange,
-            label = { Text("Description") },
             minLines = 4,
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier
