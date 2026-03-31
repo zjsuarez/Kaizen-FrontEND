@@ -1,20 +1,30 @@
 package com.example.kaizenfrontend.feature.workouts.presentation.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
+import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,148 +46,282 @@ fun CreatePlanBottomSheet(
         sdf.format(Date())
     }
     var startingDate by remember { mutableStateOf(today) }
+    val canContinue = name.isNotBlank()
+    val canCreate = name.isNotBlank() && startingDate.isNotBlank()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         containerColor = Onyx,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
+        scrimColor = Color.Black.copy(alpha = 0.62f),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 10.dp, bottom = 6.dp)
+                    .size(width = 48.dp, height = 5.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(LightGrey.copy(alpha = 0.6f))
+            )
+        }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-                .windowInsetsPadding(WindowInsets.ime)
+                .navigationBarsPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = {
-                    if (currentStep == 2) {
-                        currentStep = 1
-                    } else {
-                        onDismiss()
+                Box(
+                    modifier = Modifier.width(72.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    IconButton(
+                        onClick = {
+                            if (currentStep == 2) {
+                                currentStep = 1
+                            } else {
+                                onDismiss()
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (currentStep == 2) Icons.Default.ArrowBack else Icons.Default.Close,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
                     }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Create plan",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "${currentStep}/2",
+                        color = LightGrey,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
-                Text(
-                    text = "Create routine",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                if (currentStep == 2) {
-                    TextButton(
-                        onClick = {
-                            if (name.isNotBlank() && startingDate.isNotBlank()) {
-                                onCreate(name, description, startingDate)
-                            }
-                        },
-                        enabled = name.isNotBlank() && startingDate.isNotBlank()
-                    ) {
-                        Text(
-                            text = "Create",
-                            color = if (name.isNotBlank() && startingDate.isNotBlank()) CrayolaBlue else LightGrey,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                Box(
+                    modifier = Modifier.width(72.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    if (currentStep == 2) {
+                        TextButton(
+                            onClick = {
+                                if (canCreate) {
+                                    onCreate(name, description, startingDate)
+                                }
+                            },
+                            enabled = canCreate
+                        ) {
+                            Text(
+                                text = "Create",
+                                color = if (canCreate) CrayolaBlue else LightGrey,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
-                } else {
-                    // Invisible placeholder to keep the title visually centered accurately
-                    Box(modifier = Modifier.size(48.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Build your next training cycle in two quick steps.",
+                color = LightGrey,
+                fontSize = 13.sp
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
 
             if (currentStep == 1) {
-                Text(text = "Name", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    singleLine = true,
-                    placeholder = { Text("e.g., Summer Shredz 2026", color = LightGrey) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = CrayolaBlue,
-                        unfocusedBorderColor = LightGrey,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
-                    )
-                )
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = ShadowGrey.copy(alpha = 0.56f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Flag,
+                                contentDescription = null,
+                                tint = CrayolaBlue,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Plan details",
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            singleLine = true,
+                            label = { Text("Plan name") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = planFieldColors()
+                        )
 
-                Text(text = "Description", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    placeholder = { Text("e.g., 6 weeks of high volume", color = LightGrey) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = CrayolaBlue,
-                        unfocusedBorderColor = LightGrey,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
-                    )
-                )
+                        OutlinedTextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            label = { Text("Description (optional)") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 120.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = planFieldColors()
+                        )
+                    }
+                }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
                 Button(
                     onClick = { currentStep = 2 },
-                    enabled = name.isNotBlank(),
+                    enabled = canContinue,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(25.dp),
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = CrayolaBlue,
-                        disabledContainerColor = LightGrey.copy(alpha = 0.5f)
+                        disabledContainerColor = ShadowGrey
                     )
                 ) {
-                    Text("Next", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Continue", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
-                
-                Spacer(modifier = Modifier.height(32.dp))
-            } else {
-                Text(text = "Starting Date", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = startingDate,
-                    onValueChange = { startingDate = it },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = CrayolaBlue,
-                        unfocusedBorderColor = LightGrey,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
-                    )
-                )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = ShadowGrey.copy(alpha = 0.56f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = CrayolaBlue,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Start date",
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        OutlinedTextField(
+                            value = startingDate,
+                            onValueChange = { startingDate = it },
+                            singleLine = true,
+                            label = { Text("Starting date") },
+                            placeholder = { Text("YYYY-MM-DD") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = CrayolaBlue
+                                )
+                            },
+                            supportingText = {
+                                Text(
+                                    text = "Use format YYYY-MM-DD",
+                                    color = LightGrey,
+                                    fontSize = 12.sp
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = planFieldColors()
+                        )
+
+                        if (name.isNotBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = CrayolaBlue.copy(alpha = 0.14f),
+                                border = BorderStroke(1.dp, CrayolaBlue.copy(alpha = 0.35f))
+                            ) {
+                                Text(
+                                    text = "Plan: ${name.trim()}",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Button(
+                    onClick = {
+                        if (canCreate) {
+                            onCreate(name, description, startingDate)
+                        }
+                    },
+                    enabled = canCreate,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = CrayolaBlue,
+                        disabledContainerColor = ShadowGrey
+                    )
+                ) {
+                    Text("Create plan", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
             }
         }
     }
 }
+
+@Composable
+private fun planFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = Color.White,
+    unfocusedTextColor = Color.White,
+    focusedBorderColor = CrayolaBlue,
+    unfocusedBorderColor = LightGrey.copy(alpha = 0.42f),
+    focusedContainerColor = ShadowGrey.copy(alpha = 0.55f),
+    unfocusedContainerColor = ShadowGrey.copy(alpha = 0.55f),
+    focusedLabelColor = CrayolaBlue,
+    unfocusedLabelColor = LightGrey,
+    cursorColor = CrayolaBlue
+)
