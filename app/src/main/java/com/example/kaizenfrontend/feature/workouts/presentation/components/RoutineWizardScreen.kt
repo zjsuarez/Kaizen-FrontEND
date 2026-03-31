@@ -24,11 +24,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -37,7 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -63,7 +63,6 @@ import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardVie
 import kotlinx.coroutines.flow.collectLatest
 import java.time.DayOfWeek
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoutineWizardScreen(
     viewModel: RoutineWizardViewModel,
@@ -88,48 +87,38 @@ fun RoutineWizardScreen(
     Scaffold(
         containerColor = Onyx,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "Create Routine",
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 20.sp
-                    )
+            RoutineWizardTopBar(
+                currentStep = uiState.currentStep,
+                canFinish = uiState.selectedExercises.isNotEmpty(),
+                onCloseOrBack = {
+                    if (uiState.currentStep == 1) {
+                        onWizardClosed()
+                    } else {
+                        viewModel.previousStep()
+                    }
                 },
-                actions = {
-                    Text(
-                        text = "${uiState.currentStep}/3",
-                        color = LightGrey,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Onyx,
-                    titleContentColor = Color.White
-                )
-            )
-        },
-        bottomBar = {
-            WizardBottomBar(
-                buttonText = if (uiState.currentStep == 3) {
-                    "SAVE KAIZEN ROUTINE"
-                } else {
-                    "NEXT"
-                },
-                onButtonClick = {
+                onFinish = {
                     if (isCurrentStepValid(uiState)) {
-                        if (uiState.currentStep == 3) {
-                            viewModel.saveRoutine()
-                        } else {
-                            viewModel.nextStep()
-                        }
+                        viewModel.saveRoutine()
                     } else {
                         showInlineErrors = true
                     }
                 }
             )
+        },
+        bottomBar = {
+            if (uiState.currentStep < 3) {
+                WizardBottomBar(
+                    buttonText = "NEXT",
+                    onButtonClick = {
+                        if (isCurrentStepValid(uiState)) {
+                            viewModel.nextStep()
+                        } else {
+                            showInlineErrors = true
+                        }
+                    }
+                )
+            }
         }
     ) { innerPadding ->
         Column(
@@ -202,13 +191,6 @@ fun WizardStep1Meta(
     showNameError: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = "Step 1: Meta",
-            color = Color.White,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 18.sp
-        )
-
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
@@ -239,6 +221,70 @@ fun WizardStep1Meta(
                 .height(140.dp),
             colors = wizardTextFieldColors()
         )
+    }
+}
+
+@Composable
+private fun RoutineWizardTopBar(
+    currentStep: Int,
+    canFinish: Boolean,
+    onCloseOrBack: () -> Unit,
+    onFinish: () -> Unit
+) {
+    Surface(color = Onyx) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.width(72.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                IconButton(onClick = onCloseOrBack) {
+                    Icon(
+                        imageVector = if (currentStep == 1) Icons.Default.Close else Icons.Default.ArrowBack,
+                        contentDescription = if (currentStep == 1) "Close wizard" else "Previous step",
+                        tint = Color.White
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Create Routine",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+                Text(
+                    text = "${currentStep}/3",
+                    color = LightGrey,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp
+                )
+            }
+
+            Box(
+                modifier = Modifier.width(72.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                if (currentStep == 3) {
+                    TextButton(onClick = onFinish, enabled = canFinish) {
+                        Text(
+                            text = "Finish",
+                            color = if (canFinish) CrayolaBlue else LightGrey,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
