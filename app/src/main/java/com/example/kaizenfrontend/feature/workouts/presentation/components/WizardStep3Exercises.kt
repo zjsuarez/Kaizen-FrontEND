@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -138,6 +139,7 @@ fun WizardStep3Exercises(
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun ExerciseCatalogBottomSheet(
     onDismissRequest: () -> Unit,
     onExerciseSelected: (Exercise) -> Unit,

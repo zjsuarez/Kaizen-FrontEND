@@ -26,8 +26,9 @@ import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.presentation.components.CreatePlanBottomSheet
-import com.example.kaizenfrontend.feature.workouts.presentation.components.CreateRoutineDialog
+import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutsScreen(
     viewModel: WorkoutsViewModel = viewModel(
@@ -38,7 +39,7 @@ fun WorkoutsScreen(
 
     var showFabMenu by remember { mutableStateOf(false) }
     var showCreatePlanDialog by remember { mutableStateOf(false) }
-    var showCreateRoutineDialog by remember { mutableStateOf(false) }
+    var showCreateRoutineWizard by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -90,7 +91,7 @@ fun WorkoutsScreen(
                             text = { Text("Create Workout") },
                             onClick = {
                                 showFabMenu = false
-                                showCreateRoutineDialog = true
+                                showCreateRoutineWizard = true
                             }
                         )
                     }
@@ -171,15 +172,26 @@ fun WorkoutsScreen(
                         )
                     }
 
-                    if (showCreateRoutineDialog) {
-                        CreateRoutineDialog(
-                            plans = state.plans,
-                            onDismiss = { showCreateRoutineDialog = false },
-                            onCreate = { planId, name, desc ->
-                                showCreateRoutineDialog = false
-                                viewModel.createRoutine(planId, name, desc)
-                            }
-                        )
+                    if (showCreateRoutineWizard) {
+                        val routineWizardViewModel: RoutineWizardViewModel =
+                            androidx.lifecycle.viewmodel.compose.viewModel(key = "routine_wizard_vm")
+
+                        LaunchedEffect(Unit) {
+                            routineWizardViewModel.resetWizard()
+                        }
+
+                        ModalBottomSheet(
+                            onDismissRequest = { showCreateRoutineWizard = false },
+                            containerColor = Onyx,
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                        ) {
+                            RoutineWizardScreen(
+                                viewModel = routineWizardViewModel,
+                                onWizardClosed = {
+                                    showCreateRoutineWizard = false
+                                }
+                            )
+                        }
                     }
                 }
             }
