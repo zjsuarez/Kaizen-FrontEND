@@ -19,4 +19,18 @@ class DashboardRepository @Inject constructor(
             Result.failure(e)
         }
     }
+    suspend fun logBodyWeight(weight: Double): Result<Unit> {
+        return try {
+            val response = apiService.logBodyWeight(
+                com.example.kaizenfrontend.feature.dashboard.data.remote.api.BodyMeasurementRequest(weightKg = weight)
+            )
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

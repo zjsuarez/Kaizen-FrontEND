@@ -37,4 +37,19 @@ class DashboardViewModel @Inject constructor(
             )
         }
     }
+
+    fun logBodyWeight(weight: Double) {
+        viewModelScope.launch {
+            repository.logBodyWeight(weight).fold(
+                onSuccess = {
+                    // Re-fetch data to reflect the new weight in the trend widget
+                    fetchDashboardData()
+                },
+                onFailure = { error ->
+                    // Normally you would expose an effect channel for a Snackbar
+                    // For now, if dashboard API fails we could log or show an error
+                }
+            )
+        }
+    }
 }

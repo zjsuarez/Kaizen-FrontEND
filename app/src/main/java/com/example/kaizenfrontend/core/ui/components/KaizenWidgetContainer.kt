@@ -2,6 +2,7 @@ package com.example.kaizenfrontend.core.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -28,12 +29,15 @@ private val BorderColor = ShadowGrey.copy(alpha = 0.6f)
 @Composable
 fun KaizenWidgetContainer(
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Box(
-        modifier = modifier
+        modifier = Modifier
+            .then(modifier)
             .clip(WidgetShape)
-            .background(ShadowGrey, WidgetShape)
+            .clickable(enabled = onClick != null) { onClick?.invoke() }
+            .background(ShadowGrey)
             .border(width = 1.dp, color = BorderColor, shape = WidgetShape)
             .padding(16.dp)
     ) {
