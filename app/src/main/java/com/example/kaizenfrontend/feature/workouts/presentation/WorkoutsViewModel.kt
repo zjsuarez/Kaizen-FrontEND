@@ -88,10 +88,22 @@ class WorkoutsViewModel(
         }
     }
 
-    fun createPlan(name: String, description: String, startingDate: String, interval: String? = null) {
+    fun createPlan(
+        name: String,
+        description: String,
+        startingDate: String,
+        interval: String? = null,
+        cycleLength: Int? = null
+    ) {
         viewModelScope.launch {
             _uiState.value = WorkoutsUiState.Loading
-            val result = createPlanUseCase(name, description, startingDate, interval = interval)
+            val result = createPlanUseCase(
+                name = name,
+                description = description,
+                startingDate = startingDate,
+                interval = interval,
+                cycleLength = cycleLength
+            )
             if (result.isSuccess) {
                 loadData()
             } else {
@@ -100,10 +112,22 @@ class WorkoutsViewModel(
         }
     }
 
-    fun createRoutine(planId: String?, name: String, description: String) {
+    fun createRoutine(
+        planId: String?,
+        name: String,
+        description: String,
+        schedulingValue: String = "MONDAY",
+        startingDate: String = "2026-03-24"
+    ) {
         viewModelScope.launch {
             _uiState.value = WorkoutsUiState.Loading
-            val result = createRoutineUseCase(planId, name, description)
+            val result = createRoutineUseCase(
+                planId = planId,
+                name = name,
+                description = description,
+                schedulingValue = schedulingValue,
+                startingDate = startingDate
+            )
             if (result.isSuccess) {
                 loadData()
             } else {

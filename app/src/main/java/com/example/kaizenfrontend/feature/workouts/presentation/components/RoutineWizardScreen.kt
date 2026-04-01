@@ -65,10 +65,18 @@ import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardUiS
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardViewModel
 import kotlinx.coroutines.flow.collectLatest
 import java.time.DayOfWeek
+import java.time.LocalDate
 
 @Composable
 fun RoutineWizardScreen(
     viewModel: RoutineWizardViewModel,
+    onCreateRoutine: (
+        planId: String?,
+        name: String,
+        description: String,
+        schedulingValue: String,
+        startingDate: String
+    ) -> Unit = { _, _, _, _, _ -> },
     onWizardClosed: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -102,6 +110,14 @@ fun RoutineWizardScreen(
                 },
                 onFinish = {
                     if (isCurrentStepValid(uiState)) {
+                        val args = buildRoutineCreationArgs(uiState)
+                        onCreateRoutine(
+                            args.planId,
+                            args.name,
+                            args.description,
+                            args.schedulingValue,
+                            args.startingDate
+                        )
                         viewModel.saveRoutine()
                     } else {
                         showInlineErrors = true
@@ -281,7 +297,7 @@ fun WizardStep1Meta(
                             )
                             plan.interval?.takeIf { it.isNotBlank() }?.let {
                                 Text(
-                                    text = PlanIntervalConfig.fromBackendValue(it).toDisplayLabel(),
+                                    text = PlanIntervalConfig.fromBackend(it, plan.cycleLength).toDisplayLabel(),
                                     color = LightGrey,
                                     fontSize = 11.sp
                                 )
@@ -653,6 +669,58 @@ private fun isCurrentStepValid(state: RoutineWizardUiState): Boolean {
         3 -> state.selectedExercises.isNotEmpty()
 
         else -> true
+    }
+}
+
+private data class RoutineCreationArgs(
+    val planId: String?,
+    val name: String,
+    val description: String,
+    val schedulingValue: String,
+    val startingDate: String
+)
+
+private fun buildRoutineCreationArgs(state: RoutineWizardUiState): RoutineCreationArgs {
+    val today = LocalDate.now().toString()
+
+    return when (state.selectedPlanInterval.type) {
+        PlanIntervalType.CYCLE -> {
+            if (state.selectedPlanInterval.cycleMode == CycleMode.WEEKLY) {
+                val weeklySelection = state.selectedWeekDays
+                    .sortedBy { it.value }
+                    .joinToString(",") { it.name }
+                    .ifBlank { DayOfWeek.MONDAY.name }
+
+                RoutineCreationArgs(
+                    planId = state.selectedPlanId,
+                    name = state.name.trim(),
+                    description = state.description.trim(),
+                    schedulingValue = weeklySelection,
+                    startingDate = today
+                )
+            } else {
+                val cycleSelection = state.selectedCycleDays
+                    .sorted()
+                    .joinToString(",")
+                    .ifBlank { "1" }
+
+                RoutineCreationArgs(
+                    planId = state.selectedPlanId,
+                    name = state.name.trim(),
+                    description = state.description.trim(),
+                    schedulingValue = cycleSelection,
+                    startingDate = today
+                )
+            }
+        }
+
+        PlanIntervalType.FREQUENCY -> RoutineCreationArgs(
+            planId = state.selectedPlanId,
+            name = state.name.trim(),
+            description = state.description.trim(),
+            schedulingValue = state.restDaysBetweenWorkouts.toString(),
+            startingDate = today
+        )
     }
 }
 

@@ -232,9 +232,9 @@ fun WorkoutsScreen(
                     if (showCreatePlanDialog) {
                         CreatePlanBottomSheet(
                             onDismiss = { showCreatePlanDialog = false },
-                            onCreate = { name, desc, start, interval ->
+                            onCreate = { name, desc, start, interval, cycleLength ->
                                 showCreatePlanDialog = false
-                                viewModel.createPlan(name, desc, start, interval)
+                                viewModel.createPlan(name, desc, start, interval, cycleLength)
                             }
                         )
                     }
@@ -255,6 +255,15 @@ fun WorkoutsScreen(
                         ) {
                             RoutineWizardScreen(
                                 viewModel = routineWizardViewModel,
+                                onCreateRoutine = { planId, name, description, schedulingValue, startingDate ->
+                                    viewModel.createRoutine(
+                                        planId = planId,
+                                        name = name,
+                                        description = description,
+                                        schedulingValue = schedulingValue,
+                                        startingDate = startingDate
+                                    )
+                                },
                                 onWizardClosed = {
                                     showCreateRoutineWizard = false
                                 }
@@ -329,7 +338,7 @@ private fun PlanHeaderItem(
             }
             plan.interval?.takeIf { it.isNotBlank() }?.let { intervalValue ->
                 Text(
-                    text = PlanIntervalConfig.fromBackendValue(intervalValue).toDisplayLabel(),
+                    text = PlanIntervalConfig.fromBackend(intervalValue, plan.cycleLength).toDisplayLabel(),
                     color = LightGrey,
                     fontSize = 12.sp
                 )

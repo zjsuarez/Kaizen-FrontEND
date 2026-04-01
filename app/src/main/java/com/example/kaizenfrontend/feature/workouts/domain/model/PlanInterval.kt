@@ -18,11 +18,18 @@ data class PlanIntervalConfig(
     fun toBackendValue(): String {
         return when (type) {
             PlanIntervalType.FREQUENCY -> "FREQUENCY"
+            PlanIntervalType.CYCLE -> "CYCLE"
+        }
+    }
+
+    fun toBackendCycleLength(): Int? {
+        return when (type) {
+            PlanIntervalType.FREQUENCY -> null
             PlanIntervalType.CYCLE -> {
                 if (cycleMode == CycleMode.WEEKLY) {
-                    "CYCLE:WEEKLY"
+                    7
                 } else {
-                    "CYCLE:CUSTOM:${cycleLengthDays.coerceAtLeast(1)}"
+                    cycleLengthDays.coerceAtLeast(1)
                 }
             }
         }
@@ -52,23 +59,48 @@ data class PlanIntervalConfig(
             type = PlanIntervalType.FREQUENCY
         )
 
-        fun fromBackendValue(raw: String?): PlanIntervalConfig {
-            if (raw.isNullOrBlank()) return defaultCycleWeekly()
+        fun fromBackend(interval: String?, cycleLength: Int?): PlanIntervalConfig {
+            if (interval.isNullOrBlank()) return defaultCycleWeekly()
 
-            val normalized = raw.trim().uppercase()
+            val normalized = interval.trim().uppercase()
+
+            // Backward compatibility with previously encoded values.
+            if (normalized.contains(':')) {
+                return fromLegacyEncodedValue(normalized)
+            }
+
             if (normalized == "FREQUENCY") return defaultFrequency()
+
+            if (normalized == "CYCLE" || normalized == "WEEKLY") {
+                val resolvedLength = cycleLength?.coerceAtLeast(1) ?: 7
+                return if (resolvedLength == 7) {
+                    defaultCycleWeekly()
+                } else {
+                    PlanIntervalConfig(
+                        type = PlanIntervalType.CYCLE,
+                        cycleMode = CycleMode.CUSTOM,
+                        cycleLengthDays = resolvedLength
+                    )
+                }
+            }
+
+            return defaultCycleWeekly()
+        }
+
+        fun fromBackendValue(raw: String?): PlanIntervalConfig {
+            return fromBackend(interval = raw, cycleLength = null)
+        }
+
+        private fun fromLegacyEncodedValue(normalized: String): PlanIntervalConfig {
+            if (normalized == "CYCLE:WEEKLY") return defaultCycleWeekly()
 
             if (normalized.startsWith("CYCLE:CUSTOM:")) {
                 val days = normalized.substringAfter("CYCLE:CUSTOM:").toIntOrNull()?.coerceAtLeast(1) ?: 7
                 return PlanIntervalConfig(
                     type = PlanIntervalType.CYCLE,
-                    cycleMode = CycleMode.CUSTOM,
+                    cycleMode = if (days == 7) CycleMode.WEEKLY else CycleMode.CUSTOM,
                     cycleLengthDays = days
                 )
-            }
-
-            if (normalized == "WEEKLY" || normalized == "CYCLE" || normalized == "CYCLE:WEEKLY") {
-                return defaultCycleWeekly()
             }
 
             return defaultCycleWeekly()

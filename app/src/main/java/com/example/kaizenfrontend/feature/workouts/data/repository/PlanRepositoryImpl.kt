@@ -18,6 +18,7 @@ class PlanRepositoryImpl(
         description: String,
         startingDate: String,
         interval: String?,
+        cycleLength: Int?,
         isActive: Boolean
     ): Result<TrainingPlan> = withContext(Dispatchers.IO) {
         try {
@@ -29,6 +30,7 @@ class PlanRepositoryImpl(
                 description = description,
                 startingDate = startingDate,
                 interval = interval,
+                cycleLength = cycleLength,
                 isActive = isActive
             )
             val response = api.createPlan(bearerToken, request)
@@ -40,6 +42,7 @@ class PlanRepositoryImpl(
                         description = dto.description,
                         startingDate = dto.startingDate,
                         interval = dto.interval,
+                        cycleLength = dto.cycleLength,
                         isActive = dto.isActive
                     )
                     Result.success(plan)
@@ -67,6 +70,7 @@ class PlanRepositoryImpl(
                         description = dto.description,
                         startingDate = dto.startingDate,
                         interval = dto.interval,
+                        cycleLength = dto.cycleLength,
                         isActive = dto.isActive
                     )
                 } ?: emptyList()

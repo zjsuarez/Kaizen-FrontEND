@@ -1,16 +1,10 @@
 package com.example.kaizenfrontend.feature.workouts.presentation
 
 import android.util.Log
-import com.example.kaizenfrontend.feature.workouts.data.remote.dto.RoutineCreateDTO
-import com.example.kaizenfrontend.feature.workouts.data.remote.dto.RoutineExerciseTargetDTO
-import com.example.kaizenfrontend.feature.workouts.data.remote.dto.RoutineScheduleDataDTO
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
 import com.example.kaizenfrontend.feature.workouts.data.repository.MockExerciseRepository
-import com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
-import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType
 import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
@@ -44,8 +38,6 @@ data class RoutineWizardUiState(
 class RoutineWizardViewModel(
     private val exerciseRepository: ExerciseRepository = MockExerciseRepository()
 ) : ViewModel() {
-
-    private val gson = Gson()
 
     private val _uiState = MutableStateFlow(
         RoutineWizardUiState(isLoadingExercises = true)
@@ -100,7 +92,10 @@ class RoutineWizardViewModel(
             }
 
             val selectedPlan = plans.firstOrNull { it.id == resolvedPlanId }
-            val intervalConfig = PlanIntervalConfig.fromBackendValue(selectedPlan?.interval)
+            val intervalConfig = PlanIntervalConfig.fromBackend(
+                interval = selectedPlan?.interval,
+                cycleLength = selectedPlan?.cycleLength
+            )
 
             current.copy(
                 availablePlans = plans,
@@ -114,7 +109,10 @@ class RoutineWizardViewModel(
     fun selectPlan(planId: String) {
         _uiState.update { current ->
             val selectedPlan = current.availablePlans.firstOrNull { it.id == planId }
-            val intervalConfig = PlanIntervalConfig.fromBackendValue(selectedPlan?.interval)
+            val intervalConfig = PlanIntervalConfig.fromBackend(
+                interval = selectedPlan?.interval,
+                cycleLength = selectedPlan?.cycleLength
+            )
 
             current.copy(
                 selectedPlanId = selectedPlan?.id,
@@ -210,7 +208,10 @@ class RoutineWizardViewModel(
         val cachedExercises = _uiState.value.availableExercises
         val cachedPlans = _uiState.value.availablePlans
         val defaultPlan = cachedPlans.firstOrNull()
-        val intervalConfig = PlanIntervalConfig.fromBackendValue(defaultPlan?.interval)
+        val intervalConfig = PlanIntervalConfig.fromBackend(
+            interval = defaultPlan?.interval,
+            cycleLength = defaultPlan?.cycleLength
+        )
         _uiState.value = RoutineWizardUiState(
             currentStep = 1,
             availablePlans = cachedPlans,
@@ -225,55 +226,13 @@ class RoutineWizardViewModel(
 
     fun saveRoutine() {
         viewModelScope.launch {
-            val payload = _uiState.value.toRoutineCreateDTO()
-            Log.d(TAG, "Routine payload: ${gson.toJson(payload)}")
+            val state = _uiState.value
+            Log.d(
+                TAG,
+                "Routine confirmed: name=${state.name.trim()}, planId=${state.selectedPlanId}, exercises=${state.selectedExercises.size}"
+            )
             _events.emit(RoutineWizardEvent.Success)
         }
-    }
-
-    private fun RoutineWizardUiState.toRoutineCreateDTO(): RoutineCreateDTO {
-        val scheduleData = when (selectedPlanInterval.type) {
-            PlanIntervalType.FREQUENCY -> RoutineScheduleDataDTO(
-                restDays = restDaysBetweenWorkouts
-            )
-
-            PlanIntervalType.CYCLE -> {
-                if (selectedPlanInterval.cycleMode == CycleMode.WEEKLY) {
-                    RoutineScheduleDataDTO(
-                        weekDays = selectedWeekDays
-                            .sortedBy { it.value }
-                            .map { it.name },
-                        cycleLength = 7
-                    )
-                } else {
-                    RoutineScheduleDataDTO(
-                        cycleLength = selectedPlanInterval.cycleLengthDays,
-                        cycleDays = selectedCycleDays
-                            .sorted()
-                    )
-                }
-            }
-        }
-
-        val exerciseTargets = selectedExercises.map {
-            RoutineExerciseTargetDTO(
-                exerciseId = it.exercise.id,
-                targetSets = it.targetSets,
-                targetReps = it.targetReps
-            )
-        }
-
-        return RoutineCreateDTO(
-            planId = selectedPlanId,
-            name = name.trim(),
-            description = description.trim(),
-            scheduleType = when (selectedPlanInterval.type) {
-                PlanIntervalType.CYCLE -> "CYCLE"
-                PlanIntervalType.FREQUENCY -> "FREQUENCY"
-            },
-            scheduleData = scheduleData,
-            exercises = exerciseTargets
-        )
     }
 
     private fun normalizedCycleDays(days: Set<Int>, cycleLength: Int): Set<Int> {

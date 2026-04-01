@@ -9,11 +9,12 @@ class CreatePlanUseCase(private val repository: PlanRepository) {
         description: String,
         startingDate: String,
         interval: String? = null,
+        cycleLength: Int? = null,
         isActive: Boolean = true
     ): Result<TrainingPlan> {
         if (name.isBlank()) return Result.failure(Exception("Name cannot be blank"))
         // If startingDate is empty, default to current date.
         // Actually the caller should specify, but if not we proceed.
-        return repository.createPlan(name, description, startingDate, interval, isActive)
+        return repository.createPlan(name, description, startingDate, interval, cycleLength, isActive)
     }
 }

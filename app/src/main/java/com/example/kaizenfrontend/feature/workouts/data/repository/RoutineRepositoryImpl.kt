@@ -17,8 +17,6 @@ class RoutineRepositoryImpl(
         planId: String?,
         name: String,
         description: String,
-        schedulingType: String,
-        cycleLength: Int?,
         schedulingValue: String,
         startingDate: String
     ): Result<Routine> = withContext(Dispatchers.IO) {
@@ -26,11 +24,11 @@ class RoutineRepositoryImpl(
             val token = sessionManager.getToken() ?: return@withContext Result.failure(Exception("No auth token found"))
             val bearerToken = "Bearer $token"
             
-            val request = RoutineRequest(planId, name, description, schedulingType, cycleLength, schedulingValue, startingDate)
+            val request = RoutineRequest(planId, name, description, schedulingValue, startingDate)
             val response = api.createRoutine(bearerToken, request)
             if (response.isSuccessful) {
                 response.body()?.let { dto ->
-                    val routine = Routine(dto.id, dto.planId, dto.name, dto.description, dto.schedulingType, dto.cycleLength, dto.schedulingValue, dto.startingDate)
+                    val routine = Routine(dto.id, dto.planId, dto.name, dto.description, dto.schedulingValue, dto.startingDate)
                     Result.success(routine)
                 } ?: Result.failure(Exception("Response body is null"))
             } else {
@@ -49,7 +47,7 @@ class RoutineRepositoryImpl(
             val response = api.getUserRoutines(bearerToken, planId)
             if (response.isSuccessful) {
                 val routines = response.body()?.map { dto ->
-                    Routine(dto.id, dto.planId, dto.name, dto.description, dto.schedulingType, dto.cycleLength, dto.schedulingValue, dto.startingDate)
+                    Routine(dto.id, dto.planId, dto.name, dto.description, dto.schedulingValue, dto.startingDate)
                 } ?: emptyList()
                 Result.success(routines)
             } else {

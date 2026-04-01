@@ -71,7 +71,7 @@ import java.util.Locale
 @Composable
 fun CreatePlanBottomSheet(
     onDismiss: () -> Unit,
-    onCreate: (name: String, description: String, startingDate: String, interval: String?) -> Unit
+    onCreate: (name: String, description: String, startingDate: String, interval: String?, cycleLength: Int?) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -184,7 +184,13 @@ fun CreatePlanBottomSheet(
                                             cycleLengthDays = if (cycleMode == CycleMode.WEEKLY) 7 else customCycleLengthDays
                                         )
                                     }
-                                    onCreate(name, description, startingDate, intervalConfig.toBackendValue())
+                                    onCreate(
+                                        name,
+                                        description,
+                                        startingDate,
+                                        intervalConfig.toBackendValue(),
+                                        intervalConfig.toBackendCycleLength()
+                                    )
                                 } else {
                                     showInlineErrors = true
                                 }

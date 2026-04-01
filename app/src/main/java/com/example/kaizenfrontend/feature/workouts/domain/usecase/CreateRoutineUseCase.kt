@@ -8,8 +8,6 @@ class CreateRoutineUseCase(private val repository: RoutineRepository) {
         planId: String?,
         name: String,
         description: String,
-        schedulingType: String = "WEEKLY",
-        cycleLength: Int? = null,
         schedulingValue: String = "MONDAY",
         startingDate: String = "2026-03-24" // Defaults that backend expects or user can configure
     ): Result<Routine> {
@@ -18,8 +16,6 @@ class CreateRoutineUseCase(private val repository: RoutineRepository) {
             planId = planId,
             name = name,
             description = description,
-            schedulingType = schedulingType,
-            cycleLength = cycleLength,
             schedulingValue = schedulingValue,
             startingDate = startingDate
         )

@@ -4,8 +4,6 @@ data class RoutineRequest(
     val planId: String?,
     val name: String,
     val description: String,
-    val schedulingType: String, // e.g., "WEEKLY"
-    val cycleLength: Int?,
     val schedulingValue: String, // e.g., "MONDAY"
     val startingDate: String
 )
@@ -15,8 +13,6 @@ data class RoutineResponse(
     val planId: String?,
     val name: String,
     val description: String,
-    val schedulingType: String?,
-    val cycleLength: Int?,
     val schedulingValue: String?,
     val startingDate: String?,
     val listRoutineExercises: List<RoutineExerciseResponse> = emptyList()
