@@ -13,19 +13,20 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
+
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
     private const val BASE_URL = "http://10.0.2.2:8080/" // Localhost for Android Emulator
+    private const val TEMP_TOKEN = "eyJhbGciOiJIU haha secret"
 
     @Provides
     @Singleton
     fun provideAuthInterceptor(): Interceptor {
         return Interceptor { chain ->
-            val fakeToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.fake_token_data"
             val request = chain.request().newBuilder()
-                .addHeader("Authorization", "Bearer $fakeToken")
+                .addHeader("Authorization", "Bearer $TEMP_TOKEN")
                 .build()
             chain.proceed(request)
         }
