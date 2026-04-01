@@ -32,8 +32,15 @@ import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetSize
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
 import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.AvgTimeWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.CalendarWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.LastSessionWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.NextWorkoutWidget
 import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.OneRmWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.RecentPrMock
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.RecentPrsWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.RecoveryTimeWidget
 import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.StreakWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.WeightTrendWidget
 import com.example.kaizenfrontend.feature.statistics.presentation.StatisticsScreen
 import com.example.kaizenfrontend.feature.user.presentation.settings.SettingsScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutsScreen
@@ -66,7 +73,7 @@ private val dashboardWidgets = listOf(
     // Placeholder to keep the grid even (2 cols)
     WidgetConfig(type = WidgetType.ONE_RM,        size = WidgetSize.HALF_WIDTH, heightDp = 140.dp),
     // LARGE — full-width, tall
-    WidgetConfig(type = WidgetType.CALENDAR,      size = WidgetSize.FULL_WIDTH, heightDp = 250.dp),
+    WidgetConfig(type = WidgetType.CALENDAR, size = WidgetSize.FULL_WIDTH, heightDp = 320.dp),
     WidgetConfig(type = WidgetType.RECENT_PRS,    size = WidgetSize.FULL_WIDTH, heightDp = 250.dp),
 )
 
@@ -199,23 +206,40 @@ private fun DashboardWidgetGrid(
                     }
                 }
 
-                // ── All other widgets (placeholder) ──────
-                else -> {
-                    KaizenWidgetContainer(modifier = widgetModifier) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = config.type.name.replace("_", " "),
-                                color = LightGrey,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
+                // ── Thin widgets (real UI) ────────────────
+                WidgetType.WEIGHT_TREND -> WeightTrendWidget(
+                    currentWeight = 82.5,
+                    trendLabel = "-0.5 kg this week",
+                    isPositive = true,
+                    modifier = widgetModifier
+                )
+                WidgetType.RECOVERY_TIME -> RecoveryTimeWidget(
+                    hours = 48,
+                    modifier = widgetModifier
+                )
+                WidgetType.LAST_SESSION -> LastSessionWidget(
+                    routineName = "Pull Day",
+                    timeLabel = "Yesterday",
+                    modifier = widgetModifier
+                )
+
+                // ── Large widgets (real UI) ───────────────
+                WidgetType.NEXT_WORKOUT -> NextWorkoutWidget(
+                    routineName = "Pull Day",
+                    modifier = widgetModifier
+                )
+                WidgetType.CALENDAR -> CalendarWidget(
+                    trainingDays = listOf(1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29),
+                    modifier = widgetModifier
+                )
+                WidgetType.RECENT_PRS -> RecentPrsWidget(
+                    prs = listOf(
+                        RecentPrMock("Bench Press", "105 kg", "+2.5 kg", "2 days ago"),
+                        RecentPrMock("Squat", "140 kg", "+5 kg", "5 days ago"),
+                        RecentPrMock("Deadlift", "180 kg", "+2.5 kg", "1 week ago")
+                    ),
+                    modifier = widgetModifier
+                )
             }
         }
     }
