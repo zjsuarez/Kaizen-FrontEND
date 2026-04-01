@@ -36,8 +36,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -56,7 +56,10 @@ import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.core.ui.theme.SubtleRed
-import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineScheduleType
+import com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode
+import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
+import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType
+import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardEvent
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardUiState
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardViewModel
@@ -141,23 +144,29 @@ fun RoutineWizardScreen(
                     1 -> WizardStep1Meta(
                         name = uiState.name,
                         description = uiState.description,
+                        plans = uiState.availablePlans,
+                        selectedPlanId = uiState.selectedPlanId,
                         onNameChange = viewModel::updateName,
                         onDescriptionChange = viewModel::updateDescription,
+                        onPlanSelected = viewModel::selectPlan,
+                        showPlanError = showInlineErrors && uiState.availablePlans.isNotEmpty() && uiState.selectedPlanId == null,
                         showNameError = showInlineErrors && uiState.name.isBlank()
                     )
 
                     2 -> WizardStep2Schedule(
-                        scheduleType = uiState.scheduleType,
+                        planInterval = uiState.selectedPlanInterval,
                         selectedWeekDays = uiState.selectedWeekDays,
-                        intervalDays = uiState.intervalDays,
-                        cycleLength = uiState.cycleLength,
-                        onScheduleTypeSelected = viewModel::updateScheduleType,
+                        selectedCycleDays = uiState.selectedCycleDays,
+                        restDaysBetweenWorkouts = uiState.restDaysBetweenWorkouts,
                         onWeekDayToggle = viewModel::toggleWeekDay,
-                        onIntervalChange = viewModel::updateIntervalDays,
-                        onCycleLengthChange = viewModel::updateCycleLength,
-                        showWeeklyError = showInlineErrors &&
-                            uiState.scheduleType == RoutineScheduleType.WEEKLY &&
-                            uiState.selectedWeekDays.isEmpty()
+                        onCycleDayToggle = viewModel::toggleCycleDay,
+                        onRestDaysChange = viewModel::updateRestDaysBetweenWorkouts,
+                        showCycleSelectionError = showInlineErrors &&
+                            uiState.selectedPlanInterval.type == PlanIntervalType.CYCLE &&
+                            (
+                                (uiState.selectedPlanInterval.cycleMode == CycleMode.WEEKLY && uiState.selectedWeekDays.isEmpty()) ||
+                                    (uiState.selectedPlanInterval.cycleMode == CycleMode.CUSTOM && uiState.selectedCycleDays.isEmpty())
+                                )
                     )
 
                     else -> WizardStep3Exercises(
@@ -186,8 +195,12 @@ fun RoutineWizardScreen(
 fun WizardStep1Meta(
     name: String,
     description: String,
+    plans: List<TrainingPlan>,
+    selectedPlanId: String?,
     onNameChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
+    onPlanSelected: (String) -> Unit,
+    showPlanError: Boolean,
     showNameError: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -233,6 +246,59 @@ fun WizardStep1Meta(
                 .height(140.dp),
             colors = wizardTextFieldColors()
         )
+
+        if (plans.isNotEmpty()) {
+            Text(
+                text = "Plan",
+                color = Color.White,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                plans.forEach { plan ->
+                    val isSelected = plan.id == selectedPlanId
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPlanSelected(plan.id) },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isSelected) CrayolaBlue.copy(alpha = 0.18f) else ShadowGrey,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = if (isSelected) CrayolaBlue else Color.Transparent
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = plan.name,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp
+                            )
+                            plan.interval?.takeIf { it.isNotBlank() }?.let {
+                                Text(
+                                    text = PlanIntervalConfig.fromBackendValue(it).toDisplayLabel(),
+                                    color = LightGrey,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (showPlanError) {
+                Text(
+                    text = "Select a plan",
+                    color = SubtleRed,
+                    fontSize = 12.sp
+                )
+            }
+        }
     }
 }
 
@@ -302,15 +368,14 @@ private fun RoutineWizardTopBar(
 
 @Composable
 fun WizardStep2Schedule(
-    scheduleType: RoutineScheduleType,
+    planInterval: PlanIntervalConfig,
     selectedWeekDays: Set<DayOfWeek>,
-    intervalDays: Int,
-    cycleLength: Int,
-    onScheduleTypeSelected: (RoutineScheduleType) -> Unit,
+    selectedCycleDays: Set<Int>,
+    restDaysBetweenWorkouts: Int,
     onWeekDayToggle: (DayOfWeek) -> Unit,
-    onIntervalChange: (Int) -> Unit,
-    onCycleLengthChange: (Int) -> Unit,
-    showWeeklyError: Boolean
+    onCycleDayToggle: (Int) -> Unit,
+    onRestDaysChange: (Int) -> Unit,
+    showCycleSelectionError: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
@@ -320,31 +385,37 @@ fun WizardStep2Schedule(
             fontSize = 18.sp
         )
 
-        ScheduleTypeSelector(
-            selectedType = scheduleType,
-            onTypeSelected = onScheduleTypeSelected
-        )
+        when (planInterval.type) {
+            PlanIntervalType.CYCLE -> {
+                if (planInterval.cycleMode == CycleMode.WEEKLY) {
+                    WeeklyDaysSelector(
+                        selectedDays = selectedWeekDays,
+                        onDayClick = onWeekDayToggle,
+                        showError = showCycleSelectionError
+                    )
+                } else {
+                    CycleDaysSelector(
+                        cycleLengthDays = planInterval.cycleLengthDays,
+                        selectedCycleDays = selectedCycleDays,
+                        onDayClick = onCycleDayToggle,
+                        showError = showCycleSelectionError
+                    )
+                }
+            }
 
-        when (scheduleType) {
-            RoutineScheduleType.WEEKLY -> WeeklyDaysSelector(
-                selectedDays = selectedWeekDays,
-                onDayClick = onWeekDayToggle,
-                showError = showWeeklyError
-            )
-
-            RoutineScheduleType.INTERVAL -> BasicCounterSelector(
-                title = "Every X days",
-                value = intervalDays,
-                suffix = "days",
-                onChange = onIntervalChange
-            )
-
-            RoutineScheduleType.CYCLE -> BasicCounterSelector(
-                title = "Cycle length",
-                value = cycleLength,
-                suffix = "weeks",
-                onChange = onCycleLengthChange
-            )
+            PlanIntervalType.FREQUENCY -> {
+                Text(
+                    text = "Choose rest days between workouts for this routine.",
+                    color = LightGrey,
+                    fontSize = 12.sp
+                )
+                BasicCounterSelector(
+                    title = "Rest days",
+                    value = restDaysBetweenWorkouts,
+                    suffix = "days",
+                    onChange = onRestDaysChange
+                )
+            }
         }
     }
 }
@@ -377,44 +448,6 @@ private fun WizardBottomBar(
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ScheduleTypeSelector(
-    selectedType: RoutineScheduleType,
-    onTypeSelected: (RoutineScheduleType) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        RoutineScheduleType.entries.forEach { type ->
-            val isSelected = type == selectedType
-            Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onTypeSelected(type) },
-                shape = RoundedCornerShape(16.dp),
-                color = if (isSelected) CrayolaBlue.copy(alpha = 0.18f) else ShadowGrey,
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = if (isSelected) CrayolaBlue else Color.Transparent
-                )
-            ) {
-                Box(
-                    modifier = Modifier.padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = type.name.lowercase().replaceFirstChar { it.uppercase() },
-                        color = if (isSelected) CrayolaBlue else LightGrey,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp
-                    )
-                }
             }
         }
     }
@@ -490,6 +523,67 @@ private fun WeeklyDaysSelector(
 }
 
 @Composable
+private fun CycleDaysSelector(
+    cycleLengthDays: Int,
+    selectedCycleDays: Set<Int>,
+    onDayClick: (Int) -> Unit,
+    showError: Boolean
+) {
+    val days = (1..cycleLengthDays.coerceAtLeast(1)).toList()
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Select cycle days",
+            color = Color.White,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            days.forEach { day ->
+                val isSelected = day in selectedCycleDays
+                Surface(
+                    modifier = Modifier
+                        .clickable { onDayClick(day) },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isSelected) CrayolaBlue.copy(alpha = 0.18f) else ShadowGrey,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (isSelected) CrayolaBlue else Color.Transparent
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Day $day",
+                            color = if (isSelected) CrayolaBlue else LightGrey,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        if (showError) {
+            Text(
+                text = "Select at least one cycle day",
+                color = SubtleRed,
+                fontSize = 12.sp
+            )
+        }
+    }
+}
+
+@Composable
 private fun BasicCounterSelector(
     title: String,
     value: Int,
@@ -542,11 +636,18 @@ private fun BasicCounterSelector(
 
 private fun isCurrentStepValid(state: RoutineWizardUiState): Boolean {
     return when (state.currentStep) {
-        1 -> state.name.isNotBlank()
-        2 -> when (state.scheduleType) {
-            RoutineScheduleType.WEEKLY -> state.selectedWeekDays.isNotEmpty()
-            RoutineScheduleType.INTERVAL -> state.intervalDays > 0
-            RoutineScheduleType.CYCLE -> state.cycleLength > 0
+        1 -> state.name.isNotBlank() && (state.availablePlans.isEmpty() || state.selectedPlanId != null)
+
+        2 -> when (state.selectedPlanInterval.type) {
+            PlanIntervalType.CYCLE -> {
+                if (state.selectedPlanInterval.cycleMode == CycleMode.WEEKLY) {
+                    state.selectedWeekDays.isNotEmpty()
+                } else {
+                    state.selectedCycleDays.isNotEmpty()
+                }
+            }
+
+            PlanIntervalType.FREQUENCY -> state.restDaysBetweenWorkouts > 0
         }
 
         3 -> state.selectedExercises.isNotEmpty()

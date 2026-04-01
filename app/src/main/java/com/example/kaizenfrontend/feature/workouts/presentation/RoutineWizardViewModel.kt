@@ -8,9 +8,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.example.kaizenfrontend.feature.workouts.data.repository.MockExerciseRepository
+import com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode
+import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
+import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType
 import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
-import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineScheduleType
+import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.domain.repository.ExerciseRepository
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,10 +29,12 @@ data class RoutineWizardUiState(
     val currentStep: Int = 1,
     val name: String = "",
     val description: String = "",
-    val scheduleType: RoutineScheduleType = RoutineScheduleType.WEEKLY,
+    val availablePlans: List<TrainingPlan> = emptyList(),
+    val selectedPlanId: String? = null,
+    val selectedPlanInterval: PlanIntervalConfig = PlanIntervalConfig.defaultCycleWeekly(),
     val selectedWeekDays: Set<DayOfWeek> = setOf(DayOfWeek.MONDAY),
-    val intervalDays: Int = 7,
-    val cycleLength: Int = 3,
+    val selectedCycleDays: Set<Int> = setOf(1),
+    val restDaysBetweenWorkouts: Int = 1,
     val selectedExercises: List<RoutineExercise> = emptyList(),
     val availableExercises: List<Exercise> = emptyList(),
     val isLoadingExercises: Boolean = false,
@@ -86,28 +91,36 @@ class RoutineWizardViewModel(
         _uiState.update { it.copy(description = value) }
     }
 
-    fun updateScheduleType(value: RoutineScheduleType) {
+    fun setAvailablePlans(plans: List<TrainingPlan>) {
         _uiState.update { current ->
-            when (value) {
-                RoutineScheduleType.WEEKLY -> current.copy(
-                    scheduleType = value,
-                    selectedWeekDays = if (current.selectedWeekDays.isEmpty()) {
-                        setOf(DayOfWeek.MONDAY)
-                    } else {
-                        current.selectedWeekDays
-                    }
-                )
-
-                RoutineScheduleType.INTERVAL -> current.copy(
-                    scheduleType = value,
-                    intervalDays = current.intervalDays.coerceAtLeast(1)
-                )
-
-                RoutineScheduleType.CYCLE -> current.copy(
-                    scheduleType = value,
-                    cycleLength = current.cycleLength.coerceAtLeast(1)
-                )
+            val resolvedPlanId = when {
+                plans.isEmpty() -> null
+                current.selectedPlanId != null && plans.any { it.id == current.selectedPlanId } -> current.selectedPlanId
+                else -> plans.first().id
             }
+
+            val selectedPlan = plans.firstOrNull { it.id == resolvedPlanId }
+            val intervalConfig = PlanIntervalConfig.fromBackendValue(selectedPlan?.interval)
+
+            current.copy(
+                availablePlans = plans,
+                selectedPlanId = resolvedPlanId,
+                selectedPlanInterval = intervalConfig,
+                selectedCycleDays = normalizedCycleDays(current.selectedCycleDays, intervalConfig.cycleLengthDays)
+            )
+        }
+    }
+
+    fun selectPlan(planId: String) {
+        _uiState.update { current ->
+            val selectedPlan = current.availablePlans.firstOrNull { it.id == planId }
+            val intervalConfig = PlanIntervalConfig.fromBackendValue(selectedPlan?.interval)
+
+            current.copy(
+                selectedPlanId = selectedPlan?.id,
+                selectedPlanInterval = intervalConfig,
+                selectedCycleDays = normalizedCycleDays(current.selectedCycleDays, intervalConfig.cycleLengthDays)
+            )
         }
     }
 
@@ -123,12 +136,21 @@ class RoutineWizardViewModel(
         }
     }
 
-    fun updateIntervalDays(value: Int) {
-        _uiState.update { it.copy(intervalDays = value.coerceAtLeast(1)) }
+    fun toggleCycleDay(day: Int) {
+        _uiState.update { current ->
+            val dayValue = day.coerceAtLeast(1).coerceAtMost(current.selectedPlanInterval.cycleLengthDays.coerceAtLeast(1))
+            val nextDays = if (dayValue in current.selectedCycleDays) {
+                current.selectedCycleDays - dayValue
+            } else {
+                current.selectedCycleDays + dayValue
+            }
+
+            current.copy(selectedCycleDays = nextDays)
+        }
     }
 
-    fun updateCycleLength(value: Int) {
-        _uiState.update { it.copy(cycleLength = value.coerceAtLeast(1)) }
+    fun updateRestDaysBetweenWorkouts(value: Int) {
+        _uiState.update { it.copy(restDaysBetweenWorkouts = value.coerceAtLeast(1)) }
     }
 
     fun addExercise(exercise: Exercise, targetSets: Int = 3, targetReps: Int = 10) {
@@ -186,8 +208,15 @@ class RoutineWizardViewModel(
 
     fun resetWizard() {
         val cachedExercises = _uiState.value.availableExercises
+        val cachedPlans = _uiState.value.availablePlans
+        val defaultPlan = cachedPlans.firstOrNull()
+        val intervalConfig = PlanIntervalConfig.fromBackendValue(defaultPlan?.interval)
         _uiState.value = RoutineWizardUiState(
             currentStep = 1,
+            availablePlans = cachedPlans,
+            selectedPlanId = defaultPlan?.id,
+            selectedPlanInterval = intervalConfig,
+            selectedCycleDays = normalizedCycleDays(setOf(1), intervalConfig.cycleLengthDays),
             availableExercises = cachedExercises,
             isLoadingExercises = false,
             exercisesError = null
@@ -203,20 +232,27 @@ class RoutineWizardViewModel(
     }
 
     private fun RoutineWizardUiState.toRoutineCreateDTO(): RoutineCreateDTO {
-        val scheduleData = when (scheduleType) {
-            RoutineScheduleType.WEEKLY -> RoutineScheduleDataDTO(
-                weekDays = selectedWeekDays
-                    .sortedBy { it.value }
-                    .map { it.name }
+        val scheduleData = when (selectedPlanInterval.type) {
+            PlanIntervalType.FREQUENCY -> RoutineScheduleDataDTO(
+                restDays = restDaysBetweenWorkouts
             )
 
-            RoutineScheduleType.INTERVAL -> RoutineScheduleDataDTO(
-                intervalDays = intervalDays
-            )
-
-            RoutineScheduleType.CYCLE -> RoutineScheduleDataDTO(
-                cycleLength = cycleLength
-            )
+            PlanIntervalType.CYCLE -> {
+                if (selectedPlanInterval.cycleMode == CycleMode.WEEKLY) {
+                    RoutineScheduleDataDTO(
+                        weekDays = selectedWeekDays
+                            .sortedBy { it.value }
+                            .map { it.name },
+                        cycleLength = 7
+                    )
+                } else {
+                    RoutineScheduleDataDTO(
+                        cycleLength = selectedPlanInterval.cycleLengthDays,
+                        cycleDays = selectedCycleDays
+                            .sorted()
+                    )
+                }
+            }
         }
 
         val exerciseTargets = selectedExercises.map {
@@ -228,12 +264,29 @@ class RoutineWizardViewModel(
         }
 
         return RoutineCreateDTO(
+            planId = selectedPlanId,
             name = name.trim(),
             description = description.trim(),
-            scheduleType = scheduleType.name,
+            scheduleType = when (selectedPlanInterval.type) {
+                PlanIntervalType.CYCLE -> "CYCLE"
+                PlanIntervalType.FREQUENCY -> "FREQUENCY"
+            },
             scheduleData = scheduleData,
             exercises = exerciseTargets
         )
+    }
+
+    private fun normalizedCycleDays(days: Set<Int>, cycleLength: Int): Set<Int> {
+        val maxDay = cycleLength.coerceAtLeast(1)
+        val normalized = days
+            .map { it.coerceIn(1, maxDay) }
+            .toSet()
+
+        return if (normalized.isEmpty()) {
+            setOf(1)
+        } else {
+            normalized
+        }
     }
 
     companion object {

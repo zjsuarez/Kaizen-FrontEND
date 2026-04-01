@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kaizenfrontend.core.ui.theme.*
+import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.presentation.components.CreatePlanBottomSheet
@@ -243,6 +244,7 @@ fun WorkoutsScreen(
                             androidx.lifecycle.viewmodel.compose.viewModel(key = "routine_wizard_vm")
 
                         LaunchedEffect(Unit) {
+                            routineWizardViewModel.setAvailablePlans(state.plans)
                             routineWizardViewModel.resetWizard()
                         }
 
@@ -326,7 +328,11 @@ private fun PlanHeaderItem(
                 Text(text = plan.description, color = LightGrey, fontSize = 13.sp)
             }
             plan.interval?.takeIf { it.isNotBlank() }?.let { intervalValue ->
-                Text(text = "Interval: $intervalValue", color = LightGrey, fontSize = 12.sp)
+                Text(
+                    text = PlanIntervalConfig.fromBackendValue(intervalValue).toDisplayLabel(),
+                    color = LightGrey,
+                    fontSize = 12.sp
+                )
             }
         }
 
