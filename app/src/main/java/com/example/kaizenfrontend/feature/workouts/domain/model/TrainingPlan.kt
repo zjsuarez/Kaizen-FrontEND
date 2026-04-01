@@ -5,5 +5,6 @@ data class TrainingPlan(
     val name: String,
     val description: String,
     val startingDate: String,
+    val interval: String?,
     val isActive: Boolean
 )

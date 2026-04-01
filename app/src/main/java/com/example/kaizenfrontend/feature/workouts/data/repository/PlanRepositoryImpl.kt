@@ -17,17 +17,31 @@ class PlanRepositoryImpl(
         name: String,
         description: String,
         startingDate: String,
+        interval: String?,
         isActive: Boolean
     ): Result<TrainingPlan> = withContext(Dispatchers.IO) {
         try {
             val token = sessionManager.getToken() ?: return@withContext Result.failure(Exception("No auth token found"))
             val bearerToken = "Bearer $token"
             
-            val request = TrainingPlanRequest(name, description, startingDate, isActive)
+            val request = TrainingPlanRequest(
+                name = name,
+                description = description,
+                startingDate = startingDate,
+                interval = interval,
+                isActive = isActive
+            )
             val response = api.createPlan(bearerToken, request)
             if (response.isSuccessful) {
                 response.body()?.let { dto ->
-                    val plan = TrainingPlan(dto.id, dto.name, dto.description, dto.startingDate, dto.isActive)
+                    val plan = TrainingPlan(
+                        id = dto.id,
+                        name = dto.name,
+                        description = dto.description,
+                        startingDate = dto.startingDate,
+                        interval = dto.interval,
+                        isActive = dto.isActive
+                    )
                     Result.success(plan)
                 } ?: Result.failure(Exception("Response body is null"))
             } else {
@@ -47,7 +61,14 @@ class PlanRepositoryImpl(
             val response = api.getAllPlans(bearerToken)
             if (response.isSuccessful) {
                 val plans = response.body()?.map { dto ->
-                    TrainingPlan(dto.id, dto.name, dto.description, dto.startingDate, dto.isActive)
+                    TrainingPlan(
+                        id = dto.id,
+                        name = dto.name,
+                        description = dto.description,
+                        startingDate = dto.startingDate,
+                        interval = dto.interval,
+                        isActive = dto.isActive
+                    )
                 } ?: emptyList()
                 Result.success(plans)
             } else {

@@ -35,7 +35,7 @@ import java.util.*
 @Composable
 fun CreatePlanBottomSheet(
     onDismiss: () -> Unit,
-    onCreate: (name: String, description: String, startingDate: String) -> Unit
+    onCreate: (name: String, description: String, startingDate: String, interval: String?) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -50,6 +50,7 @@ fun CreatePlanBottomSheet(
         sdf.format(Date())
     }
     var startingDate by remember { mutableStateOf(today) }
+    var interval by remember { mutableStateOf("") }
     val canContinue = name.isNotBlank()
     val canFinish = name.isNotBlank() && startingDate.isNotBlank()
 
@@ -133,7 +134,7 @@ fun CreatePlanBottomSheet(
                         TextButton(
                             onClick = {
                                 if (canFinish) {
-                                    onCreate(name, description, startingDate)
+                                    onCreate(name, description, startingDate, interval.takeIf { it.isNotBlank() })
                                 } else {
                                     showInlineErrors = true
                                 }
@@ -235,6 +236,22 @@ fun CreatePlanBottomSheet(
                                     fontSize = 12.sp
                                 )
                             }
+
+                            Text(
+                                text = "Interval",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            OutlinedTextField(
+                                value = interval,
+                                onValueChange = { interval = it },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = planFieldColors()
+                            )
                         }
                     }
                 }

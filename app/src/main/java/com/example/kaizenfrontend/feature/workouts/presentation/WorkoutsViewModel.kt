@@ -88,10 +88,10 @@ class WorkoutsViewModel(
         }
     }
 
-    fun createPlan(name: String, description: String, startingDate: String) {
+    fun createPlan(name: String, description: String, startingDate: String, interval: String? = null) {
         viewModelScope.launch {
             _uiState.value = WorkoutsUiState.Loading
-            val result = createPlanUseCase(name, description, startingDate)
+            val result = createPlanUseCase(name, description, startingDate, interval = interval)
             if (result.isSuccess) {
                 loadData()
             } else {

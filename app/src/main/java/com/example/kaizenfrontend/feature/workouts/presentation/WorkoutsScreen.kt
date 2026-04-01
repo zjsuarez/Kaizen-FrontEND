@@ -231,9 +231,9 @@ fun WorkoutsScreen(
                     if (showCreatePlanDialog) {
                         CreatePlanBottomSheet(
                             onDismiss = { showCreatePlanDialog = false },
-                            onCreate = { name, desc, start ->
+                            onCreate = { name, desc, start, interval ->
                                 showCreatePlanDialog = false
-                                viewModel.createPlan(name, desc, start)
+                                viewModel.createPlan(name, desc, start, interval)
                             }
                         )
                     }
@@ -324,6 +324,9 @@ private fun PlanHeaderItem(
             Text(text = plan.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             if (plan.description.isNotBlank()) {
                 Text(text = plan.description, color = LightGrey, fontSize = 13.sp)
+            }
+            plan.interval?.takeIf { it.isNotBlank() }?.let { intervalValue ->
+                Text(text = "Interval: $intervalValue", color = LightGrey, fontSize = 12.sp)
             }
         }
 
