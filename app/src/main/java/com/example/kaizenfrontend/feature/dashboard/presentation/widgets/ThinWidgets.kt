@@ -30,7 +30,7 @@ import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 
 // ──────────────────────────────────────────────────────────────
-// Recovery Time Widget (80dp banner)
+// Recovery Time Widget
 // ──────────────────────────────────────────────────────────────
 
 @Composable
@@ -93,7 +93,7 @@ fun RecoveryTimeWidget(
 }
 
 // ──────────────────────────────────────────────────────────────
-// Last Session Widget (80dp banner)
+// Last Session Widget
 // ──────────────────────────────────────────────────────────────
 
 @Composable
@@ -149,7 +149,7 @@ fun LastSessionWidget(
 }
 
 // ──────────────────────────────────────────────────────────────
-// Body Weight Trend Widget (80dp banner)
+// Body Weight Trend Widget
 // ──────────────────────────────────────────────────────────────
 
 @SuppressLint("DefaultLocale")
