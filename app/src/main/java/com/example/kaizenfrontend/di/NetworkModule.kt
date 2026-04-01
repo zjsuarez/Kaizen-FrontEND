@@ -19,7 +19,7 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val BASE_URL = "http://10.0.2.2:8080/" // Localhost for Android Emulator
-    private const val TEMP_TOKEN = "eyJhbGciOiJIU haha secret"
+    private const val TEMP_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI1OTMzZWJjZS1hYzQ2LTQxZDEtOWY1NC0zODcwMDZiNTczNmIiLCJzdWIiOiJ6anMuc3VhcmV6QGdtYWlsLmNvbSIsImlhdCI6MTc3NTA3MTM1NiwiZXhwIjoxNzc1MTU3NzU2fQ.hx5BFW5fYvg3OvwX2XTsfmceLdQYe8JdC68xmj19mPw"
 
     @Provides
     @Singleton

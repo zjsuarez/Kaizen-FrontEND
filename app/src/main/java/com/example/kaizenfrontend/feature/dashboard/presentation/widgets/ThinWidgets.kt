@@ -100,9 +100,10 @@ fun RecoveryTimeWidget(
 fun LastSessionWidget(
     routineName: String?,
     timeLabel: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
-    KaizenWidgetContainer(modifier = modifier) {
+    KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -158,9 +159,10 @@ fun WeightTrendWidget(
     currentWeight: Double?,
     trendLabel: String?,
     isPositive: Boolean?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
-    KaizenWidgetContainer(modifier = modifier) {
+    KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.SpaceBetween,

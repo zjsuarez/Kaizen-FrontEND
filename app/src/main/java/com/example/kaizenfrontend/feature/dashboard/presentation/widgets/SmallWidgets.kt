@@ -1,17 +1,14 @@
 package com.example.kaizenfrontend.feature.dashboard.presentation.widgets
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
@@ -23,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,22 +28,21 @@ import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.components.KaizenWidgetContainer
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
+import com.example.kaizenfrontend.core.ui.theme.MalachiteGreen
+import com.example.kaizenfrontend.core.ui.theme.PrGold
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
+import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 
-// Contextual accent colors
-private val MalachiteGreen = Color(0xFF00E676)
-private val SubtleRed = Color(0xFFCF6679)
-private val PrGold = Color(0xFFFFD740)
 
 // ──────────────────────────────────────────────────────────────
 // Streak Widget
 // ──────────────────────────────────────────────────────────────
 @Composable
-fun StreakWidget(streakDays: Int, recordStreak: Int = 12, modifier: Modifier = Modifier) {
+fun Modifier.StreakWidget(streakDays: Int, recordStreak: Int = 12) {
     val isNewRecord = streakDays >= recordStreak && streakDays > 0
     val iconTint = if (isNewRecord) PrGold else CrayolaBlue
 
-    KaizenWidgetContainer(modifier = modifier) {
+    KaizenWidgetContainer(modifier = this) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             // Top: icon + label
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -275,7 +270,7 @@ fun OneRmWidget(
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 170, heightDp = 140)
 @Composable
 private fun StreakWidgetPreview() {
-    StreakWidget(streakDays = 5, recordStreak = 12)
+    Modifier.StreakWidget(streakDays = 5)
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 170, heightDp = 140)
@@ -305,5 +300,5 @@ private fun OneRmWidgetNoPrPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 170, heightDp = 140)
 @Composable
 private fun StreakWidgetRecordPreview() {
-    StreakWidget(streakDays = 15, recordStreak = 12)
+    Modifier.StreakWidget(streakDays = 15)
 }
