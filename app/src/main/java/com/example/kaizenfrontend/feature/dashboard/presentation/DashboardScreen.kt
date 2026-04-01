@@ -32,8 +32,11 @@ import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetSize
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
 import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.AvgTimeWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.LastSessionWidget
 import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.OneRmWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.RecoveryTimeWidget
 import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.StreakWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.WeightTrendWidget
 import com.example.kaizenfrontend.feature.statistics.presentation.StatisticsScreen
 import com.example.kaizenfrontend.feature.user.presentation.settings.SettingsScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutsScreen
@@ -198,6 +201,23 @@ private fun DashboardWidgetGrid(
                         )
                     }
                 }
+
+                // ── Thin widgets (real UI) ────────────────
+                WidgetType.WEIGHT_TREND -> WeightTrendWidget(
+                    currentWeight = 82.5,
+                    trendLabel = "-0.5 kg this week",
+                    isPositive = true,
+                    modifier = widgetModifier
+                )
+                WidgetType.RECOVERY_TIME -> RecoveryTimeWidget(
+                    hours = 48,
+                    modifier = widgetModifier
+                )
+                WidgetType.LAST_SESSION -> LastSessionWidget(
+                    routineName = "Pull Day",
+                    timeLabel = "Yesterday",
+                    modifier = widgetModifier
+                )
 
                 // ── All other widgets (placeholder) ──────
                 else -> {
