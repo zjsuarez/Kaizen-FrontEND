@@ -1,8 +1,11 @@
 package com.example.kaizenfrontend.feature.dashboard.presentation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,19 +21,54 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.core.ui.components.KaizenWidgetContainer
 import com.example.kaizenfrontend.core.ui.theme.*
+import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
+import com.example.kaizenfrontend.feature.dashboard.model.WidgetSize
+import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
 import com.example.kaizenfrontend.feature.statistics.presentation.StatisticsScreen
 import com.example.kaizenfrontend.feature.user.presentation.settings.SettingsScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutsScreen
+
+// ──────────────────────────────────────────────────────────────
+// UI State
+// ──────────────────────────────────────────────────────────────
 
 sealed class DashboardUiState {
     object Loading : DashboardUiState()
     data class Success(val title: String, val date: String, val workoutPlan: String) : DashboardUiState()
     data class Error(val message: String) : DashboardUiState()
 }
+
+// ──────────────────────────────────────────────────────────────
+// Dashboard Widget Layout — hardcoded order for the grid engine
+// ──────────────────────────────────────────────────────────────
+
+private val dashboardWidgets = listOf(
+    // LARGE — full-width, tall
+    WidgetConfig(type = WidgetType.NEXT_WORKOUT,  size = WidgetSize.FULL_WIDTH, heightDp = 200.dp),
+    // THIN — full-width, short
+    WidgetConfig(type = WidgetType.WEIGHT_TREND,  size = WidgetSize.FULL_WIDTH, heightDp = 80.dp),
+    WidgetConfig(type = WidgetType.RECOVERY_TIME, size = WidgetSize.FULL_WIDTH, heightDp = 80.dp),
+    WidgetConfig(type = WidgetType.LAST_SESSION,  size = WidgetSize.FULL_WIDTH, heightDp = 80.dp),
+    // SMALL — half-width, square (side by side)
+    WidgetConfig(type = WidgetType.STREAK,        size = WidgetSize.HALF_WIDTH, heightDp = 140.dp),
+    WidgetConfig(type = WidgetType.AVG_TIME,      size = WidgetSize.HALF_WIDTH, heightDp = 140.dp),
+    WidgetConfig(type = WidgetType.ONE_RM,        size = WidgetSize.HALF_WIDTH, heightDp = 140.dp),
+    // Placeholder to keep the grid even (2 cols)
+    WidgetConfig(type = WidgetType.ONE_RM,        size = WidgetSize.HALF_WIDTH, heightDp = 140.dp),
+    // LARGE — full-width, tall
+    WidgetConfig(type = WidgetType.CALENDAR,      size = WidgetSize.FULL_WIDTH, heightDp = 250.dp),
+    WidgetConfig(type = WidgetType.RECENT_PRS,    size = WidgetSize.FULL_WIDTH, heightDp = 250.dp),
+)
+
+// ──────────────────────────────────────────────────────────────
+// Main Screen
+// ──────────────────────────────────────────────────────────────
 
 @Composable
 fun DashboardScreen(
@@ -67,7 +105,7 @@ fun DashboardScreen(
                         )
                     }
                     is DashboardUiState.Success -> {
-                        DashboardContent(
+                        DashboardWidgetGrid(
                             successState = uiState,
                             onWorkoutClick = onWorkoutClick
                         )
@@ -93,72 +131,104 @@ fun DashboardScreen(
     }
 }
 
+// ──────────────────────────────────────────────────────────────
+// Widget Grid Engine
+// ──────────────────────────────────────────────────────────────
+
 @Composable
-private fun DashboardContent(
+private fun DashboardWidgetGrid(
     successState: DashboardUiState.Success,
     onWorkoutClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxSize()
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Column {
-                Text(
-                    text = successState.title,
-                    color = PureWhite,
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = successState.date,
-                    color = LightGrey,
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(ShadowGrey),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Profile Picture",
-                    tint = LightGrey
-                )
-            }
+        // ── Header (spans full width) ────────────────────────
+        item(span = { GridItemSpan(2) }) {
+            DashboardHeader(
+                title = successState.title,
+                date = successState.date
+            )
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onWorkoutClick() },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = ShadowGrey)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Start today's workout", color = LightGrey, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = successState.workoutPlan,
-                    color = PureWhite,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
+        // ── Widget items ─────────────────────────────────────
+        items(
+            items = dashboardWidgets,
+            span = { config -> GridItemSpan(config.size.span) }
+        ) { config ->
+            KaizenWidgetContainer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(config.heightDp)
+            ) {
+                // Placeholder: just show the widget type name
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = config.type.name.replace("_", " "),
+                        color = LightGrey,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
 }
+
+// ──────────────────────────────────────────────────────────────
+// Header (preserved from original)
+// ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun DashboardHeader(title: String, date: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column {
+            Text(
+                text = title,
+                color = PureWhite,
+                fontSize = 38.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = date,
+                color = LightGrey,
+                fontSize = 16.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(ShadowGrey),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "Profile Picture",
+                tint = LightGrey
+            )
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Bottom Navigation (preserved)
+// ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun KaizenBottomNavigation(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
@@ -188,6 +258,10 @@ private fun KaizenBottomNavigation(selectedTabIndex: Int, onTabSelected: (Int) -
         }
     }
 }
+
+// ──────────────────────────────────────────────────────────────
+// Preview
+// ──────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true)
 @Composable
