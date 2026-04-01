@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -30,6 +31,9 @@ import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetSize
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.AvgTimeWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.OneRmWidget
+import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.StreakWidget
 import com.example.kaizenfrontend.feature.statistics.presentation.StatisticsScreen
 import com.example.kaizenfrontend.feature.user.presentation.settings.SettingsScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutsScreen
@@ -156,27 +160,61 @@ private fun DashboardWidgetGrid(
         }
 
         // ── Widget items ─────────────────────────────────────
-        items(
+        itemsIndexed(
             items = dashboardWidgets,
-            span = { config -> GridItemSpan(config.size.span) }
-        ) { config ->
-            KaizenWidgetContainer(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(config.heightDp)
-            ) {
-                // Placeholder: just show the widget type name
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = config.type.name.replace("_", " "),
-                        color = LightGrey,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center
-                    )
+            span = { _, config -> GridItemSpan(config.size.span) }
+        ) { index, config ->
+            val widgetModifier = Modifier
+                .fillMaxWidth()
+                .height(config.heightDp)
+
+            when (config.type) {
+                // ── Small widgets (real UI) ───────────────
+                WidgetType.STREAK -> StreakWidget(
+                    streakDays = 5,
+                    modifier = widgetModifier
+                )
+                WidgetType.AVG_TIME -> AvgTimeWidget(
+                    minutes = 62,
+                    trendDiffMinutes = -3,
+                    modifier = widgetModifier
+                )
+                WidgetType.ONE_RM -> {
+                    if (index == 6) {
+                        OneRmWidget(
+                            exercise = "Bench Press",
+                            weight = 105.0,
+                            isNewPr = true,
+                            weightIncrease = 2.5,
+                            modifier = widgetModifier
+                        )
+                    } else {
+                        OneRmWidget(
+                            exercise = "Squat",
+                            weight = 140.0,
+                            isNewPr = false,
+                            weightIncrease = 0.0,
+                            modifier = widgetModifier
+                        )
+                    }
+                }
+
+                // ── All other widgets (placeholder) ──────
+                else -> {
+                    KaizenWidgetContainer(modifier = widgetModifier) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = config.type.name.replace("_", " "),
+                                color = LightGrey,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -227,7 +265,7 @@ private fun DashboardHeader(title: String, date: String) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Bottom Navigation (preserved)
+// Bottom Navigation
 // ──────────────────────────────────────────────────────────────
 
 @Composable
@@ -262,7 +300,6 @@ private fun KaizenBottomNavigation(selectedTabIndex: Int, onTabSelected: (Int) -
 // ──────────────────────────────────────────────────────────────
 // Preview
 // ──────────────────────────────────────────────────────────────
-
 @Preview(showBackground = true)
 @Composable
 fun DashboardScreenPreview() {
