@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.feature.workouts.data.repository.MockExerciseRepository
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
 import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
+import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.domain.repository.ExerciseRepository
@@ -30,6 +31,7 @@ data class RoutineWizardUiState(
     val selectedCycleDays: Set<Int> = setOf(1),
     val restDaysBetweenWorkouts: Int = 1,
     val selectedExercises: List<RoutineExercise> = emptyList(),
+    val availableRoutines: List<Routine> = emptyList(),
     val availableExercises: List<Exercise> = emptyList(),
     val isLoadingExercises: Boolean = false,
     val exercisesError: String? = null
@@ -104,6 +106,10 @@ class RoutineWizardViewModel(
                 selectedCycleDays = normalizedCycleDays(current.selectedCycleDays, intervalConfig.cycleLengthDays)
             )
         }
+    }
+
+    fun setAvailableRoutines(routines: List<Routine>) {
+        _uiState.update { it.copy(availableRoutines = routines) }
     }
 
     fun selectPlan(planId: String) {
@@ -207,6 +213,7 @@ class RoutineWizardViewModel(
     fun resetWizard() {
         val cachedExercises = _uiState.value.availableExercises
         val cachedPlans = _uiState.value.availablePlans
+        val cachedRoutines = _uiState.value.availableRoutines
         val defaultPlan = cachedPlans.firstOrNull()
         val intervalConfig = PlanIntervalConfig.fromBackend(
             interval = defaultPlan?.interval,
@@ -215,6 +222,7 @@ class RoutineWizardViewModel(
         _uiState.value = RoutineWizardUiState(
             currentStep = 1,
             availablePlans = cachedPlans,
+            availableRoutines = cachedRoutines,
             selectedPlanId = defaultPlan?.id,
             selectedPlanInterval = intervalConfig,
             selectedCycleDays = normalizedCycleDays(setOf(1), intervalConfig.cycleLengthDays),

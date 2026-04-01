@@ -59,13 +59,14 @@ import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 import com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType
+import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardEvent
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardUiState
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardViewModel
-import kotlinx.coroutines.flow.collectLatest
 import java.time.DayOfWeek
 import java.time.LocalDate
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun RoutineWizardScreen(
@@ -171,6 +172,7 @@ fun RoutineWizardScreen(
 
                     2 -> WizardStep2Schedule(
                         planInterval = uiState.selectedPlanInterval,
+                        existingPlanRoutines = uiState.availableRoutines.filter { it.planId == uiState.selectedPlanId },
                         selectedWeekDays = uiState.selectedWeekDays,
                         selectedCycleDays = uiState.selectedCycleDays,
                         restDaysBetweenWorkouts = uiState.restDaysBetweenWorkouts,
@@ -385,6 +387,7 @@ private fun RoutineWizardTopBar(
 @Composable
 fun WizardStep2Schedule(
     planInterval: PlanIntervalConfig,
+    existingPlanRoutines: List<Routine>,
     selectedWeekDays: Set<DayOfWeek>,
     selectedCycleDays: Set<Int>,
     restDaysBetweenWorkouts: Int,
@@ -393,6 +396,10 @@ fun WizardStep2Schedule(
     onRestDaysChange: (Int) -> Unit,
     showCycleSelectionError: Boolean
 ) {
+    val weeklyAssignmentsByDay = remember(existingPlanRoutines) {
+        buildWeeklyAssignments(existingPlanRoutines)
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
             text = "Step 2: Schedule",
@@ -406,6 +413,7 @@ fun WizardStep2Schedule(
                 if (planInterval.cycleMode == CycleMode.WEEKLY) {
                     WeeklyDaysSelector(
                         selectedDays = selectedWeekDays,
+                        assignedRoutineNamesByDay = weeklyAssignmentsByDay,
                         onDayClick = onWeekDayToggle,
                         showError = showCycleSelectionError
                     )
@@ -415,6 +423,11 @@ fun WizardStep2Schedule(
                         selectedCycleDays = selectedCycleDays,
                         onDayClick = onCycleDayToggle,
                         showError = showCycleSelectionError
+                    )
+
+                    CycleRoutineAssignments(
+                        cycleLengthDays = planInterval.cycleLengthDays,
+                        existingRoutines = existingPlanRoutines
                     )
                 }
             }
@@ -431,9 +444,135 @@ fun WizardStep2Schedule(
                     suffix = "days",
                     onChange = onRestDaysChange
                 )
+
+                FrequencyRoutineAssignments(existingRoutines = existingPlanRoutines)
             }
         }
     }
+}
+
+@Composable
+private fun CycleRoutineAssignments(
+    cycleLengthDays: Int,
+    existingRoutines: List<Routine>
+) {
+    val totalDays = cycleLengthDays.coerceAtLeast(1)
+
+    AssignmentSectionCard(title = "Existing routines in this cycle") {
+        (1..totalDays).forEach { day ->
+            val routinesForDay = existingRoutines.filter { routine ->
+                day in parseCycleDaysFromSchedulingValue(routine.schedulingValue)
+            }
+            AssignmentRow(
+                label = "Day $day",
+                value = if (routinesForDay.isEmpty()) {
+                    "No routine"
+                } else {
+                    routinesForDay.joinToString(", ") { it.name }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FrequencyRoutineAssignments(existingRoutines: List<Routine>) {
+    AssignmentSectionCard(title = "Existing routine frequencies") {
+        if (existingRoutines.isEmpty()) {
+            AssignmentRow(label = "Plan", value = "No routines yet")
+            return@AssignmentSectionCard
+        }
+
+        existingRoutines.forEach { routine ->
+            val restDays = parseRestDaysFromSchedulingValue(routine.schedulingValue)
+            val frequencyLabel = if (restDays != null) {
+                "Every ${restDays + 1} day(s) (${restDays} rest day(s))"
+            } else {
+                "Frequency not available"
+            }
+
+            AssignmentRow(
+                label = routine.name,
+                value = frequencyLabel
+            )
+        }
+    }
+}
+
+@Composable
+private fun AssignmentSectionCard(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = title,
+            color = Color.White,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp
+        )
+
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = ShadowGrey,
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun AssignmentRow(
+    label: String,
+    value: String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = label,
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp
+        )
+        Text(
+            text = value,
+            color = LightGrey,
+            fontSize = 12.sp
+        )
+    }
+}
+
+private fun parseWeekDaysFromSchedulingValue(value: String?): Set<DayOfWeek> {
+    if (value.isNullOrBlank()) return emptySet()
+
+    return value
+        .split(',')
+        .mapNotNull { token ->
+            val normalized = token.trim().uppercase()
+            runCatching { DayOfWeek.valueOf(normalized) }.getOrNull()
+        }
+        .toSet()
+}
+
+private fun parseCycleDaysFromSchedulingValue(value: String?): Set<Int> {
+    if (value.isNullOrBlank()) return emptySet()
+
+    return value
+        .split(',')
+        .mapNotNull { token -> token.trim().toIntOrNull() }
+        .filter { it > 0 }
+        .toSet()
+}
+
+private fun parseRestDaysFromSchedulingValue(value: String?): Int? {
+    return value?.trim()?.toIntOrNull()?.takeIf { it >= 1 }
 }
 
 @Composable
@@ -472,6 +611,7 @@ private fun WizardBottomBar(
 @Composable
 private fun WeeklyDaysSelector(
     selectedDays: Set<DayOfWeek>,
+    assignedRoutineNamesByDay: Map<DayOfWeek, List<String>>,
     onDayClick: (DayOfWeek) -> Unit,
     showError: Boolean
 ) {
@@ -501,29 +641,46 @@ private fun WeeklyDaysSelector(
         ) {
             dayItems.forEach { item ->
                 val isSelected = selectedDays.contains(item.dayOfWeek)
-                Surface(
-                    modifier = Modifier
-                        .width(42.dp)
-                        .clickable { onDayClick(item.dayOfWeek) },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) CrayolaBlue.copy(alpha = 0.18f) else ShadowGrey,
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = if (isSelected) CrayolaBlue else Color.Transparent
-                    )
+                val assignedLabel = formatAssignedRoutineNames(
+                    assignedRoutineNamesByDay[item.dayOfWeek].orEmpty()
+                )
+
+                Column(
+                    modifier = Modifier.width(72.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
+                    Surface(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = item.label,
-                            color = if (isSelected) CrayolaBlue else LightGrey,
-                            fontWeight = FontWeight.SemiBold
+                            .width(42.dp)
+                            .clickable { onDayClick(item.dayOfWeek) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isSelected) CrayolaBlue.copy(alpha = 0.18f) else ShadowGrey,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = if (isSelected) CrayolaBlue else Color.Transparent
                         )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = item.label,
+                                color = if (isSelected) CrayolaBlue else LightGrey,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
+
+                    Text(
+                        text = assignedLabel,
+                        color = LightGrey,
+                        fontSize = 10.sp,
+                        lineHeight = 12.sp
+                    )
                 }
             }
         }
@@ -536,6 +693,23 @@ private fun WeeklyDaysSelector(
             )
         }
     }
+}
+
+private fun buildWeeklyAssignments(existingRoutines: List<Routine>): Map<DayOfWeek, List<String>> {
+    return DayOfWeek.entries.associateWith { dayOfWeek ->
+        existingRoutines.filter { routine ->
+            dayOfWeek in parseWeekDaysFromSchedulingValue(routine.schedulingValue)
+        }.map { it.name }
+    }
+}
+
+private fun formatAssignedRoutineNames(routineNames: List<String>): String {
+    if (routineNames.isEmpty()) return "No workout"
+    if (routineNames.size <= 2) return routineNames.joinToString("\n")
+
+    val firstTwo = routineNames.take(2).joinToString("\n")
+    val remaining = routineNames.size - 2
+    return "$firstTwo\n+$remaining more"
 }
 
 @Composable

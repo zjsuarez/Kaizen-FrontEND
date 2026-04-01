@@ -244,7 +244,9 @@ fun WorkoutsScreen(
                             androidx.lifecycle.viewmodel.compose.viewModel(key = "routine_wizard_vm")
 
                         LaunchedEffect(Unit) {
+                            val allRoutines = state.routinesByPlanId.values.flatten() + state.unassignedRoutines
                             routineWizardViewModel.setAvailablePlans(state.plans)
+                            routineWizardViewModel.setAvailableRoutines(allRoutines)
                             routineWizardViewModel.resetWizard()
                         }
 
