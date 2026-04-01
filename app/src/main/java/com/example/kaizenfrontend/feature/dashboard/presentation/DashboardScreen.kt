@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,11 +50,8 @@ import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutsScreen
 // UI State
 // ──────────────────────────────────────────────────────────────
 
-sealed class DashboardUiState {
-    object Loading : DashboardUiState()
-    data class Success(val title: String, val date: String, val workoutPlan: String) : DashboardUiState()
-    data class Error(val message: String) : DashboardUiState()
-}
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
 
 // ──────────────────────────────────────────────────────────────
 // Dashboard Widget Layout — hardcoded order for the grid engine
@@ -83,14 +81,11 @@ private val dashboardWidgets = listOf(
 
 @Composable
 fun DashboardScreen(
-    uiState: DashboardUiState = DashboardUiState.Success(
-        title = "Welcome!",
-        date = "16 / 02",
-        workoutPlan = "Upper"
-    ),
+    viewModel: DashboardViewModel = hiltViewModel(),
     onWorkoutClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
 
     Scaffold(
@@ -108,18 +103,23 @@ fun DashboardScreen(
                 .padding(paddingValues)
         ) {
             when (selectedTab) {
-                0 -> when (uiState) {
+                0 -> when (val state = uiState) {
                     is DashboardUiState.Loading -> {
-                        CircularProgressIndicator(
-                            color = CrayolaBlue,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(
+                                color = CrayolaBlue,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
                     }
                     is DashboardUiState.Success -> {
                         DashboardWidgetGrid(
-                            successState = uiState,
+                            successState = state,
                             onWorkoutClick = onWorkoutClick
                         )
+                    }
+                    is DashboardUiState.Empty -> {
+                        // Normally this handles no-data gracefully
                     }
                     is DashboardUiState.Error -> {
                         Box(
@@ -130,7 +130,7 @@ fun DashboardScreen(
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = uiState.message, color = Color.Red, fontSize = 14.sp)
+                            Text(text = state.message, color = Color.Red, fontSize = 14.sp)
                         }
                     }
                 }
@@ -158,11 +158,13 @@ private fun DashboardWidgetGrid(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
+        val data = successState.data
+
         // ── Header (spans full width) ────────────────────────
         item(span = { GridItemSpan(2) }) {
             DashboardHeader(
-                title = successState.title,
-                date = successState.date
+                title = "Welcome!", // Needs to be fetched from user profile in a real app
+                date = "Today" // Could be formatted current date
             )
         }
 
@@ -178,68 +180,67 @@ private fun DashboardWidgetGrid(
             when (config.type) {
                 // ── Small widgets (real UI) ───────────────
                 WidgetType.STREAK -> StreakWidget(
-                    streakDays = 5,
+                    streakDays = data.workoutStreak,
                     modifier = widgetModifier
                 )
                 WidgetType.AVG_TIME -> AvgTimeWidget(
-                    minutes = 62,
-                    trendDiffMinutes = -3,
+                    minutes = data.avgDurationMinutes,
+                    trendDiffMinutes = 0, // Mocked for now until API provides it
                     modifier = widgetModifier
                 )
                 WidgetType.ONE_RM -> {
-                    if (index == 6) {
-                        OneRmWidget(
-                            exercise = "Bench Press",
-                            weight = 105.0,
-                            isNewPr = true,
-                            weightIncrease = 2.5,
-                            modifier = widgetModifier
-                        )
-                    } else {
-                        OneRmWidget(
-                            exercise = "Squat",
-                            weight = 140.0,
-                            isNewPr = false,
-                            weightIncrease = 0.0,
-                            modifier = widgetModifier
-                        )
-                    }
+                    OneRmWidget(
+                        exercise = "Estimated 1RM",
+                        weight = data.estimated1RM,
+                        isNewPr = false,
+                        weightIncrease = 0.0,
+                        modifier = widgetModifier
+                    )
                 }
 
                 // ── Thin widgets (real UI) ────────────────
                 WidgetType.WEIGHT_TREND -> WeightTrendWidget(
-                    currentWeight = 82.5,
+                    currentWeight = 82.5, // Requires separate API call as per agent.md
                     trendLabel = "-0.5 kg this week",
                     isPositive = true,
                     modifier = widgetModifier
                 )
                 WidgetType.RECOVERY_TIME -> RecoveryTimeWidget(
-                    hours = 48,
+                    hours = data.recoveryTimeHours ?: 0,
                     modifier = widgetModifier
                 )
                 WidgetType.LAST_SESSION -> LastSessionWidget(
-                    routineName = "Pull Day",
-                    timeLabel = "Yesterday",
+                    routineName = data.lastSession?.routineName ?: "Freestyle",
+                    timeLabel = data.lastSession?.completedAt?.take(10) ?: "Never", // Safely using datetime
                     modifier = widgetModifier
                 )
 
                 // ── Large widgets (real UI) ───────────────
                 WidgetType.NEXT_WORKOUT -> NextWorkoutWidget(
-                    routineName = "Pull Day",
+                    routineName = data.nextWorkout?.routineName,
                     modifier = widgetModifier
                 )
-                WidgetType.CALENDAR -> CalendarWidget(
-                    trainingDays = listOf(1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29),
-                    modifier = widgetModifier
-                )
-                WidgetType.RECENT_PRS -> RecentPrsWidget(
-                    prs = listOf(
-                        RecentPrMock("Bench Press", "105 kg", "+2.5 kg", "2 days ago"),
-                        RecentPrMock("Squat", "140 kg", "+5 kg", "5 days ago"),
-                        RecentPrMock("Deadlift", "180 kg", "+2.5 kg", "1 week ago")
-                    ),
-                    modifier = widgetModifier
-                )
+                WidgetType.CALENDAR -> {
+                    // Extract strictly the day of month
+                    val days = data.trainingDaysThisMonth.mapNotNull { dateString ->
+                        try {
+                            LocalDate.parse(dateString).dayOfMonth
+                        } catch (e: Exception) { null }
+                    }
+                    CalendarWidget(
+                        trainingDays = days,
+                        modifier = widgetModifier
+                    )
+                }
+                WidgetType.RECENT_PRS -> {
+                    val mapPrs = data.recentPrs.map { pr ->
+                        RecentPrMock(pr.exerciseName, "${pr.weight} kg", "", pr.achievedAt.take(10))
+                    }
+                    RecentPrsWidget(
+                        prs = mapPrs,
+                        modifier = widgetModifier
+                    )
+                }
             }
         }
     }
@@ -327,5 +328,7 @@ private fun KaizenBottomNavigation(selectedTabIndex: Int, onTabSelected: (Int) -
 @Preview(showBackground = true)
 @Composable
 fun DashboardScreenPreview() {
-    MaterialTheme { DashboardScreen() }
+    MaterialTheme {
+        // Need to provide a mock view model for realistic preview rendering in actual Studio environment
+    }
 }
