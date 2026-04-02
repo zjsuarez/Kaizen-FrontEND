@@ -65,6 +65,9 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.google.gson)
 
+    // DataStore Preferences
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

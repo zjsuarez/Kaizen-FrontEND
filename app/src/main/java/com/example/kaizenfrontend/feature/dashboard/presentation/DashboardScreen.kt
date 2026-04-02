@@ -2,10 +2,12 @@ package com.example.kaizenfrontend.feature.dashboard.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -14,6 +16,9 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Timer
@@ -126,6 +131,11 @@ private val dashboardWidgets =
                 ),
         )
 
+        private val widgetConfigByType: Map<WidgetType, WidgetConfig> =
+            dashboardWidgets.associateBy { it.type }
+
+        private val fallbackWidgetOrder = listOf("NEXT_WORKOUT", "WEIGHT_TREND")
+
 // ──────────────────────────────────────────────────────────────
 // Main Screen
 // ──────────────────────────────────────────────────────────────
@@ -138,14 +148,45 @@ fun DashboardScreen(
         onLogoutClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val widgetOrder by viewModel.widgetOrder.collectAsState()
     val weightHistory by viewModel.weightHistory.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
-    
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var activeBottomSheet by remember { mutableStateOf<DashboardBottomSheetType?>(null) }
+    var showEditSheet by remember { mutableStateOf(false) }
 
     Scaffold(
             containerColor = Onyx,
+            topBar = {
+                if (selectedTab == 0) {
+                    TopAppBar(
+                            title = {
+                                Text(
+                                        text = "Kaizen Hub",
+                                        color = PureWhite,
+                                        fontWeight = FontWeight.SemiBold
+                                )
+                            },
+                            actions = {
+                                IconButton(onClick = { showEditSheet = true }) {
+                                    Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Edit Dashboard Widgets",
+                                            tint = LightGrey
+                                    )
+                                }
+                            },
+                            colors =
+                                    TopAppBarDefaults.topAppBarColors(
+                                            containerColor = Onyx,
+                                            titleContentColor = PureWhite,
+                                            actionIconContentColor = LightGrey
+                                    )
+                    )
+                }
+            },
             bottomBar = {
                 KaizenBottomNavigation(
                         selectedTabIndex = selectedTab,
@@ -171,6 +212,7 @@ fun DashboardScreen(
                             is DashboardUiState.Success -> {
                                 DashboardWidgetGrid(
                                         successState = state,
+                                        widgetOrder = widgetOrder,
                                         weightHistory = weightHistory,
                                         onWorkoutClick = onWorkoutClick,
                                         onWidgetClick = { activeBottomSheet = it }
@@ -210,7 +252,7 @@ fun DashboardScreen(
             dragHandle = { BottomSheetDefaults.DragHandle(color = LightGrey) }
         ) {
             BottomSheetContent(
-                sheetType = activeBottomSheet!!, 
+                sheetType = activeBottomSheet!!,
                 onDismiss = { activeBottomSheet = null },
                 onLogWeight = { weight ->
                     viewModel.logBodyWeight(weight)
@@ -224,6 +266,36 @@ fun DashboardScreen(
             )
         }
     }
+
+    if (showEditSheet) {
+        ModalBottomSheet(
+                onDismissRequest = { showEditSheet = false },
+                sheetState = editSheetState,
+                containerColor = Onyx,
+                dragHandle = { BottomSheetDefaults.DragHandle(color = LightGrey) }
+        ) {
+            EditBottomSheet(
+                    widgetOrder = widgetOrder,
+                    onMoveUp = { index ->
+                        if (index > 0) {
+                            val updated = widgetOrder.toMutableList().apply {
+                                add(index - 1, removeAt(index))
+                            }
+                            viewModel.onReorderWidgets(updated)
+                        }
+                    },
+                    onMoveDown = { index ->
+                        if (index < widgetOrder.lastIndex) {
+                            val updated = widgetOrder.toMutableList().apply {
+                                add(index + 1, removeAt(index))
+                            }
+                            viewModel.onReorderWidgets(updated)
+                        }
+                    },
+                    onDone = { showEditSheet = false }
+            )
+        }
+    }
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -233,10 +305,17 @@ fun DashboardScreen(
 @Composable
 private fun DashboardWidgetGrid(
         successState: DashboardUiState.Success,
+    widgetOrder: List<String>,
         weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>,
         onWorkoutClick: () -> Unit,
         onWidgetClick: (DashboardBottomSheetType) -> Unit
 ) {
+    val orderedWidgetTypes =
+        (if (widgetOrder.isEmpty()) fallbackWidgetOrder else widgetOrder)
+            .mapNotNull { rawType ->
+            runCatching { WidgetType.valueOf(rawType) }.getOrNull()
+            }
+
     LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
@@ -254,14 +333,19 @@ private fun DashboardWidgetGrid(
             )
         }
 
-        // ── Widget items ─────────────────────────────────────
-        itemsIndexed(
-                items = dashboardWidgets,
-                span = { _, config -> GridItemSpan(config.size.span) }
-        ) { index, config ->
+        // ── Widget items (DataStore driven order) ────────────
+        items(
+                items = orderedWidgetTypes,
+                key = { widgetType -> "widget_${widgetType.name}" },
+                span = { widgetType ->
+                    val config = widgetConfigByType[widgetType]
+                    GridItemSpan(config?.size?.span ?: WidgetSize.FULL_WIDTH.span)
+                }
+        ) { widgetType ->
+            val config = widgetConfigByType[widgetType] ?: return@items
             val widgetModifier = Modifier.fillMaxWidth().height(config.heightDp)
 
-            when (config.type) {
+            when (widgetType) {
                 // ── Small widgets (real UI) ───────────────
                 WidgetType.STREAK ->
                     widgetModifier.StreakWidget(
@@ -288,7 +372,7 @@ private fun DashboardWidgetGrid(
                         val diff = data.weightDiff ?: 0.0
                         val isPos = diff >= 0
                         val sign = if (isPos) "+" else ""
-                        
+
                         WeightTrendWidget(
                         currentWeight = successState.data.currentWeight ?: 0.0,
                                 trendLabel = "$sign$diff kg this week",
@@ -330,7 +414,7 @@ private fun DashboardWidgetGrid(
                                 }
                             }
                     CalendarWidget(
-                        trainingDays = days, 
+                        trainingDays = days,
                         modifier = widgetModifier,
                         onClick = { onWidgetClick(DashboardBottomSheetType.CalendarDay(LocalDate.now().dayOfMonth, days.contains(LocalDate.now().dayOfMonth))) },
                         onDayClick = { day, isTrainingDay -> onWidgetClick(DashboardBottomSheetType.CalendarDay(day, isTrainingDay)) }
@@ -347,7 +431,7 @@ private fun DashboardWidgetGrid(
                                 )
                             }
                     RecentPrsWidget(
-                        prs = mapPrs, 
+                        prs = mapPrs,
                         modifier = widgetModifier,
                         onClick = { onWidgetClick(DashboardBottomSheetType.PrDetails(data.recentPrs.firstOrNull()?.exerciseName ?: "Overview")) },
                         onPrClick = { exercise -> onWidgetClick(DashboardBottomSheetType.PrDetails(exercise)) }
@@ -355,8 +439,101 @@ private fun DashboardWidgetGrid(
                 }
             }
         }
-    }
 }
+
+}
+
+@Composable
+private fun EditBottomSheet(
+    widgetOrder: List<String>,
+    onMoveUp: (Int) -> Unit,
+    onMoveDown: (Int) -> Unit,
+    onDone: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = "Edit Dashboard",
+            color = PureWhite,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Use arrows to reorder widgets",
+            color = LightGrey,
+            fontSize = 14.sp
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)
+        ) {
+            itemsIndexed(
+                items = widgetOrder,
+                key = { _, item -> item }
+            ) { index, widgetKey ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(ShadowGrey)
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = widgetKey.split("_").joinToString(" ") { token ->
+                            token.lowercase().replaceFirstChar { it.uppercase() }
+                        },
+                        color = PureWhite,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+
+        }
+                        IconButton(
+                            onClick = { onMoveUp(index) },
+                            enabled = index > 0
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowUp,
+                                contentDescription = "Move Up",
+                                tint = if (index > 0) CrayolaBlue else LightGrey.copy(alpha = 0.4f)
+                            )
+                        }
+                        IconButton(
+                            onClick = { onMoveDown(index) },
+                            enabled = index < widgetOrder.lastIndex
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Move Down",
+                                tint = if (index < widgetOrder.lastIndex) CrayolaBlue else LightGrey.copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = onDone,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue)
+        ) {
+            Text("Done", color = Onyx, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+    }
+
 
 // ──────────────────────────────────────────────────────────────
 // Header (preserved from original)
@@ -476,10 +653,10 @@ private fun BottomSheetContent(
 }
 
 @Composable
-private fun NextWorkoutSheet(routineName: String, onWorkoutClick: () -> Unit) {
+fun NextWorkoutSheet(routineName: String, onWorkoutClick: () -> Unit) {
     Text("Día de Tirón (Pull)", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(16.dp))
-    
+
     Column(
         modifier = Modifier.fillMaxWidth().background(ShadowGrey, RoundedCornerShape(12.dp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -488,9 +665,9 @@ private fun NextWorkoutSheet(routineName: String, onWorkoutClick: () -> Unit) {
         Text("2. Dominadas (3x10)", color = LightGrey, fontSize = 14.sp)
         Text("3. Remo (3x12)", color = LightGrey, fontSize = 14.sp)
     }
-    
+
     Spacer(modifier = Modifier.height(16.dp))
-    
+
     Box(
         modifier = Modifier.fillMaxWidth().background(Onyx, RoundedCornerShape(12.dp)).border(1.dp, LightGrey.copy(alpha = 0.2f), RoundedCornerShape(12.dp)).padding(16.dp)
     ) {
@@ -504,9 +681,9 @@ private fun NextWorkoutSheet(routineName: String, onWorkoutClick: () -> Unit) {
 }
 
 @Composable
-private fun BodyWeightSheet(
-    currentWeight: Double?, 
-    onDismiss: () -> Unit, 
+fun BodyWeightSheet(
+    currentWeight: Double?,
+    onDismiss: () -> Unit,
     onLogWeight: (Double) -> Unit,
     weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>
 ) {
@@ -525,27 +702,27 @@ private fun BodyWeightSheet(
                 } catch (e: Exception) {
                     measurement.recordedAt.take(10)
                 }
-                
+
                 val textColor = if (index == 0) PureWhite else LightGrey
                 val fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal
                 val fontSize = if (index == 0) 16.sp else 14.sp
-                
+
                 Text("$dateStr: ${measurement.weightKg} kg", color = textColor, fontSize = fontSize, fontWeight = fontWeight)
             }
         }
     }
 
     Spacer(modifier = Modifier.height(24.dp))
-    
+
     var inputWeight by remember(currentWeight) {
-        mutableStateOf(currentWeight?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "") 
+        mutableStateOf(currentWeight?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "")
     }
-    
+
     OutlinedTextField(
         value = inputWeight,
-        onValueChange = { newValue -> 
+        onValueChange = { newValue ->
             if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
-                inputWeight = newValue 
+                inputWeight = newValue
             }
         },
         label = { Text("Nuevo peso (kg)", color = LightGrey) },
@@ -561,8 +738,8 @@ private fun BodyWeightSheet(
     Button(
         onClick = {
             inputWeight.toDoubleOrNull()?.let { onLogWeight(it) } ?: onDismiss()
-        }, 
-        modifier = Modifier.fillMaxWidth(), 
+        },
+        modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue)
     ) {
         Text("Guardar Registro", color = Onyx, fontWeight = FontWeight.Bold)
@@ -570,18 +747,18 @@ private fun BodyWeightSheet(
 }
 
 @Composable
-private fun RecoveryInfoSheet(hours: Int?) {
+fun RecoveryInfoSheet(hours: Int?) {
     Icon(imageVector = Icons.Default.BatteryChargingFull, contentDescription = "Battery", tint = MalachiteGreen, modifier = Modifier.size(64.dp))
     Spacer(modifier = Modifier.height(8.dp))
     Text("48h Restantes", color = PureWhite, fontSize = 28.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(16.dp))
-    
+
     Text(
         "Basado en tu alto volumen en el Día de Pierna de ayer, tu Sistema Nervioso Central necesita descanso.",
         color = LightGrey, fontSize = 15.sp, textAlign = TextAlign.Center, lineHeight = 22.sp
     )
     Spacer(modifier = Modifier.height(24.dp))
-    
+
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         Box(modifier = Modifier.background(Color(0xFF4A1A1A), RoundedCornerShape(8.dp)).border(1.dp, SubtleRed, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
             Text("Piernas (Fatiga Alta)", color = SubtleRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -593,10 +770,10 @@ private fun RecoveryInfoSheet(hours: Int?) {
 }
 
 @Composable
-private fun LastSessionSheet(routineName: String) {
+fun LastSessionSheet(routineName: String) {
     Text("Ticket de Resumen: $routineName", color = PureWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(24.dp))
-    
+
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(imageVector = Icons.Default.DateRange, contentDescription = "Date", tint = LightGrey, modifier = Modifier.size(24.dp))
@@ -614,9 +791,9 @@ private fun LastSessionSheet(routineName: String) {
             Text("6,400 kg", color = LightGrey, fontSize = 14.sp)
         }
     }
-    
+
     Spacer(modifier = Modifier.height(24.dp))
-    
+
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Text("Ejercicios Principales:", color = PureWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
@@ -625,9 +802,9 @@ private fun LastSessionSheet(routineName: String) {
             color = LightGrey, fontSize = 14.sp, lineHeight = 22.sp
         )
     }
-    
+
     Spacer(modifier = Modifier.height(32.dp))
-    
+
     Box(
         modifier = Modifier.fillMaxWidth().background(Color(0xFF2A2410), RoundedCornerShape(12.dp)).border(1.dp, PrGold, RoundedCornerShape(12.dp)).padding(16.dp)
     ) {
@@ -636,7 +813,7 @@ private fun LastSessionSheet(routineName: String) {
 }
 
 @Composable
-private fun CalendarDaySheet(day: Int, isTrainingDay: Boolean) {
+fun CalendarDaySheet(day: Int, isTrainingDay: Boolean) {
     if (isTrainingDay) {
         Text("Día de Tirón (Pull)", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
@@ -659,10 +836,10 @@ private fun CalendarDaySheet(day: Int, isTrainingDay: Boolean) {
 }
 
 @Composable
-private fun PrDetailsSheet(exerciseName: String) {
+fun PrDetailsSheet(exerciseName: String) {
     Text("Historial: $exerciseName", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(24.dp))
-    
+
     Column(modifier = Modifier.fillMaxWidth()) {
         // Row 1
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -675,7 +852,7 @@ private fun PrDetailsSheet(exerciseName: String) {
             }
         }
         HorizontalDivider(color = Onyx)
-        
+
         // Row 2
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
@@ -687,7 +864,7 @@ private fun PrDetailsSheet(exerciseName: String) {
             }
         }
         HorizontalDivider(color = Onyx)
-        
+
         // Row 3
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {

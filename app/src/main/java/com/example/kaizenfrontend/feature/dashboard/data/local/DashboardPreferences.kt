@@ -1,0 +1,55 @@
+package com.example.kaizenfrontend.feature.dashboard.data.local
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStoreFile
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import java.io.IOException
+import javax.inject.Inject
+
+class DashboardPreferences @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+
+    private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+        produceFile = { context.preferencesDataStoreFile(DATASTORE_NAME) }
+    )
+
+    val widgetOrder: Flow<List<String>> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[WIDGET_ORDER_KEY]
+                ?.split(",")
+                ?.map { it.trim() }
+                ?.filter { it.isNotBlank() }
+                ?.takeIf { it.isNotEmpty() }
+                ?: DEFAULT_WIDGET_ORDER
+        }
+
+    suspend fun saveWidgetOrder(order: List<String>) {
+        val serializedOrder = order.joinToString(",")
+        dataStore.edit { preferences ->
+            preferences[WIDGET_ORDER_KEY] = serializedOrder
+        }
+    }
+
+    companion object {
+        private const val DATASTORE_NAME = "dashboard_preferences"
+        val WIDGET_ORDER_KEY = stringPreferencesKey("widget_order")
+        private val DEFAULT_WIDGET_ORDER = listOf("NEXT_WORKOUT", "WEIGHT_TREND")
+    }
+}
