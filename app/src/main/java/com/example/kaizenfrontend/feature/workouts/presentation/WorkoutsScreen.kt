@@ -61,6 +61,7 @@ fun WorkoutsScreen(
     var showCreatePlanDialog by remember { mutableStateOf(false) }
     var showCreateRoutineWizard by remember { mutableStateOf(false) }
     var selectedRoutineForDetails by remember { mutableStateOf<Routine?>(null) }
+    var pendingDelete by remember { mutableStateOf<DeleteTarget?>(null) }
 
     Box(
         modifier = Modifier
@@ -179,7 +180,12 @@ fun WorkoutsScreen(
                                     isExpanded = isExpanded,
                                     isEditMode = isEditMode,
                                     onClick = { viewModel.togglePlanExpansion(plan.id) },
-                                    onDeleteClick = { viewModel.deletePlan(plan.id) },
+                                    onDeleteClick = {
+                                        pendingDelete = DeleteTarget.Plan(
+                                            planId = plan.id,
+                                            planName = plan.name
+                                        )
+                                    },
                                     onMoveUpClick = { viewModel.movePlanUp(plan.id) },
                                     onMoveDownClick = { viewModel.movePlanDown(plan.id) }
                                 )
@@ -202,7 +208,12 @@ fun WorkoutsScreen(
                                             routine = routine,
                                             isEditMode = isEditMode,
                                             onClick = { selectedRoutineForDetails = routine },
-                                            onDeleteClick = { viewModel.deleteRoutine(routine.id) },
+                                            onDeleteClick = {
+                                                pendingDelete = DeleteTarget.Routine(
+                                                    routineId = routine.id,
+                                                    routineName = routine.name
+                                                )
+                                            },
                                             onMoveUpClick = { viewModel.moveRoutineUp(routine.id, plan.id) },
                                             onMoveDownClick = { viewModel.moveRoutineDown(routine.id, plan.id) }
                                         )
@@ -227,7 +238,12 @@ fun WorkoutsScreen(
                                     routine = routine,
                                     isEditMode = isEditMode,
                                     onClick = { selectedRoutineForDetails = routine },
-                                    onDeleteClick = { viewModel.deleteRoutine(routine.id) },
+                                    onDeleteClick = {
+                                        pendingDelete = DeleteTarget.Routine(
+                                            routineId = routine.id,
+                                            routineName = routine.name
+                                        )
+                                    },
                                     onMoveUpClick = { viewModel.moveRoutineUp(routine.id, null) },
                                     onMoveDownClick = { viewModel.moveRoutineDown(routine.id, null) }
                                 )
@@ -280,6 +296,20 @@ fun WorkoutsScreen(
                         }
                     }
 
+                    pendingDelete?.let { target ->
+                        ConfirmDeleteDialog(
+                            target = target,
+                            onDismiss = { pendingDelete = null },
+                            onConfirm = {
+                                when (target) {
+                                    is DeleteTarget.Plan -> viewModel.deletePlan(target.planId)
+                                    is DeleteTarget.Routine -> viewModel.deleteRoutine(target.routineId)
+                                }
+                                pendingDelete = null
+                            }
+                        )
+                    }
+
                     selectedRoutineForDetails?.let { selectedRoutine ->
                         val routineDetailsViewModel: RoutineDetailsViewModel = viewModel(
                             key = "routine_details_${selectedRoutine.id}",
@@ -309,6 +339,63 @@ fun WorkoutsScreen(
             }
         }
     }
+}
+
+private sealed interface DeleteTarget {
+    data class Plan(
+        val planId: String,
+        val planName: String
+    ) : DeleteTarget
+
+    data class Routine(
+        val routineId: String,
+        val routineName: String
+    ) : DeleteTarget
+}
+
+@Composable
+private fun ConfirmDeleteDialog(
+    target: DeleteTarget,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val (title, message) = when (target) {
+        is DeleteTarget.Plan -> {
+            "Delete Plan" to "Are you sure you want to delete ${target.planName}?"
+        }
+
+        is DeleteTarget.Routine -> {
+            "Delete Routine" to "Are you sure you want to delete ${target.routineName}?"
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = ShadowGrey,
+        title = {
+            Text(
+                text = title,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Text(
+                text = message,
+                color = LightGrey
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "Cancel", color = LightGrey)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = "Delete", color = SubtleRed, fontWeight = FontWeight.Bold)
+            }
+        }
+    )
 }
 
 @Composable
