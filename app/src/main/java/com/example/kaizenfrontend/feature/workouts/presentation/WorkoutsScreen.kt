@@ -518,7 +518,12 @@ private fun PlanHeaderItem(
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = plan.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = plan.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                if (plan.isActive) {
+                    Text(text = " - Active", color = CrayolaBlue, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
             if (plan.description.isNotBlank()) {
                 Text(text = plan.description, color = LightGrey, fontSize = 13.sp)
             }
