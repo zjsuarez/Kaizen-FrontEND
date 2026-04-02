@@ -138,6 +138,7 @@ fun DashboardScreen(
         onLogoutClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val weightHistory by viewModel.weightHistory.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
     
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -170,6 +171,7 @@ fun DashboardScreen(
                             is DashboardUiState.Success -> {
                                 DashboardWidgetGrid(
                                         successState = state,
+                                        weightHistory = weightHistory,
                                         onWorkoutClick = onWorkoutClick,
                                         onWidgetClick = { activeBottomSheet = it }
                                 )
@@ -217,7 +219,8 @@ fun DashboardScreen(
                 onWorkoutClick = {
                     onWorkoutClick()
                     activeBottomSheet = null
-                }
+                },
+                weightHistory = weightHistory
             )
         }
     }
@@ -230,6 +233,7 @@ fun DashboardScreen(
 @Composable
 private fun DashboardWidgetGrid(
         successState: DashboardUiState.Success,
+        weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>,
         onWorkoutClick: () -> Unit,
         onWidgetClick: (DashboardBottomSheetType) -> Unit
 ) {
@@ -280,14 +284,19 @@ private fun DashboardWidgetGrid(
                 }
 
                 // ── Thin widgets (real UI) ────────────────
-                WidgetType.WEIGHT_TREND ->
+                WidgetType.WEIGHT_TREND -> {
+                        val diff = data.weightDiff ?: 0.0
+                        val isPos = diff >= 0
+                        val sign = if (isPos) "+" else ""
+                        
                         WeightTrendWidget(
-                                currentWeight = 82.5, // Requires separate API call as per agent.md
-                                trendLabel = "-0.5 kg this week",
-                                isPositive = true,
+                        currentWeight = successState.data.currentWeight ?: 0.0,
+                                trendLabel = "$sign$diff kg this week",
+                                isPositive = isPos,
                                 modifier = widgetModifier,
-                                onClick = { onWidgetClick(DashboardBottomSheetType.LogBodyWeight(82.5)) }
+                        onClick = { onWidgetClick(DashboardBottomSheetType.LogBodyWeight(successState.data.currentWeight ?: 0.0)) }
                         )
+                }
                 WidgetType.RECOVERY_TIME ->
                         RecoveryTimeWidget(
                                 hours = data.recoveryTimeHours ?: 0,
@@ -426,7 +435,8 @@ private fun BottomSheetContent(
     sheetType: DashboardBottomSheetType,
     onDismiss: () -> Unit,
     onLogWeight: (Double) -> Unit = {},
-    onWorkoutClick: () -> Unit = {}
+    onWorkoutClick: () -> Unit = {},
+    weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse> = emptyList()
 ) {
     Column(
         modifier = Modifier
@@ -445,7 +455,7 @@ private fun BottomSheetContent(
                 PrDetailsSheet(sheetType.exerciseName)
             }
             is DashboardBottomSheetType.LogBodyWeight -> {
-                BodyWeightSheet(sheetType.currentWeight, onDismiss, onLogWeight)
+                BodyWeightSheet(sheetType.currentWeight, onDismiss, onLogWeight, weightHistory)
             }
             is DashboardBottomSheetType.LastSessionDetails -> {
                 LastSessionSheet(sheetType.routineName)
@@ -494,25 +504,50 @@ private fun NextWorkoutSheet(routineName: String, onWorkoutClick: () -> Unit) {
 }
 
 @Composable
-private fun BodyWeightSheet(currentWeight: Double?, onDismiss: () -> Unit, onLogWeight: (Double) -> Unit) {
+private fun BodyWeightSheet(
+    currentWeight: Double?, 
+    onDismiss: () -> Unit, 
+    onLogWeight: (Double) -> Unit,
+    weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>
+) {
     Column(
         modifier = Modifier.fillMaxWidth().background(ShadowGrey, RoundedCornerShape(12.dp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("Hoy: 81.0 kg", color = PureWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Text("Ayer: 81.2 kg", color = LightGrey, fontSize = 14.sp)
-        Text("Hace 3 días: 80.8 kg", color = LightGrey, fontSize = 14.sp)
+        if (weightHistory.isEmpty()) {
+            Text("No hay registros", color = LightGrey, fontSize = 14.sp)
+        } else {
+            weightHistory.take(3).forEachIndexed { index, measurement ->
+                val dateStr = try {
+                    val date = java.time.LocalDate.parse(measurement.recordedAt.take(10))
+                    val monthNames = arrayOf("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
+                    "${date.dayOfMonth} ${monthNames[date.monthValue - 1]}"
+                } catch (e: Exception) {
+                    measurement.recordedAt.take(10)
+                }
+                
+                val textColor = if (index == 0) PureWhite else LightGrey
+                val fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal
+                val fontSize = if (index == 0) 16.sp else 14.sp
+                
+                Text("$dateStr: ${measurement.weightKg} kg", color = textColor, fontSize = fontSize, fontWeight = fontWeight)
+            }
+        }
     }
 
     Spacer(modifier = Modifier.height(24.dp))
     
-    var inputWeight by remember { 
+    var inputWeight by remember(currentWeight) {
         mutableStateOf(currentWeight?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "") 
     }
     
     OutlinedTextField(
         value = inputWeight,
-        onValueChange = { inputWeight = it },
+        onValueChange = { newValue -> 
+            if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                inputWeight = newValue 
+            }
+        },
         label = { Text("Nuevo peso (kg)", color = LightGrey) },
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = CrayolaBlue,
@@ -525,9 +560,7 @@ private fun BodyWeightSheet(currentWeight: Double?, onDismiss: () -> Unit, onLog
     Spacer(modifier = Modifier.height(16.dp))
     Button(
         onClick = {
-            inputWeight.toDoubleOrNull()?.let { weight ->
-                onLogWeight(weight)
-            } ?: onDismiss()
+            inputWeight.toDoubleOrNull()?.let { onLogWeight(it) } ?: onDismiss()
         }, 
         modifier = Modifier.fillMaxWidth(), 
         colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue)
