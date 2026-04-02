@@ -60,6 +60,7 @@ import com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
+import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardEvent
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardUiState
@@ -76,8 +77,9 @@ fun RoutineWizardScreen(
         name: String,
         description: String,
         schedulingValue: String,
-        startingDate: String
-    ) -> Unit = { _, _, _, _, _ -> },
+        startingDate: String,
+        selectedExercises: List<RoutineExercise>
+    ) -> Unit = { _, _, _, _, _, _ -> },
     onWizardClosed: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -117,7 +119,8 @@ fun RoutineWizardScreen(
                             args.name,
                             args.description,
                             args.schedulingValue,
-                            args.startingDate
+                            args.startingDate,
+                            args.selectedExercises
                         )
                         viewModel.saveRoutine()
                     } else {
@@ -851,7 +854,8 @@ private data class RoutineCreationArgs(
     val name: String,
     val description: String,
     val schedulingValue: String,
-    val startingDate: String
+    val startingDate: String,
+    val selectedExercises: List<RoutineExercise>
 )
 
 private fun buildRoutineCreationArgs(state: RoutineWizardUiState): RoutineCreationArgs {
@@ -870,7 +874,8 @@ private fun buildRoutineCreationArgs(state: RoutineWizardUiState): RoutineCreati
                     name = state.name.trim(),
                     description = state.description.trim(),
                     schedulingValue = weeklySelection,
-                    startingDate = today
+                    startingDate = today,
+                    selectedExercises = state.selectedExercises
                 )
             } else {
                 val cycleSelection = state.selectedCycleDays
@@ -883,7 +888,8 @@ private fun buildRoutineCreationArgs(state: RoutineWizardUiState): RoutineCreati
                     name = state.name.trim(),
                     description = state.description.trim(),
                     schedulingValue = cycleSelection,
-                    startingDate = today
+                    startingDate = today,
+                    selectedExercises = state.selectedExercises
                 )
             }
         }
@@ -893,7 +899,8 @@ private fun buildRoutineCreationArgs(state: RoutineWizardUiState): RoutineCreati
             name = state.name.trim(),
             description = state.description.trim(),
             schedulingValue = state.restDaysBetweenWorkouts.toString(),
-            startingDate = today
+            startingDate = today,
+            selectedExercises = state.selectedExercises
         )
     }
 }

@@ -465,7 +465,11 @@ private fun RoutineExerciseCard(
             }
 
             Text(
-                text = "${exercise.targetSets} sets x ${exercise.targetReps} reps",
+                text = if (exercise.targetReps > 0) {
+                    "${exercise.targetSets} sets x ${exercise.targetReps} reps"
+                } else {
+                    "${exercise.targetSets} sets"
+                },
                 color = LightGrey,
                 fontSize = 13.sp
             )

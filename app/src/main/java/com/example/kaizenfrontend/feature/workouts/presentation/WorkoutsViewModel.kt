@@ -9,6 +9,7 @@ import com.example.kaizenfrontend.core.network.RetrofitClient
 import com.example.kaizenfrontend.feature.workouts.data.repository.PlanRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.data.repository.RoutineRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
+import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.domain.usecase.CreatePlanUseCase
 import com.example.kaizenfrontend.feature.workouts.domain.usecase.CreateRoutineUseCase
@@ -117,7 +118,8 @@ class WorkoutsViewModel(
         name: String,
         description: String,
         schedulingValue: String = "MONDAY",
-        startingDate: String = "2026-03-24"
+        startingDate: String = "2026-03-24",
+        routineExercises: List<RoutineExercise> = emptyList()
     ) {
         viewModelScope.launch {
             _uiState.value = WorkoutsUiState.Loading
@@ -126,7 +128,8 @@ class WorkoutsViewModel(
                 name = name,
                 description = description,
                 schedulingValue = schedulingValue,
-                startingDate = startingDate
+                startingDate = startingDate,
+                routineExercises = routineExercises
             )
             if (result.isSuccess) {
                 loadData()

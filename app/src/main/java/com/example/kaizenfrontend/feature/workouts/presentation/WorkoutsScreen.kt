@@ -263,13 +263,14 @@ fun WorkoutsScreen(
                         ) {
                             RoutineWizardScreen(
                                 viewModel = routineWizardViewModel,
-                                onCreateRoutine = { planId, name, description, schedulingValue, startingDate ->
+                                onCreateRoutine = { planId, name, description, schedulingValue, startingDate, selectedExercises ->
                                     viewModel.createRoutine(
                                         planId = planId,
                                         name = name,
                                         description = description,
                                         schedulingValue = schedulingValue,
-                                        startingDate = startingDate
+                                        startingDate = startingDate,
+                                        routineExercises = selectedExercises
                                     )
                                 },
                                 onWizardClosed = {
@@ -525,7 +526,7 @@ private class RoutineDetailsViewModelFactory(
                 routineId = routine.id,
                 initialTitle = routine.name,
                 initialDescription = routine.description,
-                initialExercises = emptyList()
+                initialExercises = routine.exercises
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
