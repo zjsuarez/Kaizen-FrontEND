@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,20 +20,34 @@ class DashboardViewModel @Inject constructor(
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
-        fetchDashboardData()
+        viewModelScope.launch {
+            repository.getDashboardStream().collectLatest { data ->
+                if (data != null) {
+                    _uiState.value = DashboardUiState.Success(data)
+                }
+            }
+        }
+        refreshDashboardData()
     }
 
-    fun fetchDashboardData() {
+    fun refreshDashboardData() {
         viewModelScope.launch {
-            _uiState.value = DashboardUiState.Loading
-            val result = repository.fetchDashboardData()
+            // Only set to loading if we don't already have data
+            if (_uiState.value !is DashboardUiState.Success) {
+                _uiState.value = DashboardUiState.Loading
+            }
             
-            result.fold(
-                onSuccess = { response ->
-                    _uiState.value = DashboardUiState.Success(response)
+            repository.refreshDashboard().fold(
+                onSuccess = {
+                    // Success is handled reactively by getDashboardStream() Flow
                 },
                 onFailure = { error ->
-                    _uiState.value = DashboardUiState.Error(error.message ?: "An unexpected error occurred")
+                    // CRITICAL LOGIC: If ALREADY Success (meaning Room cache loaded), DO NOTHING.
+                    // Keep Success state so the user seamlessly sees cached data.
+                    // ONLY overwrite with Error if the database was completely empty.
+                    if (_uiState.value !is DashboardUiState.Success) {
+                        _uiState.value = DashboardUiState.Error(error.message ?: "Failed to connect to backend.")
+                    }
                 }
             )
         }
@@ -43,11 +58,10 @@ class DashboardViewModel @Inject constructor(
             repository.logBodyWeight(weight).fold(
                 onSuccess = {
                     // Re-fetch data to reflect the new weight in the trend widget
-                    fetchDashboardData()
+                    refreshDashboardData()
                 },
-                onFailure = { error ->
-                    // Normally you would expose an effect channel for a Snackbar
-                    // For now, if dashboard API fails we could log or show an error
+                onFailure = { _ ->
+                    // Normally expose an effect channel to the UI for a Snackbar. Ignored for now.
                 }
             )
         }
