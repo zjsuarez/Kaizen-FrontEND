@@ -2,18 +2,22 @@ package com.example.kaizenfrontend.feature.dashboard.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.kaizenfrontend.feature.dashboard.data.local.DashboardPreferences
 import com.example.kaizenfrontend.feature.dashboard.data.repository.DashboardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val repository: DashboardRepository
+    private val repository: DashboardRepository,
+    private val dashboardPreferences: DashboardPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
@@ -21,6 +25,12 @@ class DashboardViewModel @Inject constructor(
 
     private val _weightHistory = MutableStateFlow<List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>>(emptyList())
     val weightHistory: StateFlow<List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>> = _weightHistory.asStateFlow()
+
+    val widgetOrder: StateFlow<List<String>> = dashboardPreferences.widgetOrder.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = listOf("NEXT_WORKOUT", "WEIGHT_TREND")
+    )
 
     init {
         viewModelScope.launch {
@@ -77,6 +87,12 @@ class DashboardViewModel @Inject constructor(
                     // Normally expose an effect channel to the UI for a Snackbar. Ignored for now.
                 }
             )
+        }
+    }
+
+    fun onReorderWidgets(newOrderedList: List<String>) {
+        viewModelScope.launch {
+            dashboardPreferences.saveWidgetOrder(newOrderedList)
         }
     }
 }
