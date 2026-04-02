@@ -10,14 +10,28 @@ import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.MuscleTarget
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
+import com.example.kaizenfrontend.feature.workouts.domain.repository.ExerciseRepository
 import com.example.kaizenfrontend.feature.workouts.domain.repository.RoutineRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class RoutineRepositoryImpl(
     private val api: RoutineApiService,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val exerciseRepository: ExerciseRepository
 ) : RoutineRepository {
+
+    // Lazily cached builtin exercise catalog for resolving keys to display names
+    private var builtinCatalog: Map<String, Exercise>? = null
+
+    private suspend fun getBuiltinCatalog(): Map<String, Exercise> {
+        builtinCatalog?.let { return it }
+        val catalog = exerciseRepository.getExercises()
+            .getOrDefault(emptyList())
+            .associateBy { it.id }
+        builtinCatalog = catalog
+        return catalog
+    }
 
     override suspend fun createRoutine(
         planId: String?,
@@ -28,9 +42,10 @@ class RoutineRepositoryImpl(
         routineExercises: List<RoutineExercise>
     ): Result<Routine> = withContext(Dispatchers.IO) {
         try {
-            val token = sessionManager.getToken() ?: return@withContext Result.failure(Exception("No auth token found"))
+            val token = sessionManager.getToken()
+                ?: return@withContext Result.failure(Exception("No auth token found"))
             val bearerToken = "Bearer $token"
-            
+
             val request = RoutineRequest(planId, name, description, schedulingValue, startingDate)
             val createResponse = api.createRoutine(bearerToken, request)
             if (!createResponse.isSuccessful) {
@@ -42,9 +57,11 @@ class RoutineRepositoryImpl(
                 if (routineExercises.isEmpty()) {
                     Result.success(createdDto.toDomain())
                 } else {
-                    val exercisesRequest = routineExercises.map { exercise ->
+                    val exercisesRequest = routineExercises.map { routineEx ->
                         RoutineExerciseRequest(
-                            targetSets = exercise.targetSets
+                            targetSets = routineEx.targetSets,
+                            builtinExerciseKey = routineEx.exercise.id,
+                            customExerciseId = null
                         )
                     }
 
@@ -70,9 +87,10 @@ class RoutineRepositoryImpl(
 
     override suspend fun getRoutines(planId: String?): Result<List<Routine>> = withContext(Dispatchers.IO) {
         try {
-            val token = sessionManager.getToken() ?: return@withContext Result.failure(Exception("No auth token found"))
+            val token = sessionManager.getToken()
+                ?: return@withContext Result.failure(Exception("No auth token found"))
             val bearerToken = "Bearer $token"
-            
+
             val response = api.getUserRoutines(bearerToken, planId)
             if (response.isSuccessful) {
                 val routines = response.body()?.map { dto -> dto.toDomain() } ?: emptyList()
@@ -87,7 +105,8 @@ class RoutineRepositoryImpl(
 
     override suspend fun deleteRoutine(routineId: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            val token = sessionManager.getToken() ?: return@withContext Result.failure(Exception("No auth token found"))
+            val token = sessionManager.getToken()
+                ?: return@withContext Result.failure(Exception("No auth token found"))
             val bearerToken = "Bearer $token"
 
             val response = api.deleteRoutine(bearerToken, routineId)
@@ -101,7 +120,9 @@ class RoutineRepositoryImpl(
         }
     }
 
-    private fun RoutineResponse.toDomain(): Routine {
+    private suspend fun RoutineResponse.toDomain(): Routine {
+        val catalog = getBuiltinCatalog()
+
         return Routine(
             id = id,
             planId = planId,
@@ -113,46 +134,35 @@ class RoutineRepositoryImpl(
                 .orEmpty()
                 .sortedBy { it.orderIndex ?: Int.MAX_VALUE }
                 .mapIndexed { index, exerciseDto ->
-                    val embeddedExercise = exerciseDto.exercise
                     val resolvedOrderIndex = exerciseDto.orderIndex ?: index
-                    val exerciseName = embeddedExercise?.name
-                        ?: exerciseDto.exerciseName
-                        ?: "Exercise ${resolvedOrderIndex + 1}"
 
-                    val resolvedExerciseId = embeddedExercise?.id
-                        ?: exerciseDto.exerciseId
+                    // Resolve exercise identity from builtin key or custom id
+                    val builtinKey = exerciseDto.builtinExerciseKey
+                    val customId = exerciseDto.customExerciseId
+
+                    val catalogExercise = builtinKey?.let { catalog[it] }
+
+                    val exerciseName = catalogExercise?.name
+                        ?: builtinKey
+                        ?: "Custom Exercise"
+
+                    val exerciseId = builtinKey
+                        ?: customId
                         ?: exerciseDto.id
                         ?: "routine_ex_$resolvedOrderIndex"
 
                     RoutineExercise(
                         exercise = Exercise(
-                            id = resolvedExerciseId,
+                            id = exerciseId,
                             name = exerciseName,
-                            muscleTarget = parseMuscleTarget(embeddedExercise?.muscleTarget),
-                            equipmentType = parseEquipmentType(embeddedExercise?.type),
-                            gifUrl = embeddedExercise?.gifUrl
+                            muscleTarget = catalogExercise?.muscleTarget ?: MuscleTarget.CORE,
+                            equipmentType = catalogExercise?.equipmentType ?: EquipmentType.BODYWEIGHT,
+                            gifUrl = catalogExercise?.gifUrl
                         ),
                         targetSets = (exerciseDto.targetSets ?: 0).coerceAtLeast(0),
-                        targetReps = (exerciseDto.targetReps ?: 0).coerceAtLeast(0)
+                        targetReps = 0
                     )
                 }
         )
-    }
-
-    private fun parseMuscleTarget(value: String?): MuscleTarget {
-        return runCatching {
-            MuscleTarget.valueOf(value?.trim()?.uppercase().orEmpty())
-        }.getOrDefault(MuscleTarget.CORE)
-    }
-
-    private fun parseEquipmentType(value: String?): EquipmentType {
-        val normalized = when (value?.trim()?.uppercase()) {
-            "BAND" -> "BANDS"
-            else -> value?.trim()?.uppercase().orEmpty()
-        }
-
-        return runCatching {
-            EquipmentType.valueOf(normalized)
-        }.getOrDefault(EquipmentType.BODYWEIGHT)
     }
 }

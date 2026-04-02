@@ -20,25 +20,15 @@ data class RoutineResponse(
 )
 
 data class RoutineExerciseRequest(
-    val targetSets: Int
+    val targetSets: Int,
+    val customExerciseId: String? = null,
+    val builtinExerciseKey: String? = null
 )
 
 data class RoutineExerciseResponse(
     val id: String?,
-    val routineId: String?,
-    val exerciseId: String? = null,
-    val targetSets: Int?,
-    val targetReps: Int? = null,
-    val restSeconds: Int? = null,
     val orderIndex: Int?,
-    val exerciseName: String? = null,
-    val exercise: EmbeddedExerciseResponse? = null
-)
-
-data class EmbeddedExerciseResponse(
-    val id: String? = null,
-    val name: String? = null,
-    val muscleTarget: String? = null,
-    val type: String? = null,
-    val gifUrl: String? = null
+    val targetSets: Int?,
+    val customExerciseId: String? = null,
+    val builtinExerciseKey: String? = null
 )
