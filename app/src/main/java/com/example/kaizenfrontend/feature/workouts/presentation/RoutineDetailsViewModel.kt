@@ -1,6 +1,7 @@
 package com.example.kaizenfrontend.feature.workouts.presentation
 
 import androidx.lifecycle.ViewModel
+import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +48,22 @@ class RoutineDetailsViewModel(
             current.copy(
                 exercises = current.exercises.filterNot { it.exercise.id == exerciseId }
             )
+        }
+    }
+
+    fun addExercise(exercise: Exercise, targetSets: Int = 3, targetReps: Int = 10) {
+        _uiState.update { current ->
+            if (current.exercises.any { it.exercise.id == exercise.id }) {
+                current
+            } else {
+                current.copy(
+                    exercises = current.exercises + RoutineExercise(
+                        exercise = exercise,
+                        targetSets = targetSets.coerceAtLeast(1),
+                        targetReps = targetReps.coerceAtLeast(1)
+                    )
+                )
+            }
         }
     }
 

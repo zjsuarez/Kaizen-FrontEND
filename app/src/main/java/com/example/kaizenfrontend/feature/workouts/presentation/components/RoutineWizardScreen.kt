@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -402,6 +403,9 @@ fun WizardStep2Schedule(
     val weeklyAssignmentsByDay = remember(existingPlanRoutines) {
         buildWeeklyAssignments(existingPlanRoutines)
     }
+    val cycleAssignmentsByDay = remember(existingPlanRoutines, planInterval.cycleLengthDays) {
+        buildCycleAssignments(existingPlanRoutines, planInterval.cycleLengthDays)
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
@@ -424,13 +428,9 @@ fun WizardStep2Schedule(
                     CycleDaysSelector(
                         cycleLengthDays = planInterval.cycleLengthDays,
                         selectedCycleDays = selectedCycleDays,
+                        assignedRoutineNamesByCycleDay = cycleAssignmentsByDay,
                         onDayClick = onCycleDayToggle,
                         showError = showCycleSelectionError
-                    )
-
-                    CycleRoutineAssignments(
-                        cycleLengthDays = planInterval.cycleLengthDays,
-                        existingRoutines = existingPlanRoutines
                     )
                 }
             }
@@ -450,30 +450,6 @@ fun WizardStep2Schedule(
 
                 FrequencyRoutineAssignments(existingRoutines = existingPlanRoutines)
             }
-        }
-    }
-}
-
-@Composable
-private fun CycleRoutineAssignments(
-    cycleLengthDays: Int,
-    existingRoutines: List<Routine>
-) {
-    val totalDays = cycleLengthDays.coerceAtLeast(1)
-
-    AssignmentSectionCard(title = "Existing routines in this cycle") {
-        (1..totalDays).forEach { day ->
-            val routinesForDay = existingRoutines.filter { routine ->
-                day in parseCycleDaysFromSchedulingValue(routine.schedulingValue)
-            }
-            AssignmentRow(
-                label = "Day $day",
-                value = if (routinesForDay.isEmpty()) {
-                    "No routine"
-                } else {
-                    routinesForDay.joinToString(", ") { it.name }
-                }
-            )
         }
     }
 }
@@ -618,6 +594,7 @@ private fun WeeklyDaysSelector(
     onDayClick: (DayOfWeek) -> Unit,
     showError: Boolean
 ) {
+    val dayScrollState = rememberScrollState()
     val dayItems = listOf(
         DayLabel(DayOfWeek.MONDAY, "L"),
         DayLabel(DayOfWeek.TUESDAY, "M"),
@@ -639,7 +616,7 @@ private fun WeeklyDaysSelector(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+                .horizontalScroll(dayScrollState),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             dayItems.forEach { item ->
@@ -690,6 +667,10 @@ private fun WeeklyDaysSelector(
             }
         }
 
+        HorizontalScrollHint(
+            isVisible = dayScrollState.maxValue > 0 && dayScrollState.value < dayScrollState.maxValue
+        )
+
         if (showError) {
             Text(
                 text = "Select at least one day",
@@ -704,6 +685,18 @@ private fun buildWeeklyAssignments(existingRoutines: List<Routine>): Map<DayOfWe
     return DayOfWeek.entries.associateWith { dayOfWeek ->
         existingRoutines.filter { routine ->
             dayOfWeek in parseWeekDaysFromSchedulingValue(routine.schedulingValue)
+        }.map { it.name }
+    }
+}
+
+private fun buildCycleAssignments(
+    existingRoutines: List<Routine>,
+    cycleLengthDays: Int
+): Map<Int, List<String>> {
+    val totalDays = cycleLengthDays.coerceAtLeast(1)
+    return (1..totalDays).associateWith { day ->
+        existingRoutines.filter { routine ->
+            day in parseCycleDaysFromSchedulingValue(routine.schedulingValue)
         }.map { it.name }
     }
 }
@@ -728,9 +721,11 @@ private fun truncateRoutineName(name: String): String {
 private fun CycleDaysSelector(
     cycleLengthDays: Int,
     selectedCycleDays: Set<Int>,
+    assignedRoutineNamesByCycleDay: Map<Int, List<String>>,
     onDayClick: (Int) -> Unit,
     showError: Boolean
 ) {
+    val dayScrollState = rememberScrollState()
     val days = (1..cycleLengthDays.coerceAtLeast(1)).toList()
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -744,36 +739,61 @@ private fun CycleDaysSelector(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+                .horizontalScroll(dayScrollState),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             days.forEach { day ->
                 val isSelected = day in selectedCycleDays
-                Surface(
-                    modifier = Modifier
-                        .clickable { onDayClick(day) },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) CrayolaBlue.copy(alpha = 0.18f) else ShadowGrey,
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = if (isSelected) CrayolaBlue else Color.Transparent
-                    )
+                val assignedLabel = formatAssignedRoutineNames(
+                    assignedRoutineNamesByCycleDay[day].orEmpty()
+                )
+
+                Column(
+                    modifier = Modifier.width(72.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
+                    Surface(
                         modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .clickable { onDayClick(day) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isSelected) CrayolaBlue.copy(alpha = 0.18f) else ShadowGrey,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = if (isSelected) CrayolaBlue else Color.Transparent
+                        )
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "D$day",
+                                color = if (isSelected) CrayolaBlue else LightGrey,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    if (assignedLabel.isNotBlank()) {
                         Text(
-                            text = "Day $day",
-                            color = if (isSelected) CrayolaBlue else LightGrey,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp
+                            text = assignedLabel,
+                            color = LightGrey,
+                            fontSize = 10.sp,
+                            lineHeight = 12.sp
                         )
                     }
                 }
             }
         }
+
+        HorizontalScrollHint(
+            isVisible = dayScrollState.maxValue > 0 && dayScrollState.value < dayScrollState.maxValue
+        )
 
         if (showError) {
             Text(
@@ -933,3 +953,27 @@ private data class DayLabel(
     val dayOfWeek: DayOfWeek,
     val label: String
 )
+
+@Composable
+private fun HorizontalScrollHint(isVisible: Boolean) {
+    if (!isVisible) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Swipe for more",
+            color = LightGrey,
+            fontSize = 11.sp
+        )
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = "More days to the right",
+            tint = LightGrey
+        )
+    }
+}

@@ -44,6 +44,7 @@ import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConf
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.presentation.components.CreatePlanBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.ExerciseCatalogBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
 
@@ -62,6 +63,7 @@ fun WorkoutsScreen(
     var showCreateRoutineWizard by remember { mutableStateOf(false) }
     var selectedRoutineForDetails by remember { mutableStateOf<Routine?>(null) }
     var pendingDelete by remember { mutableStateOf<DeleteTarget?>(null) }
+    var showRoutineDetailsExerciseCatalog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -318,7 +320,10 @@ fun WorkoutsScreen(
                         val routineDetailsState by routineDetailsViewModel.uiState.collectAsState()
 
                         ModalBottomSheet(
-                            onDismissRequest = { selectedRoutineForDetails = null },
+                            onDismissRequest = {
+                                selectedRoutineForDetails = null
+                                showRoutineDetailsExerciseCatalog = false
+                            },
                             containerColor = Onyx,
                             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                         ) {
@@ -331,7 +336,17 @@ fun WorkoutsScreen(
                                 onDescriptionChange = routineDetailsViewModel::updateDescription,
                                 onRemoveExercise = routineDetailsViewModel::removeExercise,
                                 onMoveExercise = routineDetailsViewModel::moveExercise,
-                                onAddExerciseClick = { }
+                                onAddExerciseClick = { showRoutineDetailsExerciseCatalog = true }
+                            )
+                        }
+
+                        if (showRoutineDetailsExerciseCatalog) {
+                            ExerciseCatalogBottomSheet(
+                                onDismissRequest = { showRoutineDetailsExerciseCatalog = false },
+                                onExerciseSelected = { exercise ->
+                                    routineDetailsViewModel.addExercise(exercise)
+                                    showRoutineDetailsExerciseCatalog = false
+                                }
                             )
                         }
                     }
