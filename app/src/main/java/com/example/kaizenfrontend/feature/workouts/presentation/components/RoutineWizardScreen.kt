@@ -678,12 +678,14 @@ private fun WeeklyDaysSelector(
                         }
                     }
 
-                    Text(
-                        text = assignedLabel,
-                        color = LightGrey,
-                        fontSize = 10.sp,
-                        lineHeight = 12.sp
-                    )
+                    if (assignedLabel.isNotBlank()) {
+                        Text(
+                            text = assignedLabel,
+                            color = LightGrey,
+                            fontSize = 10.sp,
+                            lineHeight = 12.sp
+                        )
+                    }
                 }
             }
         }
@@ -707,12 +709,19 @@ private fun buildWeeklyAssignments(existingRoutines: List<Routine>): Map<DayOfWe
 }
 
 private fun formatAssignedRoutineNames(routineNames: List<String>): String {
-    if (routineNames.isEmpty()) return "No workout"
-    if (routineNames.size <= 2) return routineNames.joinToString("\n")
+    if (routineNames.isEmpty()) return ""
+    val truncatedNames = routineNames.map(::truncateRoutineName)
+    if (truncatedNames.size <= 5) return truncatedNames.joinToString("\n")
 
-    val firstTwo = routineNames.take(2).joinToString("\n")
-    val remaining = routineNames.size - 2
-    return "$firstTwo\n+$remaining more"
+    val firstFive = truncatedNames.take(5).joinToString("\n")
+    val remaining = truncatedNames.size - 5
+    return "$firstFive\n+$remaining"
+}
+
+private fun truncateRoutineName(name: String): String {
+    val maxChars = 7
+    if (name.length <= maxChars) return name
+    return name.take(maxChars - 3) + "..."
 }
 
 @Composable
