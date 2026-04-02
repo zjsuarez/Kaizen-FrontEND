@@ -45,6 +45,7 @@ import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.presentation.components.CreatePlanBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ExerciseCatalogBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.PlanDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
 
@@ -58,12 +59,15 @@ fun WorkoutsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val createRoutineSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val routineDetailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val planDetailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var isEditMode by remember { mutableStateOf(false) }
     var showFabMenu by remember { mutableStateOf(false) }
     var showCreatePlanDialog by remember { mutableStateOf(false) }
     var showCreateRoutineWizard by remember { mutableStateOf(false) }
     var selectedRoutineForDetails by remember { mutableStateOf<Routine?>(null) }
+    var selectedPlanForDetails by remember { mutableStateOf<TrainingPlan?>(null) }
+    var selectedPlanRoutines by remember { mutableStateOf<List<Routine>>(emptyList()) }
     var pendingDelete by remember { mutableStateOf<DeleteTarget?>(null) }
     var showRoutineDetailsExerciseCatalog by remember { mutableStateOf(false) }
 
@@ -183,7 +187,14 @@ fun WorkoutsScreen(
                                     plan = plan,
                                     isExpanded = isExpanded,
                                     isEditMode = isEditMode,
-                                    onClick = { viewModel.togglePlanExpansion(plan.id) },
+                                    onClick = {
+                                        if (isEditMode) {
+                                            viewModel.togglePlanExpansion(plan.id)
+                                        } else {
+                                            selectedPlanForDetails = plan
+                                            selectedPlanRoutines = state.routinesByPlanId[plan.id] ?: emptyList()
+                                        }
+                                    },
                                     onDeleteClick = {
                                         pendingDelete = DeleteTarget.Plan(
                                             planId = plan.id,
@@ -313,6 +324,40 @@ fun WorkoutsScreen(
                                 pendingDelete = null
                             }
                         )
+                    }
+
+                    selectedPlanForDetails?.let { selectedPlan ->
+                        val planDetailsViewModel: PlanDetailsViewModel = viewModel(
+                            key = "plan_details_${selectedPlan.id}",
+                            factory = PlanDetailsViewModelFactory(selectedPlan, selectedPlanRoutines)
+                        )
+                        val planDetailsState by planDetailsViewModel.uiState.collectAsState()
+
+                        ModalBottomSheet(
+                            onDismissRequest = {
+                                selectedPlanForDetails = null
+                            },
+                            sheetState = planDetailsSheetState,
+                            containerColor = Onyx,
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                        ) {
+                            PlanDetailsSheetContent(
+                                state = planDetailsState,
+                                onEditClick = planDetailsViewModel::toggleEditMode,
+                                onDoneClick = planDetailsViewModel::saveChanges,
+                                onToggleActive = planDetailsViewModel::toggleActive,
+                                onTitleChange = planDetailsViewModel::updateTitle,
+                                onDescriptionChange = planDetailsViewModel::updateDescription,
+                                onRemoveRoutine = planDetailsViewModel::removeRoutine,
+                                onMoveRoutine = planDetailsViewModel::moveRoutine,
+                                onAddRoutineClick = {
+                                    // TODO: Open routine wizard pre-scoped to this plan
+                                },
+                                onRoutineClick = { routine ->
+                                    selectedRoutineForDetails = routine
+                                }
+                            )
+                        }
                     }
 
                     selectedRoutineForDetails?.let { selectedRoutine ->
@@ -633,6 +678,25 @@ private class RoutineDetailsViewModelFactory(
                 initialTitle = routine.name,
                 initialDescription = routine.description,
                 initialExercises = routine.exercises
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
+}
+
+private class PlanDetailsViewModelFactory(
+    private val plan: TrainingPlan,
+    private val routines: List<Routine>
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(PlanDetailsViewModel::class.java)) {
+            return PlanDetailsViewModel(
+                planId = plan.id,
+                initialTitle = plan.name,
+                initialDescription = plan.description,
+                initialRoutines = routines,
+                initialIsActive = plan.isActive
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
