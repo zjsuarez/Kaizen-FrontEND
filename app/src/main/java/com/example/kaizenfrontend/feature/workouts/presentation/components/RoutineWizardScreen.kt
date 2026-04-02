@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,7 +33,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -99,57 +97,42 @@ fun RoutineWizardScreen(
         showInlineErrors = false
     }
 
-    Scaffold(
-        containerColor = Onyx,
-        topBar = {
-            RoutineWizardTopBar(
-                currentStep = uiState.currentStep,
-                canFinish = uiState.selectedExercises.isNotEmpty(),
-                onCloseOrBack = {
-                    if (uiState.currentStep == 1) {
-                        onWizardClosed()
-                    } else {
-                        viewModel.previousStep()
-                    }
-                },
-                onFinish = {
-                    if (isCurrentStepValid(uiState)) {
-                        val args = buildRoutineCreationArgs(uiState)
-                        onCreateRoutine(
-                            args.planId,
-                            args.name,
-                            args.description,
-                            args.schedulingValue,
-                            args.startingDate,
-                            args.selectedExercises
-                        )
-                        viewModel.saveRoutine()
-                    } else {
-                        showInlineErrors = true
-                    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Onyx)
+    ) {
+        RoutineWizardTopBar(
+            currentStep = uiState.currentStep,
+            canFinish = uiState.selectedExercises.isNotEmpty(),
+            onCloseOrBack = {
+                if (uiState.currentStep == 1) {
+                    onWizardClosed()
+                } else {
+                    viewModel.previousStep()
                 }
-            )
-        },
-        bottomBar = {
-            if (uiState.currentStep < 3) {
-                WizardBottomBar(
-                    buttonText = "NEXT",
-                    onButtonClick = {
-                        if (isCurrentStepValid(uiState)) {
-                            viewModel.nextStep()
-                        } else {
-                            showInlineErrors = true
-                        }
-                    }
-                )
+            },
+            onFinish = {
+                if (isCurrentStepValid(uiState)) {
+                    val args = buildRoutineCreationArgs(uiState)
+                    onCreateRoutine(
+                        args.planId,
+                        args.name,
+                        args.description,
+                        args.schedulingValue,
+                        args.startingDate,
+                        args.selectedExercises
+                    )
+                    viewModel.saveRoutine()
+                } else {
+                    showInlineErrors = true
+                }
             }
-        }
-    ) { innerPadding ->
+        )
+
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Onyx)
-                .padding(innerPadding)
+                .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             AnimatedContent(
@@ -198,6 +181,19 @@ fun RoutineWizardScreen(
                         showEmptyError = showInlineErrors && uiState.selectedExercises.isEmpty()
                     )
                 }
+            }
+
+            if (uiState.currentStep < 3) {
+                WizardBottomBar(
+                    buttonText = "NEXT",
+                    onButtonClick = {
+                        if (isCurrentStepValid(uiState)) {
+                            viewModel.nextStep()
+                        } else {
+                            showInlineErrors = true
+                        }
+                    }
+                )
             }
         }
     }

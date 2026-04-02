@@ -56,6 +56,8 @@ fun WorkoutsScreen(
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val createRoutineSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val routineDetailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var isEditMode by remember { mutableStateOf(false) }
     var showFabMenu by remember { mutableStateOf(false) }
@@ -126,7 +128,7 @@ fun WorkoutsScreen(
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Create Workout") },
+                                    text = { Text("Create Routine") },
                                     onClick = {
                                         showFabMenu = false
                                         showCreateRoutineWizard = true
@@ -276,6 +278,7 @@ fun WorkoutsScreen(
 
                         ModalBottomSheet(
                             onDismissRequest = { showCreateRoutineWizard = false },
+                            sheetState = createRoutineSheetState,
                             containerColor = Onyx,
                             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                         ) {
@@ -324,6 +327,7 @@ fun WorkoutsScreen(
                                 selectedRoutineForDetails = null
                                 showRoutineDetailsExerciseCatalog = false
                             },
+                            sheetState = routineDetailsSheetState,
                             containerColor = Onyx,
                             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                         ) {

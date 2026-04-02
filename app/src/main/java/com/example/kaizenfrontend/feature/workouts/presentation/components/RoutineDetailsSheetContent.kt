@@ -201,16 +201,14 @@ fun RoutineDetailsSheetContent(
                             AddExerciseButton(onClick = onAddExerciseClick)
                         }
                     }
-
-                    item {
-                        RoutineDescription(
-                            description = state.description,
-                            isEditMode = state.isEditMode,
-                            onDescriptionChange = onDescriptionChange
-                        )
-                    }
                 }
             }
+
+            RoutineDescription(
+                description = state.description,
+                isEditMode = state.isEditMode,
+                onDescriptionChange = onDescriptionChange
+            )
         }
     }
 }
