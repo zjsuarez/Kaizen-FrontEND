@@ -36,12 +36,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.presentation.components.CreatePlanBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +60,7 @@ fun WorkoutsScreen(
     var showFabMenu by remember { mutableStateOf(false) }
     var showCreatePlanDialog by remember { mutableStateOf(false) }
     var showCreateRoutineWizard by remember { mutableStateOf(false) }
+    var selectedRoutineForDetails by remember { mutableStateOf<Routine?>(null) }
 
     Box(
         modifier = Modifier
@@ -197,6 +201,7 @@ fun WorkoutsScreen(
                                         RoutineCard(
                                             routine = routine,
                                             isEditMode = isEditMode,
+                                            onClick = { selectedRoutineForDetails = routine },
                                             onDeleteClick = { viewModel.deleteRoutine(routine.id) },
                                             onMoveUpClick = { viewModel.moveRoutineUp(routine.id, plan.id) },
                                             onMoveDownClick = { viewModel.moveRoutineDown(routine.id, plan.id) }
@@ -221,6 +226,7 @@ fun WorkoutsScreen(
                                 RoutineCard(
                                     routine = routine,
                                     isEditMode = isEditMode,
+                                    onClick = { selectedRoutineForDetails = routine },
                                     onDeleteClick = { viewModel.deleteRoutine(routine.id) },
                                     onMoveUpClick = { viewModel.moveRoutineUp(routine.id, null) },
                                     onMoveDownClick = { viewModel.moveRoutineDown(routine.id, null) }
@@ -269,6 +275,32 @@ fun WorkoutsScreen(
                                 onWizardClosed = {
                                     showCreateRoutineWizard = false
                                 }
+                            )
+                        }
+                    }
+
+                    selectedRoutineForDetails?.let { selectedRoutine ->
+                        val routineDetailsViewModel: RoutineDetailsViewModel = viewModel(
+                            key = "routine_details_${selectedRoutine.id}",
+                            factory = RoutineDetailsViewModelFactory(selectedRoutine)
+                        )
+                        val routineDetailsState by routineDetailsViewModel.uiState.collectAsState()
+
+                        ModalBottomSheet(
+                            onDismissRequest = { selectedRoutineForDetails = null },
+                            containerColor = Onyx,
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                        ) {
+                            RoutineDetailsSheetContent(
+                                state = routineDetailsState,
+                                onEditClick = routineDetailsViewModel::toggleEditMode,
+                                onStartClick = { },
+                                onDoneClick = routineDetailsViewModel::saveChanges,
+                                onTitleChange = routineDetailsViewModel::updateTitle,
+                                onDescriptionChange = routineDetailsViewModel::updateDescription,
+                                onRemoveExercise = routineDetailsViewModel::removeExercise,
+                                onMoveExercise = routineDetailsViewModel::moveExercise,
+                                onAddExerciseClick = { }
                             )
                         }
                     }
@@ -385,6 +417,7 @@ private fun PlanHeaderItem(
 private fun RoutineCard(
     routine: Routine,
     isEditMode: Boolean,
+    onClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onMoveUpClick: () -> Unit,
     onMoveDownClick: () -> Unit
@@ -434,7 +467,7 @@ private fun RoutineCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(
-                    if (isEditMode) Modifier else Modifier.clickable { /* TODO: Open Workout Details */ }
+                        if (isEditMode) Modifier else Modifier.clickable { onClick() }
                 )
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -479,6 +512,23 @@ private fun RoutineCard(
                 )
             }
         }
+    }
+}
+
+private class RoutineDetailsViewModelFactory(
+    private val routine: Routine
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RoutineDetailsViewModel::class.java)) {
+            return RoutineDetailsViewModel(
+                routineId = routine.id,
+                initialTitle = routine.name,
+                initialDescription = routine.description,
+                initialExercises = emptyList()
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
 }
 

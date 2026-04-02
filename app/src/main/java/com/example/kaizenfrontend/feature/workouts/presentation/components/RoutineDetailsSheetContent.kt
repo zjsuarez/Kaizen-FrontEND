@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -25,7 +26,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -172,9 +172,20 @@ fun RoutineDetailsSheetContent(
                                     val itemBottom = itemTop + currentItemInfo.size
 
                                     if (itemBottom > viewportEnd - 72) {
-                                        coroutineScope.launch { lazyListState.scrollBy(28f) }
+                                        coroutineScope.launch {
+                                            val nextIndex = (lazyListState.firstVisibleItemIndex + 1)
+                                                .coerceAtMost((lazyListState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0))
+                                            if (nextIndex != lazyListState.firstVisibleItemIndex) {
+                                                lazyListState.animateScrollToItem(nextIndex)
+                                            }
+                                        }
                                     } else if (itemTop < viewportStart + 72) {
-                                        coroutineScope.launch { lazyListState.scrollBy(-28f) }
+                                        coroutineScope.launch {
+                                            val previousIndex = (lazyListState.firstVisibleItemIndex - 1).coerceAtLeast(0)
+                                            if (previousIndex != lazyListState.firstVisibleItemIndex) {
+                                                lazyListState.animateScrollToItem(previousIndex)
+                                            }
+                                        }
                                     }
                                 },
                                 onDragHandleDragEnd = {
@@ -245,8 +256,8 @@ private fun RoutineDetailsHeader(
             OutlinedButton(
                 onClick = onDoneClick,
                 shape = RoundedCornerShape(16.dp),
-                border = OutlinedButtonDefaults.outlinedButtonBorder.copy(width = 1.dp),
-                colors = OutlinedButtonDefaults.outlinedButtonColors(
+                border = BorderStroke(1.dp, PureWhite),
+                colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = PureWhite
                 )
             ) {
@@ -329,8 +340,8 @@ private fun AddExerciseButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(top = 2.dp),
         shape = RoundedCornerShape(16.dp),
-        border = OutlinedButtonDefaults.outlinedButtonBorder.copy(width = 1.dp),
-        colors = OutlinedButtonDefaults.outlinedButtonColors(
+        border = BorderStroke(1.dp, PureWhite),
+        colors = ButtonDefaults.outlinedButtonColors(
             contentColor = PureWhite
         )
     ) {
