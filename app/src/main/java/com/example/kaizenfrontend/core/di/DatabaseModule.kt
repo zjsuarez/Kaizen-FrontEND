@@ -19,10 +19,10 @@ object DatabaseModule {
     @Singleton
     fun provideKaizenDatabase(@ApplicationContext context: Context): KaizenDatabase {
         return Room.databaseBuilder(
-            context,
-            KaizenDatabase::class.java,
-            "kaizen_database"
-        ).build()
+                context,
+                KaizenDatabase::class.java,
+                "kaizen_database"
+            ).fallbackToDestructiveMigration(false).build()
     }
 
     @Provides

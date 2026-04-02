@@ -13,7 +13,9 @@ data class DashboardResponse(
     @SerializedName("recoveryTimeHours") val recoveryTimeHours: Int?,
     @SerializedName("workoutStreak") val workoutStreak: Int,
     @SerializedName("trainingDaysThisMonth") val trainingDaysThisMonth: List<String> = emptyList(),
-    @SerializedName("recentPrs") val recentPrs: List<RecentPrDTO> = emptyList()
+    @SerializedName("recentPrs") val recentPrs: List<RecentPrDTO> = emptyList(),
+    @SerializedName("currentWeight") val currentWeight: Double? = 0.0,
+    @SerializedName("weightDiff") val weightDiff: Double? = null
 )
 
 data class LastSessionDTO(

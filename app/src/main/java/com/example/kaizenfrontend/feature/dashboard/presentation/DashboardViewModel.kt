@@ -19,15 +19,28 @@ class DashboardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    private val _weightHistory = MutableStateFlow<List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>>(emptyList())
+    val weightHistory: StateFlow<List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>> = _weightHistory.asStateFlow()
+
     init {
         viewModelScope.launch {
             repository.getDashboardStream().collectLatest { data ->
                 if (data != null) {
+                    android.util.Log.d("KAIZEN", "New weight received: ${data.currentWeight}")
                     _uiState.value = DashboardUiState.Success(data)
                 }
             }
         }
         refreshDashboardData()
+        fetchWeightHistory()
+    }
+
+    private fun fetchWeightHistory() {
+        viewModelScope.launch {
+            repository.getWeightHistory().onSuccess { history ->
+                _weightHistory.value = history
+            }
+        }
     }
 
     fun refreshDashboardData() {
@@ -57,8 +70,8 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             repository.logBodyWeight(weight).fold(
                 onSuccess = {
-                    // Re-fetch data to reflect the new weight in the trend widget
                     refreshDashboardData()
+                    fetchWeightHistory()
                 },
                 onFailure = { _ ->
                     // Normally expose an effect channel to the UI for a Snackbar. Ignored for now.
