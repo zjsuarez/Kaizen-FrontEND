@@ -3,13 +3,17 @@ package com.example.kaizenfrontend.feature.workouts.presentation.components
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -25,13 +29,22 @@ import androidx.compose.material3.OutlinedButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
@@ -39,6 +52,7 @@ import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineDetailsState
+import kotlinx.coroutines.launch
 
 @Composable
 fun RoutineDetailsSheetContent(
@@ -49,9 +63,15 @@ fun RoutineDetailsSheetContent(
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onRemoveExercise: (String) -> Unit,
+    onMoveExercise: (Int, Int) -> Unit,
     onAddExerciseClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val lazyListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    var draggingExerciseId by remember { mutableStateOf<String?>(null) }
+    var draggingItemOffsetY by remember { mutableFloatStateOf(0f) }
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -97,14 +117,72 @@ fun RoutineDetailsSheetContent(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth(),
+                    state = lazyListState,
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(items = state.exercises, key = { it.exercise.id }) { exercise ->
-                        RoutineExerciseCard(
-                            exercise = exercise,
-                            isEditMode = state.isEditMode,
-                            onRemoveClick = { onRemoveExercise(exercise.exercise.id) }
-                        )
+                    itemsIndexed(items = state.exercises, key = { _, exercise -> exercise.exercise.id }) { _, exercise ->
+                        val isDragging = draggingExerciseId == exercise.exercise.id
+                        val dragModifier = if (state.isEditMode) {
+                            Modifier
+                                .zIndex(if (isDragging) 1f else 0f)
+                                .graphicsLayer {
+                                    translationY = if (isDragging) draggingItemOffsetY else 0f
+                                }
+                        } else {
+                            Modifier
+                        }
+
+                        Box(modifier = dragModifier) {
+                            RoutineExerciseCard(
+                                exercise = exercise,
+                                isEditMode = state.isEditMode,
+                                isDragging = isDragging,
+                                onRemoveClick = { onRemoveExercise(exercise.exercise.id) },
+                                onDragHandleDragStart = {
+                                    draggingExerciseId = exercise.exercise.id
+                                    draggingItemOffsetY = 0f
+                                },
+                                onDragHandleDrag = { dragDelta ->
+                                    if (draggingExerciseId != exercise.exercise.id) return@RoutineExerciseCard
+
+                                    draggingItemOffsetY += dragDelta
+
+                                    val currentIndex = state.exercises.indexOfFirst {
+                                        it.exercise.id == exercise.exercise.id
+                                    }
+                                    if (currentIndex == -1) return@RoutineExerciseCard
+
+                                    val currentItemInfo = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull {
+                                        it.key == exercise.exercise.id
+                                    } ?: return@RoutineExerciseCard
+
+                                    val threshold = (currentItemInfo.size * 0.5f).coerceAtLeast(24f)
+
+                                    if (draggingItemOffsetY > threshold && currentIndex < state.exercises.lastIndex) {
+                                        onMoveExercise(currentIndex, currentIndex + 1)
+                                        draggingItemOffsetY -= threshold
+                                    } else if (draggingItemOffsetY < -threshold && currentIndex > 0) {
+                                        onMoveExercise(currentIndex, currentIndex - 1)
+                                        draggingItemOffsetY += threshold
+                                    }
+
+                                    val viewportStart = lazyListState.layoutInfo.viewportStartOffset
+                                    val viewportEnd = lazyListState.layoutInfo.viewportEndOffset
+                                    val itemTop = currentItemInfo.offset + draggingItemOffsetY
+                                    val itemBottom = itemTop + currentItemInfo.size
+
+                                    if (itemBottom > viewportEnd - 72) {
+                                        coroutineScope.launch { lazyListState.scrollBy(28f) }
+                                    } else if (itemTop < viewportStart + 72) {
+                                        coroutineScope.launch { lazyListState.scrollBy(-28f) }
+                                    }
+                                },
+                                onDragHandleDragEnd = {
+                                    draggingExerciseId = null
+                                    draggingItemOffsetY = 0f
+                                }
+                            )
+                        }
                     }
 
                     if (state.isEditMode) {
@@ -292,11 +370,24 @@ private fun RoutineDetailsSummary(
 private fun RoutineExerciseCard(
     exercise: RoutineExercise,
     isEditMode: Boolean,
-    onRemoveClick: () -> Unit
+    isDragging: Boolean,
+    onRemoveClick: () -> Unit,
+    onDragHandleDragStart: () -> Unit,
+    onDragHandleDrag: (Float) -> Unit,
+    onDragHandleDragEnd: () -> Unit
 ) {
+    val cardColor = if (isDragging) Color(0xFF32313A) else ShadowGrey
+    val cardBorderModifier = if (isDragging) {
+        Modifier.border(1.dp, CrayolaBlue, RoundedCornerShape(16.dp))
+    } else {
+        Modifier
+    }
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = ShadowGrey,
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(cardBorderModifier),
+        color = cardColor,
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(
@@ -329,11 +420,35 @@ private fun RoutineExerciseCard(
                                 tint = LightGrey
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Filled.DragHandle,
-                            contentDescription = "Reorder exercise",
-                            tint = LightGrey
-                        )
+
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .pointerInput(exercise.exercise.id, isEditMode) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            onDragHandleDragStart()
+                                        },
+                                        onDragEnd = {
+                                            onDragHandleDragEnd()
+                                        },
+                                        onDragCancel = {
+                                            onDragHandleDragEnd()
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            onDragHandleDrag(dragAmount.y)
+                                        }
+                                    )
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.DragHandle,
+                                contentDescription = "Reorder exercise",
+                                tint = LightGrey
+                            )
+                        }
                     }
                 }
             }
