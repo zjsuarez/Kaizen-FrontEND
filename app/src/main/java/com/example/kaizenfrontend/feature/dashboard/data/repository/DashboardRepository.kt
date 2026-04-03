@@ -62,4 +62,17 @@ class DashboardRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun saveWidgetOrder(widgetOrder: List<String>): Result<Unit> {
+        return try {
+            val response = apiService.saveWidgetPreferences(widgetOrder)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("PUT /api/preferences/dashboard failed: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

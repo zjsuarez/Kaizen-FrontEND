@@ -1,6 +1,11 @@
 package com.example.kaizenfrontend.feature.dashboard.presentation
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -11,16 +16,21 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,12 +38,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.Info
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
@@ -150,40 +166,82 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val widgetOrder by viewModel.widgetOrder.collectAsState()
     val weightHistory by viewModel.weightHistory.collectAsState()
+    val isEditing by viewModel.isEditing.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
+    var showAddWidgetSheet by remember { mutableStateOf(false) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val addWidgetSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var activeBottomSheet by remember { mutableStateOf<DashboardBottomSheetType?>(null) }
-    var showEditSheet by remember { mutableStateOf(false) }
 
     Scaffold(
             containerColor = Onyx,
             topBar = {
                 if (selectedTab == 0) {
                     TopAppBar(
-                            title = {
-                                Text(
-                                        text = "Kaizen Hub",
-                                        color = PureWhite,
-                                        fontWeight = FontWeight.SemiBold
-                                )
-                            },
-                            actions = {
-                                IconButton(onClick = { showEditSheet = true }) {
+                        title = {
+                            Text(
+                                text = "Kaizen Hub",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = PureWhite,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        actions = {
+                            if (!isEditing) {
+                                FloatingActionButton(
+                                    onClick = { viewModel.toggleEditMode() },
+                                    containerColor = ShadowGrey,
+                                    contentColor = PureWhite,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
                                     Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "Edit Dashboard Widgets",
-                                            tint = LightGrey
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Enter edit mode",
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
-                            },
-                            colors =
-                                    TopAppBarDefaults.topAppBarColors(
-                                            containerColor = Onyx,
-                                            titleContentColor = PureWhite,
-                                            actionIconContentColor = LightGrey
-                                    )
+                            } else {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(end = 12.dp)
+                                ) {
+                                    FloatingActionButton(
+                                        onClick = { showAddWidgetSheet = true },
+                                        containerColor = CrayolaBlue,
+                                        contentColor = PureWhite,
+                                        modifier = Modifier.size(40.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Add widget",
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Button(
+                                        onClick = { viewModel.toggleEditMode() },
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = ShadowGrey)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Done,
+                                            contentDescription = null,
+                                            tint = PureWhite,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Done", color = PureWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Onyx,
+                            titleContentColor = PureWhite,
+                            actionIconContentColor = PureWhite
+                        )
                     )
                 }
             },
@@ -194,7 +252,32 @@ fun DashboardScreen(
                 )
             }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            // Global edit mode hint (only visible when editing)
+            androidx.compose.animation.AnimatedVisibility(visible = isEditing) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ShadowGrey)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        text = "Arrastra para reordenar los widgets. Usa la papelera para ocultarlos.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
             when (selectedTab) {
                 0 ->
                         when (val state = uiState) {
@@ -210,12 +293,20 @@ fun DashboardScreen(
                                 }
                             }
                             is DashboardUiState.Success -> {
+                                val context = androidx.compose.ui.platform.LocalContext.current
                                 DashboardWidgetGrid(
-                                        successState = state,
-                                        widgetOrder = widgetOrder,
-                                        weightHistory = weightHistory,
-                                        onWorkoutClick = onWorkoutClick,
-                                        onWidgetClick = { activeBottomSheet = it }
+                                    successState = state,
+                                    widgetOrder = widgetOrder,
+                                    weightHistory = weightHistory,
+                                    isEditing = isEditing,
+                                    onWorkoutClick = onWorkoutClick,
+                                    onWidgetClick = { activeBottomSheet = it },
+                                    onRemoveWidget = { widgetKey -> viewModel.removeWidget(widgetKey) },
+                                    onMoveWidgetUp = { widgetKey -> viewModel.moveWidgetUp(widgetKey) },
+                                    onMoveWidgetDown = { widgetKey -> viewModel.moveWidgetDown(widgetKey) },
+                                    onProfileClick = {
+                                        android.widget.Toast.makeText(context, "Perfil en construcción", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
                                 )
                             }
                             is DashboardUiState.Empty -> {
@@ -267,280 +358,364 @@ fun DashboardScreen(
         }
     }
 
-    if (showEditSheet) {
-        ModalBottomSheet(
-                onDismissRequest = { showEditSheet = false },
-                sheetState = editSheetState,
-                containerColor = Onyx,
-                dragHandle = { BottomSheetDefaults.DragHandle(color = LightGrey) }
-        ) {
-            EditBottomSheet(
-                    widgetOrder = widgetOrder,
-                    onMoveUp = { index ->
-                        if (index > 0) {
-                            val updated = widgetOrder.toMutableList().apply {
-                                add(index - 1, removeAt(index))
-                            }
-                            viewModel.onReorderWidgets(updated)
-                        }
-                    },
-                    onMoveDown = { index ->
-                        if (index < widgetOrder.lastIndex) {
-                            val updated = widgetOrder.toMutableList().apply {
-                                add(index + 1, removeAt(index))
-                            }
-                            viewModel.onReorderWidgets(updated)
-                        }
-                    },
-                    onDone = { showEditSheet = false }
-            )
-        }
+    if (showAddWidgetSheet) {
+        AddWidgetBottomSheet(
+            sheetState = addWidgetSheetState,
+            currentWidgetOrder = widgetOrder,
+            onDismiss = { showAddWidgetSheet = false },
+            onAddWidget = { widgetKey ->
+                viewModel.addWidget(widgetKey)
+                showAddWidgetSheet = false
+            }
+        )
+            } // close inner Box
+        } // close Column
     }
-}
+
 
 // ──────────────────────────────────────────────────────────────
-// Widget Grid Engine
+// Widget Grid Engine  (dual-mode: grid view / drag-edit)
 // ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun DashboardWidgetGrid(
-        successState: DashboardUiState.Success,
+fun DashboardWidgetGrid(
+    successState: DashboardUiState.Success,
     widgetOrder: List<String>,
-        weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>,
-        onWorkoutClick: () -> Unit,
-        onWidgetClick: (DashboardBottomSheetType) -> Unit
+    weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>,
+    isEditing: Boolean,
+    onWorkoutClick: () -> Unit,
+    onWidgetClick: (DashboardBottomSheetType) -> Unit,
+    onRemoveWidget: (String) -> Unit,
+    onMoveWidgetUp: (String) -> Unit,
+    onMoveWidgetDown: (String) -> Unit,
+    onProfileClick: () -> Unit = {}
 ) {
     val orderedWidgetTypes =
         (if (widgetOrder.isEmpty()) fallbackWidgetOrder else widgetOrder)
-            .mapNotNull { rawType ->
-            runCatching { WidgetType.valueOf(rawType) }.getOrNull()
-            }
+            .mapNotNull { runCatching { WidgetType.valueOf(it) }.getOrNull() }
 
-    LazyVerticalGrid(
+    if (!isEditing) {
+        // Normal Mode: 2 column grid
+        LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxSize()
-    ) {
-        val data = successState.data
-
-        // ── Header (spans full width) ────────────────────────
-        item(span = { GridItemSpan(2) }) {
-            DashboardHeader(
-                    title = "Welcome!", // Needs to be fetched from user profile in a real app
-                    date = "Today" // Could be formatted current date
-            )
-        }
-
-        // ── Widget items (DataStore driven order) ────────────
-        items(
+        ) {
+            val data = successState.data
+            item(span = { GridItemSpan(2) }) {
+                DashboardHeader(title = "Kaizen Hub", date = "", onProfileClick = onProfileClick)
+            }
+            items(
                 items = orderedWidgetTypes,
-                key = { widgetType -> "widget_${widgetType.name}" },
+                key = { "widget_${it.name}" },
                 span = { widgetType ->
                     val config = widgetConfigByType[widgetType]
                     GridItemSpan(config?.size?.span ?: WidgetSize.FULL_WIDTH.span)
                 }
-        ) { widgetType ->
-            val config = widgetConfigByType[widgetType] ?: return@items
-            val widgetModifier = Modifier.fillMaxWidth().height(config.heightDp)
-
-            when (widgetType) {
-                // ── Small widgets (real UI) ───────────────
-                WidgetType.STREAK ->
-                    widgetModifier.StreakWidget(
-                        streakDays = data.workoutStreak
-                    )
-                WidgetType.AVG_TIME ->
-                        AvgTimeWidget(
-                                minutes = data.avgDurationMinutes,
-                                trendDiffMinutes = 0, // Mocked for now until API provides it
-                                modifier = widgetModifier
-                        )
-                WidgetType.ONE_RM -> {
-                    OneRmWidget(
-                            exercise = "Estimated 1RM",
-                            weight = data.estimated1RM,
-                            isNewPr = false,
-                            weightIncrease = 0.0,
-                            modifier = widgetModifier
-                    )
-                }
-
-                // ── Thin widgets (real UI) ────────────────
-                WidgetType.WEIGHT_TREND -> {
-                        val diff = data.weightDiff ?: 0.0
-                        val isPos = diff >= 0
-                        val sign = if (isPos) "+" else ""
-
-                        WeightTrendWidget(
-                        currentWeight = successState.data.currentWeight ?: 0.0,
-                                trendLabel = "$sign$diff kg this week",
-                                isPositive = isPos,
-                                modifier = widgetModifier,
-                        onClick = { onWidgetClick(DashboardBottomSheetType.LogBodyWeight(successState.data.currentWeight ?: 0.0)) }
-                        )
-                }
-                WidgetType.RECOVERY_TIME ->
-                        RecoveryTimeWidget(
-                                hours = data.recoveryTimeHours ?: 0,
-                                modifier = widgetModifier
-                        )
-                WidgetType.LAST_SESSION ->
-                        LastSessionWidget(
-                                routineName = data.lastSession?.routineName ?: "Freestyle",
-                                timeLabel = data.lastSession?.completedAt?.take(10)
-                                                ?: "Never", // Safely using datetime
-                                modifier = widgetModifier,
-                                onClick = { onWidgetClick(DashboardBottomSheetType.LastSessionDetails(data.lastSession?.routineName ?: "Freestyle")) }
-                        )
-
-                // ── Large widgets (real UI) ───────────────
-                WidgetType.NEXT_WORKOUT ->
-                        NextWorkoutWidget(
-                                routineName = data.nextWorkout?.routineName,
-                                onStartClick = onWorkoutClick,
-                                modifier = widgetModifier,
-                                onClick = { onWidgetClick(DashboardBottomSheetType.NextWorkoutOptions(data.nextWorkout?.routineName ?: "Freestyle")) }
-                        )
-                WidgetType.CALENDAR -> {
-                    // Extract strictly the day of month
-                    val days =
-                            data.trainingDaysThisMonth.mapNotNull { dateString ->
-                                try {
-                                    LocalDate.parse(dateString).dayOfMonth
-                                } catch (e: Exception) {
-                                    null
-                                }
-                            }
-                    CalendarWidget(
-                        trainingDays = days,
-                        modifier = widgetModifier,
-                        onClick = { onWidgetClick(DashboardBottomSheetType.CalendarDay(LocalDate.now().dayOfMonth, days.contains(LocalDate.now().dayOfMonth))) },
-                        onDayClick = { day, isTrainingDay -> onWidgetClick(DashboardBottomSheetType.CalendarDay(day, isTrainingDay)) }
-                    )
-                }
-                WidgetType.RECENT_PRS -> {
-                    val mapPrs =
-                            data.recentPrs.map { pr ->
-                                RecentPrMock(
-                                        pr.exerciseName,
-                                        "${pr.weight} kg",
-                                        "",
-                                        pr.achievedAt.take(10)
-                                )
-                            }
-                    RecentPrsWidget(
-                        prs = mapPrs,
-                        modifier = widgetModifier,
-                        onClick = { onWidgetClick(DashboardBottomSheetType.PrDetails(data.recentPrs.firstOrNull()?.exerciseName ?: "Overview")) },
-                        onPrClick = { exercise -> onWidgetClick(DashboardBottomSheetType.PrDetails(exercise)) }
-                    )
-                }
+            ) { widgetType ->
+                val config = widgetConfigByType[widgetType] ?: return@items
+                val wMod = Modifier.fillMaxWidth().height(config.heightDp)
+                WidgetContent(widgetType, wMod, successState, onWorkoutClick, onWidgetClick)
             }
         }
-}
-
-}
-
-@Composable
-private fun EditBottomSheet(
-    widgetOrder: List<String>,
-    onMoveUp: (Int) -> Unit,
-    onMoveDown: (Int) -> Unit,
-    onDone: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp)
-    ) {
-        Text(
-            text = "Edit Dashboard",
-            color = PureWhite,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Use arrows to reorder widgets",
-            color = LightGrey,
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+    } else {
+        // Edit mode: single-column draggable list
+        val density = LocalDensity.current
 
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxSize()
         ) {
-            itemsIndexed(
-                items = widgetOrder,
-                key = { _, item -> item }
-            ) { index, widgetKey ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(ShadowGrey)
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = widgetKey.split("_").joinToString(" ") { token ->
-                            token.lowercase().replaceFirstChar { it.uppercase() }
-                        },
-                        color = PureWhite,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-
-        }
-                        IconButton(
-                            onClick = { onMoveUp(index) },
-                            enabled = index > 0
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowUp,
-                                contentDescription = "Move Up",
-                                tint = if (index > 0) CrayolaBlue else LightGrey.copy(alpha = 0.4f)
-                            )
-                        }
-                        IconButton(
-                            onClick = { onMoveDown(index) },
-                            enabled = index < widgetOrder.lastIndex
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Move Down",
-                                tint = if (index < widgetOrder.lastIndex) CrayolaBlue else LightGrey.copy(alpha = 0.4f)
-                            )
-                        }
-                    }
-                }
+            item {
+                Text(
+                    text = "Personaliza tu Dashboard",
+                    color = LightGrey,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                )
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = onDone,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue)
-        ) {
-            Text("Done", color = Onyx, fontWeight = FontWeight.Bold)
+            itemsIndexed(
+                items = orderedWidgetTypes,
+                key = { _, wt -> "edit_${wt.name}" }
+            ) { _, widgetType ->
+                DraggableWidgetCard(
+                    widgetType = widgetType,
+                    onRemove = { onRemoveWidget(widgetType.name) },
+                    onMoveUp = { onMoveWidgetUp(widgetType.name) },
+                    onMoveDown = { onMoveWidgetDown(widgetType.name) },
+                    density = density
+                )
+            }
+
+            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
-        Spacer(modifier = Modifier.height(20.dp))
     }
+}
 
+// ──────────────────────────────────────────────────────────────
+// Reusable: renders the actual widget composable
+// ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun WidgetContent(
+    widgetType: WidgetType,
+    widgetModifier: Modifier,
+    successState: DashboardUiState.Success,
+    onWorkoutClick: () -> Unit,
+    onWidgetClick: (DashboardBottomSheetType) -> Unit
+) {
+    val data = successState.data
+    when (widgetType) {
+        WidgetType.STREAK ->
+            widgetModifier.StreakWidget(streakDays = data.workoutStreak)
+        WidgetType.AVG_TIME ->
+            AvgTimeWidget(minutes = data.avgDurationMinutes, trendDiffMinutes = 0, modifier = widgetModifier)
+        WidgetType.ONE_RM ->
+            OneRmWidget(
+                exercise = "Estimated 1RM",
+                weight = data.estimated1RM,
+                isNewPr = false,
+                weightIncrease = 0.0,
+                modifier = widgetModifier
+            )
+        WidgetType.WEIGHT_TREND -> {
+            val diff = data.weightDiff ?: 0.0
+            val isPos = diff >= 0
+            WeightTrendWidget(
+                currentWeight = data.currentWeight ?: 0.0,
+                trendLabel = "${if (isPos) "+" else ""}$diff kg esta semana",
+                isPositive = isPos,
+                modifier = widgetModifier,
+                onClick = { onWidgetClick(DashboardBottomSheetType.LogBodyWeight(data.currentWeight ?: 0.0)) }
+            )
+        }
+        WidgetType.RECOVERY_TIME ->
+            RecoveryTimeWidget(hours = data.recoveryTimeHours ?: 0, modifier = widgetModifier)
+        WidgetType.LAST_SESSION ->
+            LastSessionWidget(
+                routineName = data.lastSession?.routineName ?: "Libre",
+                timeLabel = data.lastSession?.completedAt?.take(10) ?: "Nunca",
+                modifier = widgetModifier,
+                onClick = { onWidgetClick(DashboardBottomSheetType.LastSessionDetails(data.lastSession?.routineName ?: "Libre")) }
+            )
+        WidgetType.NEXT_WORKOUT ->
+            NextWorkoutWidget(
+                routineName = data.nextWorkout?.routineName,
+                onStartClick = onWorkoutClick,
+                modifier = widgetModifier,
+                onClick = { onWidgetClick(DashboardBottomSheetType.NextWorkoutOptions(data.nextWorkout?.routineName ?: "Libre")) }
+            )
+        WidgetType.CALENDAR -> {
+            val days = data.trainingDaysThisMonth.mapNotNull {
+                runCatching { LocalDate.parse(it).dayOfMonth }.getOrNull()
+            }
+            CalendarWidget(
+                trainingDays = days,
+                modifier = widgetModifier,
+                onClick = { onWidgetClick(DashboardBottomSheetType.CalendarDay(LocalDate.now().dayOfMonth, days.contains(LocalDate.now().dayOfMonth))) },
+                onDayClick = { day, isTrainingDay -> onWidgetClick(DashboardBottomSheetType.CalendarDay(day, isTrainingDay)) }
+            )
+        }
+        WidgetType.RECENT_PRS -> {
+            val mapPrs = data.recentPrs.map { pr ->
+                RecentPrMock(pr.exerciseName, "${pr.weight} kg", "", pr.achievedAt.take(10))
+            }
+            RecentPrsWidget(
+                prs = mapPrs,
+                modifier = widgetModifier,
+                onClick = { onWidgetClick(DashboardBottomSheetType.PrDetails(data.recentPrs.firstOrNull()?.exerciseName ?: "Overview")) },
+                onPrClick = { exercise -> onWidgetClick(DashboardBottomSheetType.PrDetails(exercise)) }
+            )
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Edit Mode: Draggable widget card (matches Workouts RoutineCard)
+// ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun DraggableWidgetCard(
+    widgetType: WidgetType,
+    onRemove: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    density: androidx.compose.ui.unit.Density
+) {
+    val maxVisualOffsetPx = remember(density) { with(density) { 72.dp.toPx() } }
+    var dragVisualOffset by remember(widgetType.name) { mutableFloatStateOf(0f) }
+    var isDragging by remember(widgetType.name) { mutableStateOf(false) }
+
+    val animatedDragOffset by animateFloatAsState(
+        targetValue = if (isDragging) dragVisualOffset else 0f,
+        label = "widget_drag_offset"
+    )
+    val liftedScale by animateFloatAsState(
+        targetValue = if (isDragging) 1.02f else 1f,
+        label = "widget_drag_scale"
+    )
+    val liftedElevation by animateDpAsState(
+        targetValue = if (isDragging) 12.dp else 0.dp,
+        label = "widget_drag_elevation"
+    )
+    val cardColor by animateColorAsState(
+        targetValue = if (isDragging) ShadowGrey.copy(alpha = 0.9f) else ShadowGrey,
+        label = "widget_card_color"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isDragging) CrayolaBlue.copy(alpha = 0.45f) else Color.Transparent,
+        label = "widget_border_color"
+    )
+    val liftedElevationPx = with(density) { liftedElevation.toPx() }
+
+    // Human-readable display name
+    val displayName = widgetType.name
+        .split("_")
+        .joinToString(" ") { it.lowercase().replaceFirstChar { c -> c.uppercase() } }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                translationY = animatedDragOffset
+                scaleX = liftedScale
+                scaleY = liftedScale
+                shadowElevation = liftedElevationPx
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        border = BorderStroke(1.dp, borderColor)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Widget name
+            Text(
+                modifier = Modifier.weight(1f),
+                text = displayName,
+                color = PureWhite,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            // ── Delete button ──────────────────────────────
+            IconButton(onClick = onRemove) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Eliminar widget",
+                    tint = SubtleRed
+                )
+            }
+
+            // Drag handle (identical to Workouts)
+            DashboardDragHandle(
+                onMoveUp = onMoveUp,
+                onMoveDown = onMoveDown,
+                threshold = 36.dp,
+                onDragOffsetChange = { offset ->
+                    dragVisualOffset = offset.coerceIn(-maxVisualOffsetPx, maxVisualOffsetPx)
+                },
+                onDragStateChange = { dragging ->
+                    isDragging = dragging
+                    if (!dragging) dragVisualOffset = 0f
+                }
+            )
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Drag handle
+// ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun DashboardDragHandle(
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    threshold: Dp,
+    onDragOffsetChange: (Float) -> Unit = {},
+    onDragStateChange: (Boolean) -> Unit = {}
+) {
+    val density = LocalDensity.current
+    val thresholdPx = remember(threshold, density) { with(density) { threshold.toPx() } }
+    var dragAccumulator by remember { mutableFloatStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
+
+    val handleBackground by animateColorAsState(
+        targetValue = if (isDragging) CrayolaBlue.copy(alpha = 0.2f) else Color.Transparent,
+        label = "dash_drag_handle_bg"
+    )
+
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 2.dp)
+            .clip(CircleShape)
+            .background(handleBackground)
+            .pointerInput(onMoveUp, onMoveDown, thresholdPx, onDragOffsetChange, onDragStateChange) {
+                detectDragGestures(
+                    onDragStart = {
+                        dragAccumulator = 0f
+                        isDragging = true
+                        onDragStateChange(true)
+                        onDragOffsetChange(0f)
+                    },
+                    onDragEnd = {
+                        dragAccumulator = 0f
+                        isDragging = false
+                        onDragOffsetChange(0f)
+                        onDragStateChange(false)
+                    },
+                    onDragCancel = {
+                        dragAccumulator = 0f
+                        isDragging = false
+                        onDragOffsetChange(0f)
+                        onDragStateChange(false)
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        dragAccumulator += dragAmount.y
+                        var visualOffset = dragAccumulator
+
+                        while (dragAccumulator >= thresholdPx) {
+                            onMoveDown()
+                            dragAccumulator -= thresholdPx
+                            visualOffset -= thresholdPx * 0.65f
+                        }
+                        while (dragAccumulator <= -thresholdPx) {
+                            onMoveUp()
+                            dragAccumulator += thresholdPx
+                            visualOffset += thresholdPx * 0.65f
+                        }
+
+                        onDragOffsetChange(visualOffset)
+                    }
+                )
+            }
+            .padding(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.DragIndicator,
+            contentDescription = "Reordenar widget",
+            tint = LightGrey
+        )
+    }
+}
 
 // ──────────────────────────────────────────────────────────────
 // Header (preserved from original)
 // ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun DashboardHeader(title: String, date: String) {
+fun DashboardHeader(title: String, date: String, onProfileClick: () -> Unit = {}) {
     Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -556,7 +731,11 @@ private fun DashboardHeader(title: String, date: String) {
             )
         }
         Box(
-                modifier = Modifier.size(48.dp).clip(CircleShape).background(ShadowGrey),
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(ShadowGrey)
+                    .clickable(onClick = onProfileClick),
                 contentAlignment = Alignment.Center
         ) {
             Icon(
