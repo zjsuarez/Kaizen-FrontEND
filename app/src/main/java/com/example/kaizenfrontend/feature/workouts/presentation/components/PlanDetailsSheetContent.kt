@@ -53,6 +53,7 @@ import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.presentation.PlanDetailsState
+import com.example.kaizenfrontend.feature.workouts.presentation.utils.RoutineScheduleCalculator
 import kotlinx.coroutines.launch
 
 @Composable
@@ -131,10 +132,15 @@ fun PlanDetailsSheetContent(
                             Modifier
                         }
 
+                        val nextOccurrenceText = remember(routine, state.plan) {
+                            RoutineScheduleCalculator.getDisplayStringOrFallback(routine, state.plan)
+                        }
+
                         Box(modifier = dragModifier) {
                             PlanRoutineCard(
                                 routine = routine,
                                 isEditMode = state.isEditMode,
+                                nextOccurrenceText = nextOccurrenceText,
                                 isDragging = isDragging,
                                 onClick = { onRoutineClick(routine) },
                                 onRemoveClick = { onRemoveRoutine(routine.id) },
@@ -349,6 +355,7 @@ private fun PlanDetailsSummary(routineCount: Int) {
 private fun PlanRoutineCard(
     routine: Routine,
     isEditMode: Boolean,
+    nextOccurrenceText: String? = null,
     isDragging: Boolean,
     onClick: () -> Unit,
     onRemoveClick: () -> Unit,
@@ -412,6 +419,18 @@ private fun PlanRoutineCard(
                         color = LightGrey,
                         fontSize = 12.sp,
                         maxLines = 1
+                    )
+                }
+                
+                nextOccurrenceText?.let {
+                    Text(
+                        text = it,
+                        color = CrayolaBlue,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 2.dp)
                     )
                 }
             }

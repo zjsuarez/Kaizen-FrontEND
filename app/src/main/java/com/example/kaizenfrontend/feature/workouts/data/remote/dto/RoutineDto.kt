@@ -15,6 +15,7 @@ data class RoutineResponse(
     val description: String,
     val schedulingValue: String?,
     val startingDate: String?,
+    val lastPerformedDate: String?,
     val exercises: List<RoutineExerciseResponse>? = null,
     val listRoutineExercises: List<RoutineExerciseResponse>? = null
 )

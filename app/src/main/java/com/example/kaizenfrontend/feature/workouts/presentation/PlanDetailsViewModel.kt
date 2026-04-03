@@ -2,13 +2,14 @@ package com.example.kaizenfrontend.feature.workouts.presentation
 
 import androidx.lifecycle.ViewModel
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
+import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class PlanDetailsViewModel(
-    planId: String,
+    plan: TrainingPlan,
     initialTitle: String = "",
     initialDescription: String = "",
     initialRoutines: List<Routine> = emptyList(),
@@ -17,7 +18,8 @@ class PlanDetailsViewModel(
 
     private val _uiState = MutableStateFlow(
         PlanDetailsState(
-            planId = planId,
+            planId = plan.id,
+            plan = plan,
             title = initialTitle,
             description = initialDescription,
             routines = initialRoutines,

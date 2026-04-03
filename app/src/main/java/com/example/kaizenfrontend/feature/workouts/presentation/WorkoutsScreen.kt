@@ -48,6 +48,7 @@ import com.example.kaizenfrontend.feature.workouts.presentation.components.Exerc
 import com.example.kaizenfrontend.feature.workouts.presentation.components.PlanDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
+import com.example.kaizenfrontend.feature.workouts.presentation.utils.RoutineScheduleCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,13 +132,15 @@ fun WorkoutsScreen(
                                         showCreatePlanDialog = true
                                     }
                                 )
-                                DropdownMenuItem(
-                                    text = { Text("Create Routine") },
-                                    onClick = {
-                                        showFabMenu = false
-                                        showCreateRoutineWizard = true
-                                    }
-                                )
+                                if ((uiState as? WorkoutsUiState.Success)?.plans?.isNotEmpty() == true) {
+                                    DropdownMenuItem(
+                                        text = { Text("Create Routine") },
+                                        onClick = {
+                                            showFabMenu = false
+                                            showCreateRoutineWizard = true
+                                        }
+                                    )
+                                }
                             }
                         }
 
@@ -219,9 +222,13 @@ fun WorkoutsScreen(
                                     }
                                 } else {
                                     items(routines, key = { it.id }) { routine ->
+                                        val nextOccurrenceText = remember(routine, plan) {
+                                            RoutineScheduleCalculator.getDisplayStringOrFallback(routine, plan)
+                                        }
                                         RoutineCard(
                                             routine = routine,
                                             isEditMode = isEditMode,
+                                            nextOccurrenceText = nextOccurrenceText,
                                             onClick = { selectedRoutineForDetails = routine },
                                             onDeleteClick = {
                                                 pendingDelete = DeleteTarget.Routine(
@@ -234,34 +241,6 @@ fun WorkoutsScreen(
                                         )
                                     }
                                 }
-                            }
-                        }
-
-                        if (state.unassignedRoutines.isNotEmpty()) {
-                            item {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "Standalone Workouts",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
-                                )
-                            }
-                            items(state.unassignedRoutines, key = { "unassigned_${it.id}" }) { routine ->
-                                RoutineCard(
-                                    routine = routine,
-                                    isEditMode = isEditMode,
-                                    onClick = { selectedRoutineForDetails = routine },
-                                    onDeleteClick = {
-                                        pendingDelete = DeleteTarget.Routine(
-                                            routineId = routine.id,
-                                            routineName = routine.name
-                                        )
-                                    },
-                                    onMoveUpClick = { viewModel.moveRoutineUp(routine.id, null) },
-                                    onMoveDownClick = { viewModel.moveRoutineDown(routine.id, null) }
-                                )
                             }
                         }
                     }
@@ -574,6 +553,7 @@ private fun PlanHeaderItem(
 private fun RoutineCard(
     routine: Routine,
     isEditMode: Boolean,
+    nextOccurrenceText: String? = null,
     onClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onMoveUpClick: () -> Unit,
@@ -641,6 +621,17 @@ private fun RoutineCard(
                 if (routine.description.isNotBlank()) {
                     Text(text = routine.description, color = LightGrey, fontSize = 13.sp)
                 }
+                nextOccurrenceText?.let {
+                    Text(
+                        text = it,
+                        color = CrayolaBlue,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 4.dp, end = if (isEditMode) 8.dp else 0.dp)
+                    )
+                }
             }
 
             if (isEditMode) {
@@ -697,7 +688,7 @@ private class PlanDetailsViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PlanDetailsViewModel::class.java)) {
             return PlanDetailsViewModel(
-                planId = plan.id,
+                plan = plan,
                 initialTitle = plan.name,
                 initialDescription = plan.description,
                 initialRoutines = routines,

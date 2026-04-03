@@ -130,6 +130,7 @@ class RoutineRepositoryImpl(
             description = description,
             schedulingValue = schedulingValue,
             startingDate = startingDate,
+            lastPerformedDate = lastPerformedDate,
             exercises = (exercises ?: listRoutineExercises)
                 .orEmpty()
                 .sortedBy { it.orderIndex ?: Int.MAX_VALUE }
