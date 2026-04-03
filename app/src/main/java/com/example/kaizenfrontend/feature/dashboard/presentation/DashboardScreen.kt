@@ -52,6 +52,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Info
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.kaizenfrontend.core.ui.theme.*
+import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetSize
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
@@ -332,6 +333,12 @@ fun DashboardScreen(
                 2 -> StatisticsScreen()
                 3 -> SettingsScreen(onLogoutClick = onLogoutClick)
             }
+
+            // ── Floating Island: active workout mini-player ─────────
+            ActiveWorkoutOverlay(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                onOpenWorkout = { /* TODO: navigate to full workout screen (Task 3+) */ }
+            )
         }
     }
 
