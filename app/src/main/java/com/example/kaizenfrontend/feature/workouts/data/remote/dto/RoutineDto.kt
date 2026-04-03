@@ -4,8 +4,8 @@ data class RoutineRequest(
     val planId: String?,
     val name: String,
     val description: String,
-    val schedulingValue: String, // e.g., "MONDAY"
-    val startingDate: String
+    val schedulingValue: String?, // e.g., "MONDAY"
+    val startingDate: String?
 )
 
 data class RoutineResponse(

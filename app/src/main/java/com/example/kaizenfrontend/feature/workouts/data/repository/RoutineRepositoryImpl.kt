@@ -85,6 +85,70 @@ class RoutineRepositoryImpl(
         }
     }
 
+    override suspend fun updateRoutine(
+        routineId: String,
+        planId: String?,
+        name: String,
+        description: String,
+        schedulingValue: String?,
+        startingDate: String?
+    ): Result<Routine> = withContext(Dispatchers.IO) {
+        try {
+            val token = sessionManager.getToken()
+                ?: return@withContext Result.failure(Exception("No auth token"))
+            val bearerToken = "Bearer $token"
+
+            val request = RoutineRequest(
+                planId = planId,
+                name = name,
+                description = description,
+                schedulingValue = schedulingValue,
+                startingDate = startingDate
+            )
+
+            val response = api.editRoutine(bearerToken, routineId, request)
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.success(it.toDomain())
+                } ?: Result.failure(Exception("Empty body"))
+            } else {
+                Result.failure(Exception("Failed to update routine: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateRoutineExercises(
+        routineId: String,
+        exercises: List<RoutineExercise>
+    ): Result<Routine> = withContext(Dispatchers.IO) {
+        try {
+            val token = sessionManager.getToken()
+                ?: return@withContext Result.failure(Exception("No auth token"))
+            val bearerToken = "Bearer $token"
+
+            val exerciseRequests = exercises.map { re ->
+                RoutineExerciseRequest(
+                    targetSets = re.targetSets,
+                    customExerciseId = null,
+                    builtinExerciseKey = re.exercise.id
+                )
+            }
+
+            val response = api.replaceRoutineExercises(bearerToken, routineId, exerciseRequests)
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.success(it.toDomain())
+                } ?: Result.failure(Exception("Empty body"))
+            } else {
+                Result.failure(Exception("Failed to update routine exercises: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getRoutines(planId: String?): Result<List<Routine>> = withContext(Dispatchers.IO) {
         try {
             val token = sessionManager.getToken()

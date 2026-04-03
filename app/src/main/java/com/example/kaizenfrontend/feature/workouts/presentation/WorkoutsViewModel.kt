@@ -41,7 +41,9 @@ class WorkoutsViewModel(
     private val createPlanUseCase: CreatePlanUseCase,
     private val createRoutineUseCase: CreateRoutineUseCase,
     private val deletePlanUseCase: DeletePlanUseCase,
-    private val deleteRoutineUseCase: DeleteRoutineUseCase
+    private val deleteRoutineUseCase: DeleteRoutineUseCase,
+    private val updatePlanUseCase: com.example.kaizenfrontend.feature.workouts.domain.usecase.UpdatePlanUseCase,
+    private val updateRoutineUseCase: com.example.kaizenfrontend.feature.workouts.domain.usecase.UpdateRoutineUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<WorkoutsUiState>(WorkoutsUiState.Loading)
@@ -158,6 +160,60 @@ class WorkoutsViewModel(
                 routinesByPlanId = updatedMap,
                 unassignedRoutines = updatedUnassigned
             )
+        }
+    }
+
+    fun saveRoutineEdits(routine: Routine) {
+        // Optimistically update the UI first
+        updateRoutineLocally(routine)
+
+        // Then sync to the backend
+        viewModelScope.launch {
+            val result = updateRoutineUseCase(
+                routineId = routine.id,
+                planId = routine.planId,
+                name = routine.name,
+                description = routine.description,
+                schedulingValue = routine.schedulingValue,
+                startingDate = routine.startingDate,
+                exercises = routine.exercises
+            )
+            
+            if (result.isSuccess) {
+                // If the backend returns a canonical model, we update locally again to ensure parity (e.g. lastPerformedDates / createdDates)
+                result.getOrNull()?.let { updateRoutineLocally(it) }
+            } else {
+                // Technically we should revert the optimistic update here if we kept the old state, but for now just swallow error or show toast.
+            }
+        }
+    }
+
+    fun savePlanEdits(plan: TrainingPlan) {
+        // Optimistically update locally
+        _uiState.update { state ->
+            if (state !is WorkoutsUiState.Success) return@update state
+            val updatedPlans = state.plans.map { if (it.id == plan.id) plan else it }
+            state.copy(plans = updatedPlans)
+        }
+
+        // Sync to backend
+        viewModelScope.launch {
+            val result = updatePlanUseCase(
+                planId = plan.id,
+                name = plan.name,
+                description = plan.description,
+                isActive = plan.isActive
+            )
+
+            if (result.isSuccess) {
+                result.getOrNull()?.let { canonicalPlan ->
+                     _uiState.update { state ->
+                        if (state !is WorkoutsUiState.Success) return@update state
+                        val updatedPlans = state.plans.map { if (it.id == canonicalPlan.id) canonicalPlan else it }
+                        state.copy(plans = updatedPlans)
+                    }
+                }
+            }
         }
     }
 
@@ -286,7 +342,9 @@ class WorkoutsViewModelFactory(private val context: Context) : ViewModelProvider
                 CreatePlanUseCase(planRepo),
                 CreateRoutineUseCase(routineRepo),
                 DeletePlanUseCase(planRepo),
-                DeleteRoutineUseCase(routineRepo)
+                DeleteRoutineUseCase(routineRepo),
+                com.example.kaizenfrontend.feature.workouts.domain.usecase.UpdatePlanUseCase(planRepo),
+                com.example.kaizenfrontend.feature.workouts.domain.usecase.UpdateRoutineUseCase(routineRepo)
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

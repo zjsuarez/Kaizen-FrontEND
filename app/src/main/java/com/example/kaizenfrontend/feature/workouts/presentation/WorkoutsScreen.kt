@@ -323,8 +323,26 @@ fun WorkoutsScreen(
                             PlanDetailsSheetContent(
                                 state = planDetailsState,
                                 onEditClick = planDetailsViewModel::toggleEditMode,
-                                onDoneClick = planDetailsViewModel::saveChanges,
-                                onToggleActive = planDetailsViewModel::toggleActive,
+                                onDoneClick = {
+                                    planDetailsViewModel.saveChanges()
+                                    val updatedState = planDetailsViewModel.uiState.value
+                                    val updatedPlan = selectedPlan.copy(
+                                        name = updatedState.title,
+                                        description = updatedState.description,
+                                        isActive = updatedState.isActive
+                                    )
+                                    viewModel.savePlanEdits(updatedPlan)
+                                },
+                                onToggleActive = {
+                                    planDetailsViewModel.toggleActive()
+                                    val updatedState = planDetailsViewModel.uiState.value
+                                    val updatedPlan = selectedPlan.copy(
+                                        name = updatedState.title,
+                                        description = updatedState.description,
+                                        isActive = updatedState.isActive
+                                    )
+                                    viewModel.savePlanEdits(updatedPlan)
+                                },
                                 onTitleChange = planDetailsViewModel::updateTitle,
                                 onDescriptionChange = planDetailsViewModel::updateDescription,
                                 onRemoveRoutine = planDetailsViewModel::removeRoutine,
@@ -369,7 +387,7 @@ fun WorkoutsScreen(
                                         exercises = updatedState.exercises,
                                         schedulingValue = updatedState.schedulingValueString
                                     )
-                                    viewModel.updateRoutineLocally(updatedRoutine)
+                                    viewModel.saveRoutineEdits(updatedRoutine)
                                 },
                                 onTitleChange = routineDetailsViewModel::updateTitle,
                                 onDescriptionChange = routineDetailsViewModel::updateDescription,
