@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
+import com.example.kaizenfrontend.feature.workouts.presentation.components.ActiveWorkoutBottomSheet
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetSize
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
@@ -170,6 +171,7 @@ fun DashboardScreen(
     val isEditing by viewModel.isEditing.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
     var showAddWidgetSheet by remember { mutableStateOf(false) }
+    var showActiveWorkoutSheet by remember { mutableStateOf(false) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val addWidgetSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -337,7 +339,7 @@ fun DashboardScreen(
             // ── Floating Island: active workout mini-player ─────────
             ActiveWorkoutOverlay(
                 modifier = Modifier.align(Alignment.BottomCenter),
-                onOpenWorkout = { /* TODO: navigate to full workout screen (Task 3+) */ }
+                onOpenWorkout = { showActiveWorkoutSheet = true }
             )
         }
     }
@@ -375,6 +377,17 @@ fun DashboardScreen(
                 showAddWidgetSheet = false
             }
         )
+    // ── Active Workout "Tunnel Mode" bottom sheet ─────────
+    if (showActiveWorkoutSheet) {
+        ActiveWorkoutBottomSheet(
+            onDismiss = { showActiveWorkoutSheet = false },
+            onFinish = {
+                showActiveWorkoutSheet = false
+                // finishWorkout() is called by the caller or a ViewModel — handled in Task 6
+            },
+            onAddExercise = { /* TODO: open exercise catalog — Task 4+ */ }
+        )
+    }
             } // close inner Box
         } // close Column
     }
