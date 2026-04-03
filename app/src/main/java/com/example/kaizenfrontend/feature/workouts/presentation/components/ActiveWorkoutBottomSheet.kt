@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -92,7 +93,8 @@ import java.util.Locale
 fun ActiveWorkoutBottomSheet(
     onDismiss: () -> Unit,
     onFinish: () -> Unit,
-    onAddExercise: () -> Unit
+    onAddExercise: () -> Unit,
+    onNavigateToZenMode: (initialPage: Int) -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val workoutState by ActiveWorkoutManager.currentWorkout.collectAsState()
@@ -121,7 +123,8 @@ fun ActiveWorkoutBottomSheet(
                 }
             },
             onResetRest = { ActiveWorkoutManager.resetRestTimer() },
-            onNotesChange = { ActiveWorkoutManager.updateNotes(it) }
+            onNotesChange = { ActiveWorkoutManager.updateNotes(it) },
+            onNavigateToZenMode = onNavigateToZenMode
         )
     }
 }
@@ -137,7 +140,8 @@ internal fun ActiveWorkoutSheetContent(
     onAddExercise: () -> Unit,
     onPlayPauseRest: () -> Unit,
     onResetRest: () -> Unit,
-    onNotesChange: (String) -> Unit
+    onNotesChange: (String) -> Unit,
+    onNavigateToZenMode: (Int) -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -184,6 +188,7 @@ internal fun ActiveWorkoutSheetContent(
             onToggleSetCompletion = { exerciseId, setId ->
                 ActiveWorkoutManager.toggleSetCompletion(exerciseId, setId)
             },
+            onNavigateToZenMode = onNavigateToZenMode,
             modifier = Modifier.weight(1f)
         )
 
@@ -297,7 +302,7 @@ private fun WorkoutHeader(
 // ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun RestTimerBar(
+internal fun RestTimerBar(
     restSeconds: Long,
     isRunning: Boolean,
     onPlayPause: () -> Unit,
@@ -349,7 +354,7 @@ private fun RestTimerBar(
 /**
  * Formats rest timer seconds into MM:SS.
  */
-private fun formatRestTimer(seconds: Long): String {
+internal fun formatRestTimer(seconds: Long): String {
     val s = seconds.coerceAtLeast(0)
     val min = s / 60
     val sec = s % 60
@@ -367,6 +372,7 @@ private fun ExerciseList(
     onAddSet: (String) -> Unit,
     onUpdateSetData: (exerciseId: String, setId: String, weight: String?, reps: String?, rir: String?) -> Unit,
     onToggleSetCompletion: (exerciseId: String, setId: String) -> Unit,
+    onNavigateToZenMode: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -386,7 +392,8 @@ private fun ExerciseList(
                 },
                 onToggleSetCompletion = { setId ->
                     onToggleSetCompletion(exercise.id, setId)
-                }
+                },
+                onZenModeClick = { onNavigateToZenMode(index) }
             )
 
             // Ultra-thin divider between exercises (not after last)
@@ -411,7 +418,8 @@ private fun ActiveExerciseRow(
     onToggleExpand: () -> Unit,
     onAddSet: () -> Unit,
     onUpdateSetData: (setId: String, weight: String?, reps: String?, rir: String?) -> Unit,
-    onToggleSetCompletion: (setId: String) -> Unit
+    onToggleSetCompletion: (setId: String) -> Unit,
+    onZenModeClick: () -> Unit
 ) {
     // Animated chevron rotation
     val chevronRotation by animateFloatAsState(
@@ -453,6 +461,19 @@ private fun ActiveExerciseRow(
                     text = "${exercise.sets.size} sets",
                     color = LightGrey,
                     fontSize = 13.sp
+                )
+            }
+
+            // Zen mode button
+            IconButton(
+                onClick = onZenModeClick,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AspectRatio, // We will need to import AspectRatio or Fullscreen
+                    contentDescription = "Zen Mode",
+                    tint = CrayolaBlue,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
@@ -562,7 +583,7 @@ private fun ActiveExerciseRow(
 // ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun WorkoutSetRow(
+internal fun WorkoutSetRow(
     set: WorkoutSetState,
     onWeightChange: (String) -> Unit,
     onRepsChange: (String) -> Unit,
@@ -651,7 +672,7 @@ private fun WorkoutSetRow(
  * instead of the clunky default Material TextField.
  */
 @Composable
-private fun SetInputField(
+internal fun SetInputField(
     value: String,
     onValueChange: (String) -> Unit,
     suffix: String,

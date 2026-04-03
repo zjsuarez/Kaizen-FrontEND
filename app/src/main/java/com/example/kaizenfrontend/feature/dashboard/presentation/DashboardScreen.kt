@@ -54,6 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ActiveWorkoutBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.ZenModeScreen
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetSize
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
@@ -172,6 +173,7 @@ fun DashboardScreen(
     var selectedTab by remember { mutableStateOf(0) }
     var showAddWidgetSheet by remember { mutableStateOf(false) }
     var showActiveWorkoutSheet by remember { mutableStateOf(false) }
+    var zenModeInitialPage by remember { mutableStateOf<Int?>(null) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val addWidgetSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -383,9 +385,19 @@ fun DashboardScreen(
             onDismiss = { showActiveWorkoutSheet = false },
             onFinish = {
                 showActiveWorkoutSheet = false
-                // finishWorkout() is called by the caller or a ViewModel — handled in Task 6
             },
-            onAddExercise = { /* TODO: open exercise catalog — Task 4+ */ }
+            onAddExercise = { /* TODO: open exercise catalog — Task 4+ */ },
+            onNavigateToZenMode = { page ->
+                zenModeInitialPage = page
+            }
+        )
+    }
+
+    // ── Zen Mode Full Screen ─────────
+    zenModeInitialPage?.let { initialPage ->
+        ZenModeScreen(
+            initialPage = initialPage,
+            onClose = { zenModeInitialPage = null }
         )
     }
             } // close inner Box
