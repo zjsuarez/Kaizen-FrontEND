@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -65,6 +66,9 @@ fun RoutineDetailsSheetContent(
     onRemoveExercise: (String) -> Unit,
     onMoveExercise: (Int, Int) -> Unit,
     onAddExerciseClick: () -> Unit,
+    onWeekDayToggle: (java.time.DayOfWeek) -> Unit,
+    onCycleDayToggle: (Int) -> Unit,
+    onRestDaysChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val lazyListState = rememberLazyListState()
@@ -99,6 +103,15 @@ fun RoutineDetailsSheetContent(
                 exerciseCount = state.exercises.size,
                 totalSets = state.exercises.sumOf { it.targetSets }
             )
+
+            if (state.planIntervalConfig != null) {
+                RoutineDetailsScheduleEditor(
+                    state = state,
+                    onWeekDayToggle = onWeekDayToggle,
+                    onCycleDayToggle = onCycleDayToggle,
+                    onRestDaysChange = onRestDaysChange
+                )
+            }
 
             val listContainerModifier = if (state.isEditMode) {
                 Modifier
@@ -506,5 +519,93 @@ private fun RoutineDescription(
                 .fillMaxWidth()
                 .padding(top = 4.dp, bottom = 6.dp)
         )
+    }
+}
+
+@Composable
+private fun RoutineDetailsScheduleEditor(
+    state: RoutineDetailsState,
+    onWeekDayToggle: (java.time.DayOfWeek) -> Unit,
+    onCycleDayToggle: (Int) -> Unit,
+    onRestDaysChange: (Int) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        val intervalType = state.planIntervalConfig?.type
+        val cycleMode = state.planIntervalConfig?.cycleMode
+
+        if (!state.isEditMode) {
+            // Visualization Mode
+            val scheduleText = when (intervalType) {
+                com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType.CYCLE -> {
+                    if (cycleMode == com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode.WEEKLY) {
+                        val days = state.selectedWeekDays.sortedBy { it.value }
+                        if (days.isEmpty()) "Not scheduled" else "Every " + days.joinToString(", ") { it.name.take(3) }
+                    } else {
+                        val days = state.selectedCycleDays.sorted()
+                        if (days.isEmpty()) "Not scheduled" else "Cycle days: " + days.joinToString(", ")
+                    }
+                }
+                com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType.FREQUENCY -> {
+                    "Every ${state.restDaysBetweenWorkouts} day(s)"
+                }
+                else -> "Not scheduled"
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = "Schedule",
+                    tint = CrayolaBlue,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = "Schedule: $scheduleText",
+                    color = LightGrey,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+        } else {
+            // Edit Mode
+            Text(
+                text = "Edit Schedule",
+                color = PureWhite,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+            
+            when (intervalType) {
+                com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType.CYCLE -> {
+                    if (cycleMode == com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode.WEEKLY) {
+                        WeeklyDaysSelector(
+                            selectedDays = state.selectedWeekDays,
+                            assignedRoutineNamesByDay = emptyMap(),
+                            onDayClick = onWeekDayToggle,
+                            showError = false
+                        )
+                    } else {
+                        CycleDaysSelector(
+                            cycleLengthDays = state.planIntervalConfig.cycleLengthDays,
+                            selectedCycleDays = state.selectedCycleDays,
+                            assignedRoutineNamesByCycleDay = emptyMap(),
+                            onDayClick = onCycleDayToggle,
+                            showError = false
+                        )
+                    }
+                }
+                com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType.FREQUENCY -> {
+                    BasicCounterSelector(
+                        title = "Rest days",
+                        value = state.restDaysBetweenWorkouts,
+                        suffix = "days",
+                        onChange = onRestDaysChange
+                    )
+                }
+                null -> {}
+            }
+        }
     }
 }

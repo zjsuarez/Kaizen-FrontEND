@@ -140,6 +140,27 @@ class WorkoutsViewModel(
         }
     }
 
+    fun updateRoutineLocally(updatedRoutine: Routine) {
+        _uiState.update { state ->
+            if (state !is WorkoutsUiState.Success) return@update state
+            
+            val updatedMap = state.routinesByPlanId.mapValues { (planId, routines) ->
+                if (planId == updatedRoutine.planId) {
+                    routines.map { if (it.id == updatedRoutine.id) updatedRoutine else it }
+                } else {
+                    routines
+                }
+            }
+            
+            val updatedUnassigned = state.unassignedRoutines.map { if (it.id == updatedRoutine.id) updatedRoutine else it }
+            
+            state.copy(
+                routinesByPlanId = updatedMap,
+                unassignedRoutines = updatedUnassigned
+            )
+        }
+    }
+
     fun deletePlan(planId: String) {
         viewModelScope.launch {
             _uiState.value = WorkoutsUiState.Loading

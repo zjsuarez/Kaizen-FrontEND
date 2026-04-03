@@ -584,7 +584,7 @@ private fun WizardBottomBar(
 }
 
 @Composable
-private fun WeeklyDaysSelector(
+fun WeeklyDaysSelector(
     selectedDays: Set<DayOfWeek>,
     assignedRoutineNamesByDay: Map<DayOfWeek, List<String>>,
     onDayClick: (DayOfWeek) -> Unit,
@@ -714,7 +714,7 @@ private fun truncateRoutineName(name: String): String {
 }
 
 @Composable
-private fun CycleDaysSelector(
+fun CycleDaysSelector(
     cycleLengthDays: Int,
     selectedCycleDays: Set<Int>,
     assignedRoutineNamesByCycleDay: Map<Int, List<String>>,
@@ -802,7 +802,7 @@ private fun CycleDaysSelector(
 }
 
 @Composable
-private fun BasicCounterSelector(
+fun BasicCounterSelector(
     title: String,
     value: Int,
     suffix: String,
@@ -945,13 +945,13 @@ private fun wizardTextFieldColors(): TextFieldColors {
     )
 }
 
-private data class DayLabel(
+data class DayLabel(
     val dayOfWeek: DayOfWeek,
     val label: String
 )
 
 @Composable
-private fun HorizontalScrollHint(isVisible: Boolean) {
+fun HorizontalScrollHint(isVisible: Boolean) {
     if (!isVisible) return
 
     Row(

@@ -340,9 +340,10 @@ fun WorkoutsScreen(
                     }
 
                     selectedRoutineForDetails?.let { selectedRoutine ->
+                        val planForRoutine = (uiState as? WorkoutsUiState.Success)?.plans?.find { it.id == selectedRoutine.planId }
                         val routineDetailsViewModel: RoutineDetailsViewModel = viewModel(
                             key = "routine_details_${selectedRoutine.id}",
-                            factory = RoutineDetailsViewModelFactory(selectedRoutine)
+                            factory = RoutineDetailsViewModelFactory(selectedRoutine, planForRoutine)
                         )
                         val routineDetailsState by routineDetailsViewModel.uiState.collectAsState()
 
@@ -359,12 +360,25 @@ fun WorkoutsScreen(
                                 state = routineDetailsState,
                                 onEditClick = routineDetailsViewModel::toggleEditMode,
                                 onStartClick = { },
-                                onDoneClick = routineDetailsViewModel::saveChanges,
+                                onDoneClick = {
+                                    routineDetailsViewModel.saveChanges()
+                                    val updatedState = routineDetailsViewModel.uiState.value
+                                    val updatedRoutine = selectedRoutine.copy(
+                                        name = updatedState.title,
+                                        description = updatedState.description,
+                                        exercises = updatedState.exercises,
+                                        schedulingValue = updatedState.schedulingValueString
+                                    )
+                                    viewModel.updateRoutineLocally(updatedRoutine)
+                                },
                                 onTitleChange = routineDetailsViewModel::updateTitle,
                                 onDescriptionChange = routineDetailsViewModel::updateDescription,
                                 onRemoveExercise = routineDetailsViewModel::removeExercise,
                                 onMoveExercise = routineDetailsViewModel::moveExercise,
-                                onAddExerciseClick = { showRoutineDetailsExerciseCatalog = true }
+                                onAddExerciseClick = { showRoutineDetailsExerciseCatalog = true },
+                                onWeekDayToggle = routineDetailsViewModel::toggleWeekDay,
+                                onCycleDayToggle = routineDetailsViewModel::toggleCycleDay,
+                                onRestDaysChange = routineDetailsViewModel::updateRestDaysBetweenWorkouts
                             )
                         }
 
@@ -664,16 +678,15 @@ private fun RoutineCard(
 }
 
 private class RoutineDetailsViewModelFactory(
-    private val routine: Routine
+    private val routine: Routine,
+    private val plan: TrainingPlan?
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RoutineDetailsViewModel::class.java)) {
             return RoutineDetailsViewModel(
-                routineId = routine.id,
-                initialTitle = routine.name,
-                initialDescription = routine.description,
-                initialExercises = routine.exercises
+                routine = routine,
+                plan = plan
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

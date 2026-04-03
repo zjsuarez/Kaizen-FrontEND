@@ -3,24 +3,35 @@ package com.example.kaizenfrontend.feature.workouts.presentation
 import androidx.lifecycle.ViewModel
 import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
+import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
+import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
+import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
+import com.example.kaizenfrontend.feature.workouts.presentation.utils.RoutineScheduleCalculator
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class RoutineDetailsViewModel(
-    routineId: String,
-    initialTitle: String = "",
-    initialDescription: String = "",
-    initialExercises: List<RoutineExercise> = emptyList()
+    private val routine: Routine,
+    private val plan: TrainingPlan?
 ) : ViewModel() {
+
+    private val intervalConfig = plan?.let { PlanIntervalConfig.fromBackend(it.interval, it.cycleLength) }
+
 
     private val _uiState = MutableStateFlow(
         RoutineDetailsState(
-            routineId = routineId,
-            title = initialTitle,
-            description = initialDescription,
-            exercises = initialExercises
+            routineId = routine.id,
+            title = routine.name,
+            description = routine.description,
+            exercises = routine.exercises,
+            planIntervalConfig = intervalConfig,
+            selectedWeekDays = RoutineScheduleCalculator.parseWeekDays(routine.schedulingValue),
+            selectedCycleDays = RoutineScheduleCalculator.parseCycleDays(routine.schedulingValue).toSet(),
+            restDaysBetweenWorkouts = RoutineScheduleCalculator.parseRestDays(routine.schedulingValue),
+            schedulingValueString = routine.schedulingValue
         )
     )
     val uiState: StateFlow<RoutineDetailsState> = _uiState.asStateFlow()
@@ -81,9 +92,49 @@ class RoutineDetailsViewModel(
         }
     }
 
+    fun toggleWeekDay(day: DayOfWeek) {
+        _uiState.update { current ->
+            val nextDays = if (day in current.selectedWeekDays) current.selectedWeekDays - day else current.selectedWeekDays + day
+            current.copy(selectedWeekDays = nextDays)
+        }
+    }
+
+    fun toggleCycleDay(day: Int) {
+        _uiState.update { current ->
+            val maxDays = current.planIntervalConfig?.cycleLengthDays ?: 7
+            val dayValue = day.coerceIn(1, maxDays)
+            val nextDays = if (dayValue in current.selectedCycleDays) current.selectedCycleDays - dayValue else current.selectedCycleDays + dayValue
+            current.copy(selectedCycleDays = nextDays)
+        }
+    }
+
+    fun updateRestDaysBetweenWorkouts(value: Int) {
+        _uiState.update { current ->
+            current.copy(restDaysBetweenWorkouts = value.coerceAtLeast(1))
+        }
+    }
+
     fun saveChanges() {
         _uiState.update { current ->
-            current.copy(isEditMode = false)
+            // Re-serialize the scheduling value string
+            val updatedSchedulePart = when (current.planIntervalConfig?.type) {
+                com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType.CYCLE -> {
+                    if (current.planIntervalConfig.cycleMode == com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode.WEEKLY) {
+                        current.selectedWeekDays.sortedBy { it.value }.joinToString(",") { it.name }.ifBlank { DayOfWeek.MONDAY.name }
+                    } else {
+                        current.selectedCycleDays.sorted().joinToString(",").ifBlank { "1" }
+                    }
+                }
+                com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType.FREQUENCY -> {
+                    current.restDaysBetweenWorkouts.toString()
+                }
+                null -> current.schedulingValueString
+            }
+
+            current.copy(
+                isEditMode = false,
+                schedulingValueString = updatedSchedulePart
+            )
         }
     }
 }

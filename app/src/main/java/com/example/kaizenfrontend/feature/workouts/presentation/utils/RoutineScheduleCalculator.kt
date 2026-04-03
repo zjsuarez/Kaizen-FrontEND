@@ -82,7 +82,19 @@ object RoutineScheduleCalculator {
         }
     }
 
-    private fun parseCycleDays(schedulingValue: String?): List<Int> {
+    fun parseWeekDays(schedulingValue: String?): Set<DayOfWeek> {
+        if (schedulingValue.isNullOrBlank()) return emptySet()
+
+        return schedulingValue
+            .split(',')
+            .mapNotNull { token ->
+                val normalized = token.trim().uppercase()
+                runCatching { DayOfWeek.valueOf(normalized) }.getOrNull()
+            }
+            .toSet()
+    }
+
+    fun parseCycleDays(schedulingValue: String?): List<Int> {
         if (schedulingValue.isNullOrBlank()) return emptyList()
         // Format is often JSON array like "[1, 4]" or standard string "MONDAY, WEDNESDAY"
         val cleanValue = schedulingValue
@@ -108,6 +120,10 @@ object RoutineScheduleCalculator {
         return cleanValue.split(",")
             .map { it.trim() }
             .mapNotNull { it.toIntOrNull() }
+    }
+
+    fun parseRestDays(schedulingValue: String?): Int {
+        return schedulingValue?.trim()?.toIntOrNull()?.takeIf { it >= 1 } ?: 1
     }
 
     private fun parseDateOrToday(dateStr: String?, today: LocalDate): LocalDate {
