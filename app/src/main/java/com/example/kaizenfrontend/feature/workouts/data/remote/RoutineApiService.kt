@@ -1,6 +1,7 @@
 package com.example.kaizenfrontend.feature.workouts.data.remote
 
 import com.example.kaizenfrontend.feature.workouts.data.remote.dto.RoutineRequest
+import com.example.kaizenfrontend.feature.workouts.data.remote.dto.RoutineExerciseRequest
 import com.example.kaizenfrontend.feature.workouts.data.remote.dto.RoutineResponse
 import retrofit2.Response
 import retrofit2.http.Body
@@ -44,4 +45,11 @@ interface RoutineApiService {
         @Header("Authorization") token: String,
         @Path("routineId") routineId: String
     ): Response<Unit>
+
+    @PUT("/api/routines/{routineId}/exercises")
+    suspend fun replaceRoutineExercises(
+        @Header("Authorization") token: String,
+        @Path("routineId") routineId: String,
+        @Body request: List<RoutineExerciseRequest>
+    ): Response<RoutineResponse>
 }

@@ -56,6 +56,52 @@ class PlanRepositoryImpl(
         }
     }
 
+    override suspend fun updatePlan(
+        planId: String,
+        name: String,
+        description: String,
+        isActive: Boolean
+    ): Result<TrainingPlan> = withContext(Dispatchers.IO) {
+        try {
+            val token = sessionManager.getToken()
+                ?: return@withContext Result.failure(Exception("No auth token"))
+                
+            val getResponse = api.getPlan("Bearer $token", planId)
+            val existing = getResponse.body()
+            if (!getResponse.isSuccessful || existing == null) {
+                return@withContext Result.failure(Exception("Failed to fetch existing plan before update"))
+            }
+
+            val request = TrainingPlanRequest(
+                name = name,
+                description = description,
+                startingDate = existing.startingDate,
+                interval = existing.interval,
+                cycleLength = existing.cycleLength,
+                isActive = isActive
+            )
+
+            val response = api.editPlan("Bearer $token", planId, request)
+            if (response.isSuccessful) {
+                response.body()?.let { dto ->
+                    Result.success(TrainingPlan(
+                        id = dto.id,
+                        name = dto.name,
+                        description = dto.description,
+                        startingDate = dto.startingDate,
+                        interval = dto.interval,
+                        cycleLength = dto.cycleLength,
+                        isActive = dto.isActive
+                    ))
+                } ?: Result.failure(Exception("Empty response body"))
+            } else {
+                Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getPlans(): Result<List<TrainingPlan>> = withContext(Dispatchers.IO) {
         try {
             val token = sessionManager.getToken() ?: return@withContext Result.failure(Exception("No auth token found"))

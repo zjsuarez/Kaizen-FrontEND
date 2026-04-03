@@ -11,6 +11,12 @@ interface PlanRepository {
         cycleLength: Int?,
         isActive: Boolean
     ): Result<TrainingPlan>
+    suspend fun updatePlan(
+        planId: String,
+        name: String,
+        description: String,
+        isActive: Boolean
+    ): Result<TrainingPlan>
     suspend fun getPlans(): Result<List<TrainingPlan>>
     suspend fun deletePlan(planId: String): Result<Unit>
 }

@@ -36,13 +36,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.presentation.components.CreatePlanBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.ExerciseCatalogBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.PlanDetailsSheetContent
+import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
+import com.example.kaizenfrontend.feature.workouts.presentation.utils.RoutineScheduleCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,11 +58,19 @@ fun WorkoutsScreen(
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val createRoutineSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val routineDetailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val planDetailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var isEditMode by remember { mutableStateOf(false) }
     var showFabMenu by remember { mutableStateOf(false) }
     var showCreatePlanDialog by remember { mutableStateOf(false) }
     var showCreateRoutineWizard by remember { mutableStateOf(false) }
+    var selectedRoutineForDetails by remember { mutableStateOf<Routine?>(null) }
+    var selectedPlanForDetails by remember { mutableStateOf<TrainingPlan?>(null) }
+    var selectedPlanRoutines by remember { mutableStateOf<List<Routine>>(emptyList()) }
+    var pendingDelete by remember { mutableStateOf<DeleteTarget?>(null) }
+    var showRoutineDetailsExerciseCatalog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -118,13 +132,15 @@ fun WorkoutsScreen(
                                         showCreatePlanDialog = true
                                     }
                                 )
-                                DropdownMenuItem(
-                                    text = { Text("Create Workout") },
-                                    onClick = {
-                                        showFabMenu = false
-                                        showCreateRoutineWizard = true
-                                    }
-                                )
+                                if ((uiState as? WorkoutsUiState.Success)?.plans?.isNotEmpty() == true) {
+                                    DropdownMenuItem(
+                                        text = { Text("Create Routine") },
+                                        onClick = {
+                                            showFabMenu = false
+                                            showCreateRoutineWizard = true
+                                        }
+                                    )
+                                }
                             }
                         }
 
@@ -174,8 +190,20 @@ fun WorkoutsScreen(
                                     plan = plan,
                                     isExpanded = isExpanded,
                                     isEditMode = isEditMode,
-                                    onClick = { viewModel.togglePlanExpansion(plan.id) },
-                                    onDeleteClick = { viewModel.deletePlan(plan.id) },
+                                    onClick = {
+                                        if (isEditMode) {
+                                            viewModel.togglePlanExpansion(plan.id)
+                                        } else {
+                                            selectedPlanForDetails = plan
+                                            selectedPlanRoutines = state.routinesByPlanId[plan.id] ?: emptyList()
+                                        }
+                                    },
+                                    onDeleteClick = {
+                                        pendingDelete = DeleteTarget.Plan(
+                                            planId = plan.id,
+                                            planName = plan.name
+                                        )
+                                    },
                                     onMoveUpClick = { viewModel.movePlanUp(plan.id) },
                                     onMoveDownClick = { viewModel.movePlanDown(plan.id) }
                                 )
@@ -194,37 +222,25 @@ fun WorkoutsScreen(
                                     }
                                 } else {
                                     items(routines, key = { it.id }) { routine ->
+                                        val nextOccurrenceText = remember(routine, plan) {
+                                            RoutineScheduleCalculator.getDisplayStringOrFallback(routine, plan)
+                                        }
                                         RoutineCard(
                                             routine = routine,
                                             isEditMode = isEditMode,
-                                            onDeleteClick = { viewModel.deleteRoutine(routine.id) },
+                                            nextOccurrenceText = nextOccurrenceText,
+                                            onClick = { selectedRoutineForDetails = routine },
+                                            onDeleteClick = {
+                                                pendingDelete = DeleteTarget.Routine(
+                                                    routineId = routine.id,
+                                                    routineName = routine.name
+                                                )
+                                            },
                                             onMoveUpClick = { viewModel.moveRoutineUp(routine.id, plan.id) },
                                             onMoveDownClick = { viewModel.moveRoutineDown(routine.id, plan.id) }
                                         )
                                     }
                                 }
-                            }
-                        }
-
-                        if (state.unassignedRoutines.isNotEmpty()) {
-                            item {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "Standalone Workouts",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
-                                )
-                            }
-                            items(state.unassignedRoutines, key = { "unassigned_${it.id}" }) { routine ->
-                                RoutineCard(
-                                    routine = routine,
-                                    isEditMode = isEditMode,
-                                    onDeleteClick = { viewModel.deleteRoutine(routine.id) },
-                                    onMoveUpClick = { viewModel.moveRoutineUp(routine.id, null) },
-                                    onMoveDownClick = { viewModel.moveRoutineDown(routine.id, null) }
-                                )
                             }
                         }
                     }
@@ -252,18 +268,20 @@ fun WorkoutsScreen(
 
                         ModalBottomSheet(
                             onDismissRequest = { showCreateRoutineWizard = false },
+                            sheetState = createRoutineSheetState,
                             containerColor = Onyx,
                             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                         ) {
                             RoutineWizardScreen(
                                 viewModel = routineWizardViewModel,
-                                onCreateRoutine = { planId, name, description, schedulingValue, startingDate ->
+                                onCreateRoutine = { planId, name, description, schedulingValue, startingDate, selectedExercises ->
                                     viewModel.createRoutine(
                                         planId = planId,
                                         name = name,
                                         description = description,
                                         schedulingValue = schedulingValue,
-                                        startingDate = startingDate
+                                        startingDate = startingDate,
+                                        routineExercises = selectedExercises
                                     )
                                 },
                                 onWizardClosed = {
@@ -272,10 +290,187 @@ fun WorkoutsScreen(
                             )
                         }
                     }
+
+                    pendingDelete?.let { target ->
+                        ConfirmDeleteDialog(
+                            target = target,
+                            onDismiss = { pendingDelete = null },
+                            onConfirm = {
+                                when (target) {
+                                    is DeleteTarget.Plan -> viewModel.deletePlan(target.planId)
+                                    is DeleteTarget.Routine -> viewModel.deleteRoutine(target.routineId)
+                                }
+                                pendingDelete = null
+                            }
+                        )
+                    }
+
+                    selectedPlanForDetails?.let { selectedPlan ->
+                        val planDetailsViewModel: PlanDetailsViewModel = viewModel(
+                            key = "plan_details_${selectedPlan.id}",
+                            factory = PlanDetailsViewModelFactory(selectedPlan, selectedPlanRoutines)
+                        )
+                        val planDetailsState by planDetailsViewModel.uiState.collectAsState()
+
+                        ModalBottomSheet(
+                            onDismissRequest = {
+                                selectedPlanForDetails = null
+                            },
+                            sheetState = planDetailsSheetState,
+                            containerColor = Onyx,
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                        ) {
+                            PlanDetailsSheetContent(
+                                state = planDetailsState,
+                                onEditClick = planDetailsViewModel::toggleEditMode,
+                                onDoneClick = {
+                                    planDetailsViewModel.saveChanges()
+                                    val updatedState = planDetailsViewModel.uiState.value
+                                    val updatedPlan = selectedPlan.copy(
+                                        name = updatedState.title,
+                                        description = updatedState.description,
+                                        isActive = updatedState.isActive
+                                    )
+                                    viewModel.savePlanEdits(updatedPlan)
+                                },
+                                onToggleActive = {
+                                    planDetailsViewModel.toggleActive()
+                                    val updatedState = planDetailsViewModel.uiState.value
+                                    val updatedPlan = selectedPlan.copy(
+                                        name = updatedState.title,
+                                        description = updatedState.description,
+                                        isActive = updatedState.isActive
+                                    )
+                                    viewModel.savePlanEdits(updatedPlan)
+                                },
+                                onTitleChange = planDetailsViewModel::updateTitle,
+                                onDescriptionChange = planDetailsViewModel::updateDescription,
+                                onRemoveRoutine = planDetailsViewModel::removeRoutine,
+                                onMoveRoutine = planDetailsViewModel::moveRoutine,
+                                onAddRoutineClick = {
+                                    // TODO: Open routine wizard pre-scoped to this plan
+                                },
+                                onRoutineClick = { routine ->
+                                    selectedRoutineForDetails = routine
+                                }
+                            )
+                        }
+                    }
+
+                    selectedRoutineForDetails?.let { selectedRoutine ->
+                        val planForRoutine = (uiState as? WorkoutsUiState.Success)?.plans?.find { it.id == selectedRoutine.planId }
+                        val routineDetailsViewModel: RoutineDetailsViewModel = viewModel(
+                            key = "routine_details_${selectedRoutine.id}",
+                            factory = RoutineDetailsViewModelFactory(selectedRoutine, planForRoutine)
+                        )
+                        val routineDetailsState by routineDetailsViewModel.uiState.collectAsState()
+
+                        ModalBottomSheet(
+                            onDismissRequest = {
+                                selectedRoutineForDetails = null
+                                showRoutineDetailsExerciseCatalog = false
+                            },
+                            sheetState = routineDetailsSheetState,
+                            containerColor = Onyx,
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                        ) {
+                            RoutineDetailsSheetContent(
+                                state = routineDetailsState,
+                                onEditClick = routineDetailsViewModel::toggleEditMode,
+                                onStartClick = { },
+                                onDoneClick = {
+                                    routineDetailsViewModel.saveChanges()
+                                    val updatedState = routineDetailsViewModel.uiState.value
+                                    val updatedRoutine = selectedRoutine.copy(
+                                        name = updatedState.title,
+                                        description = updatedState.description,
+                                        exercises = updatedState.exercises,
+                                        schedulingValue = updatedState.schedulingValueString
+                                    )
+                                    viewModel.saveRoutineEdits(updatedRoutine)
+                                },
+                                onTitleChange = routineDetailsViewModel::updateTitle,
+                                onDescriptionChange = routineDetailsViewModel::updateDescription,
+                                onRemoveExercise = routineDetailsViewModel::removeExercise,
+                                onMoveExercise = routineDetailsViewModel::moveExercise,
+                                onAddExerciseClick = { showRoutineDetailsExerciseCatalog = true },
+                                onWeekDayToggle = routineDetailsViewModel::toggleWeekDay,
+                                onCycleDayToggle = routineDetailsViewModel::toggleCycleDay,
+                                onRestDaysChange = routineDetailsViewModel::updateRestDaysBetweenWorkouts
+                            )
+                        }
+
+                        if (showRoutineDetailsExerciseCatalog) {
+                            ExerciseCatalogBottomSheet(
+                                onDismissRequest = { showRoutineDetailsExerciseCatalog = false },
+                                onExerciseSelected = { exercise ->
+                                    routineDetailsViewModel.addExercise(exercise)
+                                    showRoutineDetailsExerciseCatalog = false
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+private sealed interface DeleteTarget {
+    data class Plan(
+        val planId: String,
+        val planName: String
+    ) : DeleteTarget
+
+    data class Routine(
+        val routineId: String,
+        val routineName: String
+    ) : DeleteTarget
+}
+
+@Composable
+private fun ConfirmDeleteDialog(
+    target: DeleteTarget,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val (title, message) = when (target) {
+        is DeleteTarget.Plan -> {
+            "Delete Plan" to "Are you sure you want to delete ${target.planName}?"
+        }
+
+        is DeleteTarget.Routine -> {
+            "Delete Routine" to "Are you sure you want to delete ${target.routineName}?"
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = ShadowGrey,
+        title = {
+            Text(
+                text = title,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Text(
+                text = message,
+                color = LightGrey
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "Cancel", color = LightGrey)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = "Delete", color = SubtleRed, fontWeight = FontWeight.Bold)
+            }
+        }
+    )
 }
 
 @Composable
@@ -334,7 +529,12 @@ private fun PlanHeaderItem(
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = plan.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = plan.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                if (plan.isActive) {
+                    Text(text = " - Active", color = CrayolaBlue, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
             if (plan.description.isNotBlank()) {
                 Text(text = plan.description, color = LightGrey, fontSize = 13.sp)
             }
@@ -385,6 +585,8 @@ private fun PlanHeaderItem(
 private fun RoutineCard(
     routine: Routine,
     isEditMode: Boolean,
+    nextOccurrenceText: String? = null,
+    onClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onMoveUpClick: () -> Unit,
     onMoveDownClick: () -> Unit
@@ -434,7 +636,7 @@ private fun RoutineCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(
-                    if (isEditMode) Modifier else Modifier.clickable { /* TODO: Open Workout Details */ }
+                        if (isEditMode) Modifier else Modifier.clickable { onClick() }
                 )
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -450,6 +652,17 @@ private fun RoutineCard(
                 Text(text = routine.name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 if (routine.description.isNotBlank()) {
                     Text(text = routine.description, color = LightGrey, fontSize = 13.sp)
+                }
+                nextOccurrenceText?.let {
+                    Text(
+                        text = it,
+                        color = CrayolaBlue,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 4.dp, end = if (isEditMode) 8.dp else 0.dp)
+                    )
                 }
             }
 
@@ -479,6 +692,41 @@ private fun RoutineCard(
                 )
             }
         }
+    }
+}
+
+private class RoutineDetailsViewModelFactory(
+    private val routine: Routine,
+    private val plan: TrainingPlan?
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RoutineDetailsViewModel::class.java)) {
+            return RoutineDetailsViewModel(
+                routine = routine,
+                plan = plan
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
+}
+
+private class PlanDetailsViewModelFactory(
+    private val plan: TrainingPlan,
+    private val routines: List<Routine>
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(PlanDetailsViewModel::class.java)) {
+            return PlanDetailsViewModel(
+                plan = plan,
+                initialTitle = plan.name,
+                initialDescription = plan.description,
+                initialRoutines = routines,
+                initialIsActive = plan.isActive
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
 }
 
