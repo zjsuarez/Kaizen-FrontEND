@@ -1,5 +1,6 @@
 package com.example.kaizenfrontend.feature.workouts.presentation.utils
 
+import com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
@@ -21,11 +22,16 @@ object RoutineScheduleCalculator {
         val nextDate = when (intervalConfig.type) {
             PlanIntervalType.FREQUENCY -> calculateNextForFrequency(routine, today)
             PlanIntervalType.CYCLE -> {
-                val cycleDays = parseCycleDays(routine.schedulingValue)
-                if (cycleDays.isEmpty()) return null
-
-                val planStartDate = parseDateOrToday(plan.startingDate, today)
-                calculateNextForCycle(cycleDays, planStartDate, intervalConfig.cycleLengthDays, today)
+                if (intervalConfig.cycleMode == CycleMode.WEEKLY) {
+                    val weekDays = parseWeekDays(routine.schedulingValue)
+                    if (weekDays.isEmpty()) return null
+                    calculateNextForWeekly(weekDays, today)
+                } else {
+                    val cycleDays = parseCycleDays(routine.schedulingValue)
+                    if (cycleDays.isEmpty()) return null
+                    val planStartDate = parseDateOrToday(plan.startingDate, today)
+                    calculateNextForCycle(cycleDays, planStartDate, intervalConfig.cycleLengthDays, today)
+                }
             }
         } ?: return null
 
@@ -49,6 +55,21 @@ object RoutineScheduleCalculator {
             } else {
                 nextDate
             }
+        }
+    }
+
+    private fun calculateNextForWeekly(weekDays: Set<DayOfWeek>, today: LocalDate): LocalDate? {
+        if (weekDays.isEmpty()) return null
+        
+        val todayDow = today.dayOfWeek.value // 1..7
+        
+        val nextMatchingDayThisWeek = weekDays.map { it.value }.sorted().firstOrNull { it >= todayDow }
+        return if (nextMatchingDayThisWeek != null) {
+            today.plusDays((nextMatchingDayThisWeek - todayDow).toLong())
+        } else {
+            val firstDayNextWeek = weekDays.map { it.value }.minOrNull() ?: 1
+            val daysUntilEndOfWeek = 7 - todayDow
+            today.plusDays((daysUntilEndOfWeek + firstDayNextWeek).toLong())
         }
     }
 
@@ -104,7 +125,8 @@ object RoutineScheduleCalculator {
             .trim()
 
         // If it looks like days of week, convert to standard cycle integers (1..7, Monday=1)
-        if (cleanValue.contains("MONDAY", ignoreCase = true) || cleanValue.contains("TUESDAY", ignoreCase = true)) {
+        val isWeekDays = java.time.DayOfWeek.values().any { cleanValue.contains(it.name, ignoreCase = true) }
+        if (isWeekDays) {
             return cleanValue.split(",")
                 .map { it.trim().uppercase() }
                 .mapNotNull { dayString ->
