@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -33,7 +33,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -60,6 +59,7 @@ import com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
+import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardEvent
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineWizardUiState
@@ -76,8 +76,9 @@ fun RoutineWizardScreen(
         name: String,
         description: String,
         schedulingValue: String,
-        startingDate: String
-    ) -> Unit = { _, _, _, _, _ -> },
+        startingDate: String,
+        selectedExercises: List<RoutineExercise>
+    ) -> Unit = { _, _, _, _, _, _ -> },
     onWizardClosed: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -96,56 +97,42 @@ fun RoutineWizardScreen(
         showInlineErrors = false
     }
 
-    Scaffold(
-        containerColor = Onyx,
-        topBar = {
-            RoutineWizardTopBar(
-                currentStep = uiState.currentStep,
-                canFinish = uiState.selectedExercises.isNotEmpty(),
-                onCloseOrBack = {
-                    if (uiState.currentStep == 1) {
-                        onWizardClosed()
-                    } else {
-                        viewModel.previousStep()
-                    }
-                },
-                onFinish = {
-                    if (isCurrentStepValid(uiState)) {
-                        val args = buildRoutineCreationArgs(uiState)
-                        onCreateRoutine(
-                            args.planId,
-                            args.name,
-                            args.description,
-                            args.schedulingValue,
-                            args.startingDate
-                        )
-                        viewModel.saveRoutine()
-                    } else {
-                        showInlineErrors = true
-                    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Onyx)
+    ) {
+        RoutineWizardTopBar(
+            currentStep = uiState.currentStep,
+            canFinish = uiState.selectedExercises.isNotEmpty(),
+            onCloseOrBack = {
+                if (uiState.currentStep == 1) {
+                    onWizardClosed()
+                } else {
+                    viewModel.previousStep()
                 }
-            )
-        },
-        bottomBar = {
-            if (uiState.currentStep < 3) {
-                WizardBottomBar(
-                    buttonText = "NEXT",
-                    onButtonClick = {
-                        if (isCurrentStepValid(uiState)) {
-                            viewModel.nextStep()
-                        } else {
-                            showInlineErrors = true
-                        }
-                    }
-                )
+            },
+            onFinish = {
+                if (isCurrentStepValid(uiState)) {
+                    val args = buildRoutineCreationArgs(uiState)
+                    onCreateRoutine(
+                        args.planId,
+                        args.name,
+                        args.description,
+                        args.schedulingValue,
+                        args.startingDate,
+                        args.selectedExercises
+                    )
+                    viewModel.saveRoutine()
+                } else {
+                    showInlineErrors = true
+                }
             }
-        }
-    ) { innerPadding ->
+        )
+
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Onyx)
-                .padding(innerPadding)
+                .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             AnimatedContent(
@@ -194,6 +181,19 @@ fun RoutineWizardScreen(
                         showEmptyError = showInlineErrors && uiState.selectedExercises.isEmpty()
                     )
                 }
+            }
+
+            if (uiState.currentStep < 3) {
+                WizardBottomBar(
+                    buttonText = "NEXT",
+                    onButtonClick = {
+                        if (isCurrentStepValid(uiState)) {
+                            viewModel.nextStep()
+                        } else {
+                            showInlineErrors = true
+                        }
+                    }
+                )
             }
         }
     }
@@ -399,6 +399,9 @@ fun WizardStep2Schedule(
     val weeklyAssignmentsByDay = remember(existingPlanRoutines) {
         buildWeeklyAssignments(existingPlanRoutines)
     }
+    val cycleAssignmentsByDay = remember(existingPlanRoutines, planInterval.cycleLengthDays) {
+        buildCycleAssignments(existingPlanRoutines, planInterval.cycleLengthDays)
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
@@ -421,13 +424,9 @@ fun WizardStep2Schedule(
                     CycleDaysSelector(
                         cycleLengthDays = planInterval.cycleLengthDays,
                         selectedCycleDays = selectedCycleDays,
+                        assignedRoutineNamesByCycleDay = cycleAssignmentsByDay,
                         onDayClick = onCycleDayToggle,
                         showError = showCycleSelectionError
-                    )
-
-                    CycleRoutineAssignments(
-                        cycleLengthDays = planInterval.cycleLengthDays,
-                        existingRoutines = existingPlanRoutines
                     )
                 }
             }
@@ -447,30 +446,6 @@ fun WizardStep2Schedule(
 
                 FrequencyRoutineAssignments(existingRoutines = existingPlanRoutines)
             }
-        }
-    }
-}
-
-@Composable
-private fun CycleRoutineAssignments(
-    cycleLengthDays: Int,
-    existingRoutines: List<Routine>
-) {
-    val totalDays = cycleLengthDays.coerceAtLeast(1)
-
-    AssignmentSectionCard(title = "Existing routines in this cycle") {
-        (1..totalDays).forEach { day ->
-            val routinesForDay = existingRoutines.filter { routine ->
-                day in parseCycleDaysFromSchedulingValue(routine.schedulingValue)
-            }
-            AssignmentRow(
-                label = "Day $day",
-                value = if (routinesForDay.isEmpty()) {
-                    "No routine"
-                } else {
-                    routinesForDay.joinToString(", ") { it.name }
-                }
-            )
         }
     }
 }
@@ -609,12 +584,13 @@ private fun WizardBottomBar(
 }
 
 @Composable
-private fun WeeklyDaysSelector(
+fun WeeklyDaysSelector(
     selectedDays: Set<DayOfWeek>,
     assignedRoutineNamesByDay: Map<DayOfWeek, List<String>>,
     onDayClick: (DayOfWeek) -> Unit,
     showError: Boolean
 ) {
+    val dayScrollState = rememberScrollState()
     val dayItems = listOf(
         DayLabel(DayOfWeek.MONDAY, "L"),
         DayLabel(DayOfWeek.TUESDAY, "M"),
@@ -636,7 +612,7 @@ private fun WeeklyDaysSelector(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+                .horizontalScroll(dayScrollState),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             dayItems.forEach { item ->
@@ -675,15 +651,21 @@ private fun WeeklyDaysSelector(
                         }
                     }
 
-                    Text(
-                        text = assignedLabel,
-                        color = LightGrey,
-                        fontSize = 10.sp,
-                        lineHeight = 12.sp
-                    )
+                    if (assignedLabel.isNotBlank()) {
+                        Text(
+                            text = assignedLabel,
+                            color = LightGrey,
+                            fontSize = 10.sp,
+                            lineHeight = 12.sp
+                        )
+                    }
                 }
             }
         }
+
+        HorizontalScrollHint(
+            isVisible = dayScrollState.maxValue > 0 && dayScrollState.value < dayScrollState.maxValue
+        )
 
         if (showError) {
             Text(
@@ -703,22 +685,43 @@ private fun buildWeeklyAssignments(existingRoutines: List<Routine>): Map<DayOfWe
     }
 }
 
-private fun formatAssignedRoutineNames(routineNames: List<String>): String {
-    if (routineNames.isEmpty()) return "No workout"
-    if (routineNames.size <= 2) return routineNames.joinToString("\n")
+private fun buildCycleAssignments(
+    existingRoutines: List<Routine>,
+    cycleLengthDays: Int
+): Map<Int, List<String>> {
+    val totalDays = cycleLengthDays.coerceAtLeast(1)
+    return (1..totalDays).associateWith { day ->
+        existingRoutines.filter { routine ->
+            day in parseCycleDaysFromSchedulingValue(routine.schedulingValue)
+        }.map { it.name }
+    }
+}
 
-    val firstTwo = routineNames.take(2).joinToString("\n")
-    val remaining = routineNames.size - 2
-    return "$firstTwo\n+$remaining more"
+private fun formatAssignedRoutineNames(routineNames: List<String>): String {
+    if (routineNames.isEmpty()) return ""
+    val truncatedNames = routineNames.map(::truncateRoutineName)
+    if (truncatedNames.size <= 5) return truncatedNames.joinToString("\n")
+
+    val firstFive = truncatedNames.take(5).joinToString("\n")
+    val remaining = truncatedNames.size - 5
+    return "$firstFive\n+$remaining"
+}
+
+private fun truncateRoutineName(name: String): String {
+    val maxChars = 7
+    if (name.length <= maxChars) return name
+    return name.take(maxChars - 3) + "..."
 }
 
 @Composable
-private fun CycleDaysSelector(
+fun CycleDaysSelector(
     cycleLengthDays: Int,
     selectedCycleDays: Set<Int>,
+    assignedRoutineNamesByCycleDay: Map<Int, List<String>>,
     onDayClick: (Int) -> Unit,
     showError: Boolean
 ) {
+    val dayScrollState = rememberScrollState()
     val days = (1..cycleLengthDays.coerceAtLeast(1)).toList()
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -732,36 +735,61 @@ private fun CycleDaysSelector(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+                .horizontalScroll(dayScrollState),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             days.forEach { day ->
                 val isSelected = day in selectedCycleDays
-                Surface(
-                    modifier = Modifier
-                        .clickable { onDayClick(day) },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) CrayolaBlue.copy(alpha = 0.18f) else ShadowGrey,
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = if (isSelected) CrayolaBlue else Color.Transparent
-                    )
+                val assignedLabel = formatAssignedRoutineNames(
+                    assignedRoutineNamesByCycleDay[day].orEmpty()
+                )
+
+                Column(
+                    modifier = Modifier.width(72.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
+                    Surface(
                         modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .clickable { onDayClick(day) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isSelected) CrayolaBlue.copy(alpha = 0.18f) else ShadowGrey,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = if (isSelected) CrayolaBlue else Color.Transparent
+                        )
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "D$day",
+                                color = if (isSelected) CrayolaBlue else LightGrey,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    if (assignedLabel.isNotBlank()) {
                         Text(
-                            text = "Day $day",
-                            color = if (isSelected) CrayolaBlue else LightGrey,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp
+                            text = assignedLabel,
+                            color = LightGrey,
+                            fontSize = 10.sp,
+                            lineHeight = 12.sp
                         )
                     }
                 }
             }
         }
+
+        HorizontalScrollHint(
+            isVisible = dayScrollState.maxValue > 0 && dayScrollState.value < dayScrollState.maxValue
+        )
 
         if (showError) {
             Text(
@@ -774,7 +802,7 @@ private fun CycleDaysSelector(
 }
 
 @Composable
-private fun BasicCounterSelector(
+fun BasicCounterSelector(
     title: String,
     value: Int,
     suffix: String,
@@ -851,7 +879,8 @@ private data class RoutineCreationArgs(
     val name: String,
     val description: String,
     val schedulingValue: String,
-    val startingDate: String
+    val startingDate: String,
+    val selectedExercises: List<RoutineExercise>
 )
 
 private fun buildRoutineCreationArgs(state: RoutineWizardUiState): RoutineCreationArgs {
@@ -870,7 +899,8 @@ private fun buildRoutineCreationArgs(state: RoutineWizardUiState): RoutineCreati
                     name = state.name.trim(),
                     description = state.description.trim(),
                     schedulingValue = weeklySelection,
-                    startingDate = today
+                    startingDate = today,
+                    selectedExercises = state.selectedExercises
                 )
             } else {
                 val cycleSelection = state.selectedCycleDays
@@ -883,7 +913,8 @@ private fun buildRoutineCreationArgs(state: RoutineWizardUiState): RoutineCreati
                     name = state.name.trim(),
                     description = state.description.trim(),
                     schedulingValue = cycleSelection,
-                    startingDate = today
+                    startingDate = today,
+                    selectedExercises = state.selectedExercises
                 )
             }
         }
@@ -893,7 +924,8 @@ private fun buildRoutineCreationArgs(state: RoutineWizardUiState): RoutineCreati
             name = state.name.trim(),
             description = state.description.trim(),
             schedulingValue = state.restDaysBetweenWorkouts.toString(),
-            startingDate = today
+            startingDate = today,
+            selectedExercises = state.selectedExercises
         )
     }
 }
@@ -913,7 +945,31 @@ private fun wizardTextFieldColors(): TextFieldColors {
     )
 }
 
-private data class DayLabel(
+data class DayLabel(
     val dayOfWeek: DayOfWeek,
     val label: String
 )
+
+@Composable
+fun HorizontalScrollHint(isVisible: Boolean) {
+    if (!isVisible) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Swipe for more",
+            color = LightGrey,
+            fontSize = 11.sp
+        )
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = "More days to the right",
+            tint = LightGrey
+        )
+    }
+}

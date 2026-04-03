@@ -9,6 +9,8 @@ val CrayolaBlue = Color(0xFF2979FF)
 val PureWhite = Color.White
 val LightGrey = Color(0xFFAAAAAA)
 val SubtleRed = Color(0xFFCF6679)
+val PrGold = Color(0xFFFFD740)
+val MalachiteGreen = Color(0xFF00E676)
 
 // Auth-specific colours
 val DarkBackground = Color(0xFF121215)

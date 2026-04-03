@@ -18,7 +18,9 @@ import com.example.kaizenfrontend.feature.auth.presentation.splash.SplashScreen
 import com.example.kaizenfrontend.feature.auth.presentation.start.StartScreen
 import com.example.kaizenfrontend.feature.dashboard.presentation.DashboardScreen
 import com.example.kaizenfrontend.feature.user.presentation.calibration.CalibrationScreen
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

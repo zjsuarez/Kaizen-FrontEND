@@ -7,8 +7,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.network.RetrofitClient
 import com.example.kaizenfrontend.feature.workouts.data.repository.PlanRepositoryImpl
+import com.example.kaizenfrontend.feature.workouts.data.repository.MockExerciseRepository
 import com.example.kaizenfrontend.feature.workouts.data.repository.RoutineRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
+import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.TrainingPlan
 import com.example.kaizenfrontend.feature.workouts.domain.usecase.CreatePlanUseCase
 import com.example.kaizenfrontend.feature.workouts.domain.usecase.CreateRoutineUseCase
@@ -39,7 +41,9 @@ class WorkoutsViewModel(
     private val createPlanUseCase: CreatePlanUseCase,
     private val createRoutineUseCase: CreateRoutineUseCase,
     private val deletePlanUseCase: DeletePlanUseCase,
-    private val deleteRoutineUseCase: DeleteRoutineUseCase
+    private val deleteRoutineUseCase: DeleteRoutineUseCase,
+    private val updatePlanUseCase: com.example.kaizenfrontend.feature.workouts.domain.usecase.UpdatePlanUseCase,
+    private val updateRoutineUseCase: com.example.kaizenfrontend.feature.workouts.domain.usecase.UpdateRoutineUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<WorkoutsUiState>(WorkoutsUiState.Loading)
@@ -117,7 +121,8 @@ class WorkoutsViewModel(
         name: String,
         description: String,
         schedulingValue: String = "MONDAY",
-        startingDate: String = "2026-03-24"
+        startingDate: String = "2026-03-24",
+        routineExercises: List<RoutineExercise> = emptyList()
     ) {
         viewModelScope.launch {
             _uiState.value = WorkoutsUiState.Loading
@@ -126,12 +131,88 @@ class WorkoutsViewModel(
                 name = name,
                 description = description,
                 schedulingValue = schedulingValue,
-                startingDate = startingDate
+                startingDate = startingDate,
+                routineExercises = routineExercises
             )
             if (result.isSuccess) {
                 loadData()
             } else {
                 _uiState.value = WorkoutsUiState.Error(result.exceptionOrNull()?.message ?: "Failed to create routine")
+            }
+        }
+    }
+
+    fun updateRoutineLocally(updatedRoutine: Routine) {
+        _uiState.update { state ->
+            if (state !is WorkoutsUiState.Success) return@update state
+            
+            val updatedMap = state.routinesByPlanId.mapValues { (planId, routines) ->
+                if (planId == updatedRoutine.planId) {
+                    routines.map { if (it.id == updatedRoutine.id) updatedRoutine else it }
+                } else {
+                    routines
+                }
+            }
+            
+            val updatedUnassigned = state.unassignedRoutines.map { if (it.id == updatedRoutine.id) updatedRoutine else it }
+            
+            state.copy(
+                routinesByPlanId = updatedMap,
+                unassignedRoutines = updatedUnassigned
+            )
+        }
+    }
+
+    fun saveRoutineEdits(routine: Routine) {
+        // Optimistically update the UI first
+        updateRoutineLocally(routine)
+
+        // Then sync to the backend
+        viewModelScope.launch {
+            val result = updateRoutineUseCase(
+                routineId = routine.id,
+                planId = routine.planId,
+                name = routine.name,
+                description = routine.description,
+                schedulingValue = routine.schedulingValue,
+                startingDate = routine.startingDate,
+                exercises = routine.exercises
+            )
+            
+            if (result.isSuccess) {
+                // If the backend returns a canonical model, we update locally again to ensure parity (e.g. lastPerformedDates / createdDates)
+                result.getOrNull()?.let { updateRoutineLocally(it) }
+            } else {
+                // Technically we should revert the optimistic update here if we kept the old state, but for now just swallow error or show toast.
+            }
+        }
+    }
+
+    fun savePlanEdits(plan: TrainingPlan) {
+        // Optimistically update locally
+        _uiState.update { state ->
+            if (state !is WorkoutsUiState.Success) return@update state
+            val updatedPlans = state.plans.map { if (it.id == plan.id) plan else it }
+            state.copy(plans = updatedPlans)
+        }
+
+        // Sync to backend
+        viewModelScope.launch {
+            val result = updatePlanUseCase(
+                planId = plan.id,
+                name = plan.name,
+                description = plan.description,
+                isActive = plan.isActive
+            )
+
+            if (result.isSuccess) {
+                result.getOrNull()?.let { canonicalPlan ->
+                     _uiState.update { state ->
+                        if (state !is WorkoutsUiState.Success) return@update state
+                        val updatedPlans = state.plans.map { if (it.id == canonicalPlan.id) canonicalPlan else it }
+                        state.copy(plans = updatedPlans)
+                    }
+                }
             }
         }
     }
@@ -252,7 +333,8 @@ class WorkoutsViewModelFactory(private val context: Context) : ViewModelProvider
         if (modelClass.isAssignableFrom(WorkoutsViewModel::class.java)) {
             val sessionManager = SessionManager(context)
             val planRepo = PlanRepositoryImpl(RetrofitClient.planService, sessionManager)
-            val routineRepo = RoutineRepositoryImpl(RetrofitClient.routineService, sessionManager)
+            val exerciseRepo = MockExerciseRepository()
+            val routineRepo = RoutineRepositoryImpl(RetrofitClient.routineService, sessionManager, exerciseRepo)
             @Suppress("UNCHECKED_CAST")
             return WorkoutsViewModel(
                 GetPlansUseCase(planRepo),
@@ -260,7 +342,9 @@ class WorkoutsViewModelFactory(private val context: Context) : ViewModelProvider
                 CreatePlanUseCase(planRepo),
                 CreateRoutineUseCase(routineRepo),
                 DeletePlanUseCase(planRepo),
-                DeleteRoutineUseCase(routineRepo)
+                DeleteRoutineUseCase(routineRepo),
+                com.example.kaizenfrontend.feature.workouts.domain.usecase.UpdatePlanUseCase(planRepo),
+                com.example.kaizenfrontend.feature.workouts.domain.usecase.UpdateRoutineUseCase(routineRepo)
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

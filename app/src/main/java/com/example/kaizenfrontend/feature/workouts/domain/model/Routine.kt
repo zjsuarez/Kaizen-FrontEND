@@ -6,5 +6,7 @@ data class Routine(
     val name: String,
     val description: String,
     val schedulingValue: String?,
-    val startingDate: String?
+    val startingDate: String?,
+    val lastPerformedDate: String?,
+    val exercises: List<RoutineExercise> = emptyList()
 )
