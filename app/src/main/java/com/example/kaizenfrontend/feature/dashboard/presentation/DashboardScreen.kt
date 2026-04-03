@@ -55,6 +55,8 @@ import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ActiveWorkoutBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ZenModeScreen
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetSize
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
@@ -379,6 +381,8 @@ fun DashboardScreen(
                 showAddWidgetSheet = false
             }
         )
+    }
+
     // ── Active Workout "Tunnel Mode" bottom sheet ─────────
     if (showActiveWorkoutSheet) {
         ActiveWorkoutBottomSheet(
@@ -395,12 +399,20 @@ fun DashboardScreen(
 
     // ── Zen Mode Full Screen ─────────
     zenModeInitialPage?.let { initialPage ->
-        ZenModeScreen(
-            initialPage = initialPage,
-            onClose = { zenModeInitialPage = null }
-        )
+        Dialog(
+            onDismissRequest = { zenModeInitialPage = null },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            ZenModeScreen(
+                initialPage = initialPage,
+                onClose = { zenModeInitialPage = null }
+            )
+        }
     }
-            } // close inner Box
+            // close inner Box (already closed above, this is formatting fix)
         } // close Column
     }
 

@@ -49,6 +49,7 @@ import com.example.kaizenfrontend.feature.workouts.presentation.components.PlanD
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.utils.RoutineScheduleCalculator
+import com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -377,7 +378,16 @@ fun WorkoutsScreen(
                             RoutineDetailsSheetContent(
                                 state = routineDetailsState,
                                 onEditClick = routineDetailsViewModel::toggleEditMode,
-                                onStartClick = { },
+                                onStartClick = {
+                                    ActiveWorkoutManager.startWorkout(
+                                        routineId = selectedRoutine.id,
+                                        routineName = selectedRoutine.name,
+                                        exercises = routineDetailsState.exercises.map {
+                                            Triple(it.exercise.id, it.exercise.name, it.targetSets)
+                                        }
+                                    )
+                                    selectedRoutineForDetails = null
+                                },
                                 onDoneClick = {
                                     routineDetailsViewModel.saveChanges()
                                     val updatedState = routineDetailsViewModel.uiState.value

@@ -163,21 +163,7 @@ internal fun ActiveWorkoutSheetContent(
             modifier = Modifier.padding(horizontal = 24.dp)
         )
 
-        // ── 2. Rest Timer ────────────────────────────────────────
-        RestTimerBar(
-            restSeconds = state.restTimer,
-            isRunning = state.isRestTimerRunning,
-            onPlayPause = onPlayPauseRest,
-            onReset = onResetRest
-        )
-
-        HorizontalDivider(
-            color = ShadowGrey,
-            thickness = 1.dp,
-            modifier = Modifier.padding(horizontal = 24.dp)
-        )
-
-        // ── 3. Exercise list ─────────────────────────────────────────
+        // ── 2. Exercise list ─────────────────────────────────────────
         ExerciseList(
             exercises = state.exercises,
             onToggleExpansion = { ActiveWorkoutManager.toggleExerciseExpansion(it) },
@@ -190,6 +176,20 @@ internal fun ActiveWorkoutSheetContent(
             },
             onNavigateToZenMode = onNavigateToZenMode,
             modifier = Modifier.weight(1f)
+        )
+
+        HorizontalDivider(
+            color = ShadowGrey,
+            thickness = 1.dp,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+
+        // ── 3. Rest Timer (Docked below) ─────────────────────────
+        RestTimerBar(
+            restSeconds = state.restTimer,
+            isRunning = state.isRestTimerRunning,
+            onPlayPause = onPlayPauseRest,
+            onReset = onResetRest
         )
 
         // ── 4. Notes footer ──────────────────────────────────────
@@ -269,12 +269,12 @@ private fun WorkoutHeader(
                     contentColor = CrayolaBlue
                 ),
                 modifier = Modifier.size(44.dp),
-                contentPadding = ButtonDefaults.ContentPadding
+                contentPadding = PaddingValues(0.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add exercise",
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
