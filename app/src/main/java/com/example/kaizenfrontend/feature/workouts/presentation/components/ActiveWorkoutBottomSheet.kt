@@ -1,9 +1,15 @@
 package com.example.kaizenfrontend.feature.workouts.presentation.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,10 +18,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
@@ -35,6 +45,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -50,6 +61,7 @@ import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager
+import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveExerciseState
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -154,21 +166,13 @@ internal fun ActiveWorkoutSheetContent(
             modifier = Modifier.padding(horizontal = 24.dp)
         )
 
-        // ── 3. Exercise list slot (filled in Task 4) ─────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            // Placeholder — will be replaced with the exercise LazyColumn
-            Text(
-                text = "${state.exercises.size} exercises loaded",
-                color = LightGrey,
-                fontSize = 14.sp
-            )
-        }
+        // ── 3. Exercise list ─────────────────────────────────────────
+        ExerciseList(
+            exercises = state.exercises,
+            onToggleExpansion = { ActiveWorkoutManager.toggleExerciseExpansion(it) },
+            onAddSet = { ActiveWorkoutManager.addSet(it) },
+            modifier = Modifier.weight(1f)
+        )
 
         // ── 4. Notes footer ──────────────────────────────────────
         NotesFooter(
@@ -337,6 +341,146 @@ private fun formatRestTimer(seconds: Long): String {
     val min = s / 60
     val sec = s % 60
     return "%02d:%02d".format(min, sec)
+}
+
+// ──────────────────────────────────────────────────────────────
+// Exercise List
+// ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun ExerciseList(
+    exercises: List<ActiveExerciseState>,
+    onToggleExpansion: (String) -> Unit,
+    onAddSet: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        itemsIndexed(
+            items = exercises,
+            key = { _, ex -> ex.id }
+        ) { index, exercise ->
+            ActiveExerciseRow(
+                exercise = exercise,
+                onToggleExpand = { onToggleExpansion(exercise.id) },
+                onAddSet = { onAddSet(exercise.id) }
+            )
+
+            // Ultra-thin divider between exercises (not after last)
+            if (index < exercises.lastIndex) {
+                HorizontalDivider(
+                    color = PureWhite.copy(alpha = 0.06f),
+                    thickness = 0.5.dp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Single Exercise Row
+// ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun ActiveExerciseRow(
+    exercise: ActiveExerciseState,
+    onToggleExpand: () -> Unit,
+    onAddSet: () -> Unit
+) {
+    // Animated chevron rotation
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (exercise.isExpanded) 180f else 0f,
+        label = "chevron_rotation"
+    )
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // ── Header (clickable) ───────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggleExpand)
+                .padding(vertical = 14.dp, horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Subtle drag handle
+            Icon(
+                imageVector = Icons.Default.DragHandle,
+                contentDescription = "Reorder",
+                tint = PureWhite.copy(alpha = 0.18f),
+                modifier = Modifier.size(18.dp)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // Exercise name + set count
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exercise.exerciseName,
+                    color = PureWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = "${exercise.sets.size} sets",
+                    color = LightGrey,
+                    fontSize = 13.sp
+                )
+            }
+
+            // Animated chevron
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = if (exercise.isExpanded) "Collapse" else "Expand",
+                tint = LightGrey,
+                modifier = Modifier
+                    .size(22.dp)
+                    .rotate(chevronRotation)
+            )
+        }
+
+        // ── Expandable content ───────────────────────────────────
+        AnimatedVisibility(
+            visible = exercise.isExpanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 28.dp, end = 4.dp, bottom = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Set rows slot — filled in Task 5
+                // (empty Column for now)
+
+                // "+ Add Set" button
+                OutlinedButton(
+                    onClick = onAddSet,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        brush = SolidColor(PureWhite.copy(alpha = 0.15f))
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = LightGrey
+                    ),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "+ Add Set",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
 }
 
 // ──────────────────────────────────────────────────────────────
