@@ -49,6 +49,7 @@ import com.example.kaizenfrontend.feature.workouts.presentation.components.PlanD
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.utils.RoutineScheduleCalculator
+import com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -377,7 +378,21 @@ fun WorkoutsScreen(
                             RoutineDetailsSheetContent(
                                 state = routineDetailsState,
                                 onEditClick = routineDetailsViewModel::toggleEditMode,
-                                onStartClick = { },
+                                onStartClick = {
+                                    ActiveWorkoutManager.startWorkout(
+                                        routineId = selectedRoutine.id,
+                                        routineName = selectedRoutine.name,
+                                        exercises = routineDetailsState.exercises.map {
+                                            com.example.kaizenfrontend.feature.workouts.domain.ActiveExerciseInit(
+                                                id = it.exercise.id,
+                                                name = it.exercise.name,
+                                                isCustom = it.exercise.isCustom,
+                                                targetSets = it.targetSets
+                                            )
+                                        }
+                                    )
+                                    selectedRoutineForDetails = null
+                                },
                                 onDoneClick = {
                                     routineDetailsViewModel.saveChanges()
                                     val updatedState = routineDetailsViewModel.uiState.value

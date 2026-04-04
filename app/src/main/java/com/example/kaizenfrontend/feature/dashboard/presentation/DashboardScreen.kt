@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -52,6 +53,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Info
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.kaizenfrontend.core.ui.theme.*
+import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
+import com.example.kaizenfrontend.feature.workouts.presentation.components.ActiveWorkoutBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.ZenModeScreen
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetSize
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
@@ -169,6 +175,8 @@ fun DashboardScreen(
     val isEditing by viewModel.isEditing.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
     var showAddWidgetSheet by remember { mutableStateOf(false) }
+    var showActiveWorkoutSheet by remember { mutableStateOf(false) }
+    var zenModeInitialPage by remember { mutableStateOf<Int?>(null) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val addWidgetSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -332,6 +340,12 @@ fun DashboardScreen(
                 2 -> StatisticsScreen()
                 3 -> SettingsScreen(onLogoutClick = onLogoutClick)
             }
+
+            // ── Floating Island: active workout mini-player ─────────
+            ActiveWorkoutOverlay(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                onOpenWorkout = { showActiveWorkoutSheet = true }
+            )
         }
     }
 
@@ -368,10 +382,45 @@ fun DashboardScreen(
                 showAddWidgetSheet = false
             }
         )
-            } // close inner Box
-        } // close Column
     }
 
+    // ── Active Workout "Tunnel Mode" bottom sheet ─────────
+    if (showActiveWorkoutSheet) {
+        ActiveWorkoutBottomSheet(
+            onDismiss = { showActiveWorkoutSheet = false },
+            onFinish = {
+                val snapshot = com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.finishWorkout()
+                snapshot?.let {
+                    viewModel.saveWorkout(it)
+                }
+                showActiveWorkoutSheet = false
+                zenModeInitialPage = null // close Zen Mode if open
+            },
+            onAddExercise = { /* TODO: open exercise catalog — Task 4+ */ },
+            onNavigateToZenMode = { page ->
+                zenModeInitialPage = page
+            }
+        )
+    }
+
+    // ── Zen Mode Full Screen ─────────
+    zenModeInitialPage?.let { initialPage ->
+        Dialog(
+            onDismissRequest = { zenModeInitialPage = null },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            ZenModeScreen(
+                initialPage = initialPage,
+                onClose = { zenModeInitialPage = null }
+            )
+        }
+    }
+            // close inner Box (already closed above, this is formatting fix)
+        } // close Column
+    }
 
 // ──────────────────────────────────────────────────────────────
 // Widget Grid Engine  (dual-mode: grid view / drag-edit)
