@@ -222,7 +222,8 @@ class RoutineRepositoryImpl(
                             name = exerciseName,
                             muscleTarget = catalogExercise?.muscleTarget ?: MuscleTarget.CORE,
                             equipmentType = catalogExercise?.equipmentType ?: EquipmentType.BODYWEIGHT,
-                            gifUrl = catalogExercise?.gifUrl
+                            gifUrl = catalogExercise?.gifUrl,
+                            isCustom = customId != null
                         ),
                         targetSets = (exerciseDto.targetSets ?: 0).coerceAtLeast(0),
                         targetReps = 0

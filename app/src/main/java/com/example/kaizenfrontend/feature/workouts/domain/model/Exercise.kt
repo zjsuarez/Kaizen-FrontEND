@@ -5,5 +5,6 @@ data class Exercise(
     val name: String,
     val muscleTarget: MuscleTarget,
     val equipmentType: EquipmentType,
-    val gifUrl: String?
+    val gifUrl: String?,
+    val isCustom: Boolean = false
 )

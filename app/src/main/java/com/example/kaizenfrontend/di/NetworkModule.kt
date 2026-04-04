@@ -1,9 +1,12 @@
 package com.example.kaizenfrontend.di
 
+import android.content.Context
+import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.feature.dashboard.data.remote.api.DashboardApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -19,14 +22,23 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val BASE_URL = "http://10.0.2.2:8080/" // Localhost for Android Emulator
-    private const val TEMP_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiIzZmQzZTY1Ni1jOGNmLTQyNWEtODRiNy04YTc0Zjc4NDY1OWUiLCJzdWIiOiJ6anMuc3VhcmV6QGdtYWlsLmNvbSIsImlhdCI6MTc3NTEzOTYyNSwiZXhwIjoxNzc1MjI2MDI1fQ.MEEoyCPhyI6qt5k-Gi1P0VTzQx0BKuamdJdwDTW-gcc"
+
     @Provides
     @Singleton
-    fun provideAuthInterceptor(): Interceptor {
+    fun provideAuthInterceptor(@ApplicationContext context: Context): Interceptor {
+        val sessionManager = SessionManager(context)
         return Interceptor { chain ->
-            val request = chain.request().newBuilder()
-                .addHeader("Authorization", "Bearer $TEMP_TOKEN")
-                .build()
+            val original = chain.request()
+            val token = sessionManager.getToken()
+
+            val request = if (!token.isNullOrBlank() && original.header("Authorization") == null) {
+                original.newBuilder()
+                    .addHeader("Authorization", "Bearer $token")
+                    .build()
+            } else {
+                original
+            }
+
             chain.proceed(request)
         }
     }
@@ -46,8 +58,8 @@ object NetworkModule {
         loggingInterceptor: HttpLoggingInterceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor) // Always add logging interceptor first or right after auth
             .addInterceptor(authInterceptor)
+            .addInterceptor(loggingInterceptor) // Always add logging interceptor first or right after auth
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
