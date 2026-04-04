@@ -20,42 +20,24 @@ object RoutineScheduleCalculator {
         val intervalConfig = PlanIntervalConfig.fromBackend(plan.interval, plan.cycleLength)
 
         val nextDate = when (intervalConfig.type) {
-            PlanIntervalType.FREQUENCY -> calculateNextForFrequency(routine, today)
-            PlanIntervalType.CYCLE -> {
-                if (intervalConfig.cycleMode == CycleMode.WEEKLY) {
-                    val weekDays = parseWeekDays(routine.schedulingValue)
-                    if (weekDays.isEmpty()) return null
+            PlanIntervalType.FREQUENCY -> {
+                val weekDays = parseWeekDays(routine.schedulingValue)
+                if (weekDays.isNotEmpty()) {
                     calculateNextForWeekly(weekDays, today)
                 } else {
                     val cycleDays = parseCycleDays(routine.schedulingValue)
-                    if (cycleDays.isEmpty()) return null
-                    val planStartDate = parseDateOrToday(plan.startingDate, today)
-                    calculateNextForCycle(cycleDays, planStartDate, intervalConfig.cycleLengthDays, today)
+                    if (cycleDays.isEmpty()) null
+                    else calculateNextForCycle(cycleDays, parseDateOrToday(plan.startingDate, today), intervalConfig.cycleLengthDays.coerceAtLeast(1), today)
                 }
+            }
+            PlanIntervalType.CYCLE -> {
+                val cycleDays = parseCycleDays(routine.schedulingValue)
+                if (cycleDays.isEmpty()) null
+                else calculateNextForCycle(cycleDays, parseDateOrToday(plan.startingDate, today), intervalConfig.cycleLengthDays.coerceAtLeast(1), today)
             }
         } ?: return null
 
         return formatNextOccurrence(nextDate, today)
-    }
-
-    private fun calculateNextForFrequency(routine: Routine, today: LocalDate): LocalDate? {
-        val frequencyDays = routine.schedulingValue?.toLongOrNull() ?: return null
-        if (frequencyDays <= 0) return null
-
-        return if (routine.lastPerformedDate.isNullOrBlank()) {
-            null // Return null to signify "Not started yet"
-        } else {
-            val lastPerformed = parseDateOrToday(routine.lastPerformedDate, today)
-            val nextDate = lastPerformed.plusDays(frequencyDays)
-            // If the day is past, just check when is the next day by looping the frequency
-            if (nextDate.isBefore(today)) {
-                val daysPassed = ChronoUnit.DAYS.between(nextDate, today)
-                val intervalsMissed = (daysPassed / frequencyDays) + 1
-                nextDate.plusDays(intervalsMissed * frequencyDays)
-            } else {
-                nextDate
-            }
-        }
     }
 
     private fun calculateNextForWeekly(weekDays: Set<DayOfWeek>, today: LocalDate): LocalDate? {

@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -388,7 +389,12 @@ fun DashboardScreen(
         ActiveWorkoutBottomSheet(
             onDismiss = { showActiveWorkoutSheet = false },
             onFinish = {
+                val snapshot = com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.finishWorkout()
+                snapshot?.let {
+                    viewModel.saveWorkout(it)
+                }
                 showActiveWorkoutSheet = false
+                zenModeInitialPage = null // close Zen Mode if open
             },
             onAddExercise = { /* TODO: open exercise catalog — Task 4+ */ },
             onNavigateToZenMode = { page ->
@@ -415,7 +421,6 @@ fun DashboardScreen(
             // close inner Box (already closed above, this is formatting fix)
         } // close Column
     }
-
 
 // ──────────────────────────────────────────────────────────────
 // Widget Grid Engine  (dual-mode: grid view / drag-edit)

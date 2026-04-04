@@ -22,6 +22,13 @@ import kotlinx.coroutines.launch
  * - Manages an independent rest timer with start / pause / reset.
  * - Provides mutation functions for exercise expansion, set data, and set completion.
  */
+data class ActiveExerciseInit(
+    val id: String,
+    val name: String,
+    val isCustom: Boolean,
+    val targetSets: Int
+)
+
 object ActiveWorkoutManager {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -46,16 +53,17 @@ object ActiveWorkoutManager {
     fun startWorkout(
         routineId: String,
         routineName: String,
-        exercises: List<Triple<String, String, Int>>
+        exercises: List<ActiveExerciseInit>
     ) {
         // Prevent double-starting
         if (_currentWorkout.value != null) return
 
-        val exerciseStates = exercises.map { (id, name, targetSets) ->
+        val exerciseStates = exercises.map { initData ->
             ActiveExerciseState(
-                id = id,
-                exerciseName = name,
-                sets = List(targetSets.coerceAtLeast(1)) { index ->
+                id = initData.id,
+                exerciseName = initData.name,
+                isCustom = initData.isCustom,
+                sets = List(initData.targetSets.coerceAtLeast(1)) { index ->
                     WorkoutSetState(setNumber = index + 1)
                 },
                 isExpanded = true

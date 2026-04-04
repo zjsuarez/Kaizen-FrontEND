@@ -13,13 +13,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.example.kaizenfrontend.feature.workouts.domain.usecase.SaveWorkoutUseCase
+import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
+
 
 @HiltViewModel
 class DashboardViewModel
 @Inject
 constructor(
         private val repository: DashboardRepository,
-        private val dashboardPreferences: DashboardPreferences
+        private val dashboardPreferences: DashboardPreferences,
+        private val saveWorkoutUseCase: SaveWorkoutUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
@@ -170,5 +174,16 @@ constructor(
 
     fun onReorderWidgets(newOrderedList: List<String>) {
         viewModelScope.launch { dashboardPreferences.saveWidgetOrder(newOrderedList) }
+    }
+    fun saveWorkout(state: ActiveWorkoutState) {
+        viewModelScope.launch {
+            val result = saveWorkoutUseCase(state)
+            if (result.isSuccess) {
+                android.util.Log.d("KAIZEN", "Workout saved successfully! Updating dashboard...")
+                refreshDashboardData()
+            } else {
+                android.util.Log.e("KAIZEN", "Failed to save workout: ${result.exceptionOrNull()?.message}")
+            }
+        }
     }
 }

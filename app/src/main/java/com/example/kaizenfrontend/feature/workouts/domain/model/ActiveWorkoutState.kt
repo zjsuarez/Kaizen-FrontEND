@@ -20,6 +20,7 @@ data class WorkoutSetState(
 data class ActiveExerciseState(
     val id: String,
     val exerciseName: String,
+    val isCustom: Boolean = false,
     val sets: List<WorkoutSetState>,
     val isExpanded: Boolean = true
 )

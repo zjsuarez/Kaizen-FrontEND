@@ -383,7 +383,12 @@ fun WorkoutsScreen(
                                         routineId = selectedRoutine.id,
                                         routineName = selectedRoutine.name,
                                         exercises = routineDetailsState.exercises.map {
-                                            Triple(it.exercise.id, it.exercise.name, it.targetSets)
+                                            com.example.kaizenfrontend.feature.workouts.domain.ActiveExerciseInit(
+                                                id = it.exercise.id,
+                                                name = it.exercise.name,
+                                                isCustom = it.exercise.isCustom,
+                                                targetSets = it.targetSets
+                                            )
                                         }
                                     )
                                     selectedRoutineForDetails = null

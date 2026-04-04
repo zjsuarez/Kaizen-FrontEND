@@ -4,6 +4,7 @@ import com.example.kaizenfrontend.feature.auth.data.remote.AuthApiService
 import com.example.kaizenfrontend.feature.user.data.remote.UserApiService
 import com.example.kaizenfrontend.feature.workouts.data.remote.PlanApiService
 import com.example.kaizenfrontend.feature.workouts.data.remote.RoutineApiService
+import com.example.kaizenfrontend.feature.workouts.data.remote.WorkoutApiService
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -32,5 +33,9 @@ object RetrofitClient {
 
     val routineService: RoutineApiService by lazy {
         retrofit.create(RoutineApiService::class.java)
+    }
+
+    val workoutService: WorkoutApiService by lazy {
+        retrofit.create(WorkoutApiService::class.java)
     }
 }
