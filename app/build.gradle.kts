@@ -68,6 +68,11 @@ dependencies {
     // DataStore Preferences
     implementation("androidx.datastore:datastore-preferences:1.2.1")
 
+    // WorkManager + Hilt Worker
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

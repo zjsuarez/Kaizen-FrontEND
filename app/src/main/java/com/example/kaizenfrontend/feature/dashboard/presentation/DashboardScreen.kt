@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
@@ -52,6 +53,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Info
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ActiveWorkoutBottomSheet
@@ -75,6 +77,8 @@ import com.example.kaizenfrontend.feature.statistics.presentation.StatisticsScre
 import com.example.kaizenfrontend.feature.user.presentation.settings.SettingsScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutsScreen
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 // ──────────────────────────────────────────────────────────────
 // UI State
@@ -169,10 +173,23 @@ fun DashboardScreen(
         onWorkoutClick: () -> Unit = {},
         onLogoutClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val widgetOrder by viewModel.widgetOrder.collectAsState()
     val weightHistory by viewModel.weightHistory.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
+    val userName = remember {
+        SessionManager(context)
+            .getUserEmail()
+            ?.substringBefore("@")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            ?: "Athlete"
+    }
+    val todayLabel = remember {
+        LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault()))
+    }
     var selectedTab by remember { mutableStateOf(0) }
     var showAddWidgetSheet by remember { mutableStateOf(false) }
     var showActiveWorkoutSheet by remember { mutableStateOf(false) }
@@ -188,12 +205,26 @@ fun DashboardScreen(
                 if (selectedTab == 0) {
                     TopAppBar(
                         title = {
-                            Text(
-                                text = "Kaizen Hub",
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = PureWhite,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Column {
+                                Text(
+                                    text = "Workouts",
+                                    color = PureWhite,
+                                    fontSize = 38.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Hola, $userName",
+                                    color = LightGrey,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                                Text(
+                                    text = todayLabel,
+                                    color = LightGrey.copy(alpha = 0.8f),
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 1.dp)
+                                )
+                            }
                         },
                         actions = {
                             if (!isEditing) {
@@ -311,10 +342,7 @@ fun DashboardScreen(
                                     onWidgetClick = { activeBottomSheet = it },
                                     onRemoveWidget = { widgetKey -> viewModel.removeWidget(widgetKey) },
                                     onMoveWidgetUp = { widgetKey -> viewModel.moveWidgetUp(widgetKey) },
-                                    onMoveWidgetDown = { widgetKey -> viewModel.moveWidgetDown(widgetKey) },
-                                    onProfileClick = {
-                                        android.widget.Toast.makeText(context, "Perfil en construcción", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
+                                    onMoveWidgetDown = { widgetKey -> viewModel.moveWidgetDown(widgetKey) }
                                 )
                             }
                             is DashboardUiState.Empty -> {
@@ -436,8 +464,7 @@ fun DashboardWidgetGrid(
     onWidgetClick: (DashboardBottomSheetType) -> Unit,
     onRemoveWidget: (String) -> Unit,
     onMoveWidgetUp: (String) -> Unit,
-    onMoveWidgetDown: (String) -> Unit,
-    onProfileClick: () -> Unit = {}
+    onMoveWidgetDown: (String) -> Unit
 ) {
     val orderedWidgetTypes =
         (if (widgetOrder.isEmpty()) fallbackWidgetOrder else widgetOrder)
@@ -453,9 +480,6 @@ fun DashboardWidgetGrid(
             modifier = Modifier.fillMaxSize()
         ) {
             val data = successState.data
-            item(span = { GridItemSpan(2) }) {
-                DashboardHeader(title = "Kaizen Hub", date = "", onProfileClick = onProfileClick)
-            }
             items(
                 items = orderedWidgetTypes,
                 key = { "widget_${it.name}" },
@@ -756,43 +780,6 @@ private fun DashboardDragHandle(
             contentDescription = "Reordenar widget",
             tint = LightGrey
         )
-    }
-}
-
-// ──────────────────────────────────────────────────────────────
-// Header (preserved from original)
-// ──────────────────────────────────────────────────────────────
-
-@Composable
-fun DashboardHeader(title: String, date: String, onProfileClick: () -> Unit = {}) {
-    Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-    ) {
-        Column {
-            Text(text = title, color = PureWhite, fontSize = 38.sp, fontWeight = FontWeight.Bold)
-            Text(
-                    text = date,
-                    color = LightGrey,
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-        Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(ShadowGrey)
-                    .clickable(onClick = onProfileClick),
-                contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Profile Picture",
-                    tint = LightGrey
-            )
-        }
     }
 }
 
