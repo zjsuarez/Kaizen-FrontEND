@@ -1,9 +1,17 @@
 package com.example.kaizenfrontend.feature.dashboard.presentation
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.kaizenfrontend.feature.dashboard.data.local.DashboardPreferences
 import com.example.kaizenfrontend.feature.dashboard.data.repository.DashboardRepository
+import com.example.kaizenfrontend.feature.dashboard.worker.DashboardSyncWorker
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +31,8 @@ class DashboardViewModel
 constructor(
         private val repository: DashboardRepository,
         private val dashboardPreferences: DashboardPreferences,
-        private val saveWorkoutUseCase: SaveWorkoutUseCase
+    private val saveWorkoutUseCase: SaveWorkoutUseCase,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
@@ -56,25 +65,23 @@ constructor(
         val wasEditing = _isEditing.value
         _isEditing.value = !wasEditing
 
-        // When leaving edit mode → sync final order to the backend.
-        // Local DataStore is already up-to-date; this is a best-effort remote sync.
+        // When leaving edit mode, enqueue background sync.
+        // Worker reads latest DataStore order and syncs once network is available.
         if (wasEditing) {
-            saveLayoutToApi(widgetOrder.value)
+            enqueueDashboardSync()
         }
     }
 
-    // Fire-and-forget PUT to /api/preferences/dashboard
-    private fun saveLayoutToApi(order: List<String>) {
-        viewModelScope.launch {
-            try {
-                repository.saveWidgetOrder(order)
-                    .onFailure { error ->
-                        android.util.Log.w("KAIZEN", "PUT layout sync failed (offline?): ${error.message}")
-                    }
-            } catch (e: Exception) {
-                android.util.Log.e("KAIZEN", "Unexpected error syncing layout: ${e.message}")
-            }
-        }
+    private fun enqueueDashboardSync() {
+        val request =
+            OneTimeWorkRequestBuilder<DashboardSyncWorker>()
+                .build()
+
+        WorkManager.getInstance(appContext).enqueueUniqueWork(
+            DASHBOARD_SYNC_WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            request
+        )
     }
 
     fun removeWidget(widgetKey: String) {
@@ -185,5 +192,9 @@ constructor(
                 android.util.Log.e("KAIZEN", "Failed to save workout: ${result.exceptionOrNull()?.message}")
             }
         }
+    }
+
+    companion object {
+        private const val DASHBOARD_SYNC_WORK_NAME = "dashboard_layout_sync"
     }
 }

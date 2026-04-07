@@ -1,7 +1,20 @@
 package com.example.kaizenfrontend
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
-class KaizenApp : Application()
+class KaizenApp : Application(), Configuration.Provider {
+
+	@Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+	override val workManagerConfiguration: Configuration
+		get() =
+			Configuration.Builder()
+				.setWorkerFactory(workerFactory)
+				.build()
+}
