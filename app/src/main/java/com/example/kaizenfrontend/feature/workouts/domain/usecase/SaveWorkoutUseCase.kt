@@ -2,6 +2,7 @@ package com.example.kaizenfrontend.feature.workouts.domain.usecase
 
 import com.example.kaizenfrontend.feature.workouts.data.remote.dto.request.WorkoutRequest
 import com.example.kaizenfrontend.feature.workouts.data.remote.dto.request.WorkoutSetRequest
+import com.example.kaizenfrontend.feature.workouts.data.remote.dto.WorkoutResponseDto
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
 import com.example.kaizenfrontend.feature.workouts.domain.repository.WorkoutRepository
 import java.text.SimpleDateFormat
@@ -11,10 +12,10 @@ import java.util.Locale
 class SaveWorkoutUseCase(
     private val repository: WorkoutRepository
 ) {
-    suspend operator fun invoke(state: ActiveWorkoutState): Result<Unit> {
+    suspend operator fun invoke(state: ActiveWorkoutState): Result<WorkoutResponseDto> {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
         val startTimeStr = dateFormat.format(Date(state.startTime))
-        val endTimeStr = dateFormat.format(Date(state.startTime + state.elapsedTimeGlobal * 1000L))
+        val endTimeStr = dateFormat.format(Date(state.startTime + state.elapsedTimeGlobal))
 
         val sets = mutableListOf<WorkoutSetRequest>()
         state.exercises.forEach { exercise ->
@@ -47,10 +48,9 @@ class SaveWorkoutUseCase(
         )
 
         val result = repository.saveWorkout(request)
-        return if (result.isSuccess) {
-            Result.success(Unit)
-        } else {
-            Result.failure(result.exceptionOrNull() ?: Exception("Unknown error saving workout"))
-        }
+        return result.fold(
+            onSuccess = { Result.success(it) },
+            onFailure = { Result.failure(it) }
+        )
     }
 }

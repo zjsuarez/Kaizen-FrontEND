@@ -1,6 +1,7 @@
 package com.example.kaizenfrontend.feature.dashboard.presentation
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.Constraints
@@ -11,6 +12,8 @@ import androidx.work.WorkManager
 import com.example.kaizenfrontend.feature.dashboard.data.local.DashboardPreferences
 import com.example.kaizenfrontend.feature.dashboard.data.repository.DashboardRepository
 import com.example.kaizenfrontend.feature.dashboard.worker.DashboardSyncWorker
+import com.example.kaizenfrontend.feature.workouts.domain.repository.ImgurRepository
+import com.example.kaizenfrontend.feature.workouts.domain.repository.WorkoutRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -32,8 +35,17 @@ constructor(
         private val repository: DashboardRepository,
         private val dashboardPreferences: DashboardPreferences,
     private val saveWorkoutUseCase: SaveWorkoutUseCase,
+    private val imgurRepository: ImgurRepository,
+    private val workoutRepository: WorkoutRepository,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
+
+    sealed interface WorkoutFinishSubmissionState {
+        data object Idle : WorkoutFinishSubmissionState
+        data object Submitting : WorkoutFinishSubmissionState
+        data class Success(val recordsBeaten: Int, val imageUrl: String?) : WorkoutFinishSubmissionState
+        data class Error(val message: String) : WorkoutFinishSubmissionState
+    }
 
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -60,6 +72,17 @@ constructor(
     // Edit Mode
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing.asStateFlow()
+
+    private val _workoutFinishSubmission =
+        MutableStateFlow<WorkoutFinishSubmissionState>(WorkoutFinishSubmissionState.Idle)
+    val workoutFinishSubmission: StateFlow<WorkoutFinishSubmissionState> =
+        _workoutFinishSubmission.asStateFlow()
+
+    private val _estimatedRecordsBeaten = MutableStateFlow<Int?>(null)
+    val estimatedRecordsBeaten: StateFlow<Int?> = _estimatedRecordsBeaten.asStateFlow()
+
+    private val _historicalWorkoutCount = MutableStateFlow(0)
+    val historicalWorkoutCount: StateFlow<Int> = _historicalWorkoutCount.asStateFlow()
 
     fun toggleEditMode() {
         val wasEditing = _isEditing.value
@@ -192,6 +215,125 @@ constructor(
                 android.util.Log.e("KAIZEN", "Failed to save workout: ${result.exceptionOrNull()?.message}")
             }
         }
+    }
+
+    fun resetWorkoutFinishSubmission() {
+        _workoutFinishSubmission.value = WorkoutFinishSubmissionState.Idle
+    }
+
+    fun estimateRecordsForWorkout(state: ActiveWorkoutState) {
+        viewModelScope.launch {
+            _estimatedRecordsBeaten.value = null
+
+            val historyResult = workoutRepository.getWorkouts()
+            if (historyResult.isFailure) {
+                _estimatedRecordsBeaten.value = 0
+                return@launch
+            }
+
+            val history = historyResult.getOrDefault(emptyList())
+            _historicalWorkoutCount.value = history.size
+            val bestHistoryVolumeByExercise = mutableMapOf<String, Double>()
+
+            history.forEach { workout ->
+                workout.sets.forEach { set ->
+                    val key = when {
+                        !set.customExerciseId.isNullOrBlank() -> "custom:${set.customExerciseId}"
+                        !set.builtinExerciseKey.isNullOrBlank() -> "builtin:${set.builtinExerciseKey}"
+                        !set.exerciseName.isNullOrBlank() -> "name:${set.exerciseName.lowercase()}"
+                        else -> return@forEach
+                    }
+                    val volume = (set.weightKg ?: 0.0) * (set.reps ?: 0)
+                    val currentMax = bestHistoryVolumeByExercise[key] ?: 0.0
+                    if (volume > currentMax) {
+                        bestHistoryVolumeByExercise[key] = volume
+                    }
+                }
+            }
+
+            val estimated = state.exercises.sumOf { exercise ->
+                val key = if (exercise.isCustom) {
+                    "custom:${exercise.id}"
+                } else {
+                    "builtin:${exercise.id}"
+                }
+                val previousBest = bestHistoryVolumeByExercise[key] ?: 0.0
+                exercise.sets.count { set ->
+                    val volume = (set.weight.toDoubleOrNull() ?: 0.0) * (set.reps.toIntOrNull() ?: 0)
+                    volume > previousBest && volume > 0.0
+                }
+            }
+
+            _estimatedRecordsBeaten.value = estimated
+        }
+    }
+
+    fun submitFinishedWorkout(
+        state: ActiveWorkoutState,
+        notes: String,
+        imageUri: Uri?
+    ) {
+        viewModelScope.launch {
+            _workoutFinishSubmission.value = WorkoutFinishSubmissionState.Submitting
+
+            val normalizedState = state.copy(notes = notes.trim())
+
+            val workoutResult = saveWorkoutUseCase(normalizedState)
+            if (workoutResult.isFailure) {
+                _workoutFinishSubmission.value = WorkoutFinishSubmissionState.Error(
+                    workoutResult.exceptionOrNull()?.message ?: "Failed to save workout"
+                )
+                return@launch
+            }
+
+            val recordsBeaten = workoutResult.getOrNull()
+                ?.sets
+                ?.count { it.isPR }
+                ?: 0
+
+            var uploadedImageUrl: String? = null
+            if (imageUri != null) {
+                val uploadResult = uploadImageToImgur(imageUri)
+                if (uploadResult.isSuccess) {
+                    uploadedImageUrl = uploadResult.getOrNull()
+                } else {
+                    android.util.Log.w(
+                        "KAIZEN",
+                        "Imgur upload failed, continuing workout finish without photo: ${uploadResult.exceptionOrNull()?.message}"
+                    )
+                }
+
+                if (!uploadedImageUrl.isNullOrBlank()) {
+                    val bodyMeasurementResult = repository.createBodyMeasurement(
+                        progressPhotoUrl = uploadedImageUrl
+                    )
+                    if (bodyMeasurementResult.isFailure) {
+                        android.util.Log.w(
+                            "KAIZEN",
+                            "Body measurement photo entry failed, workout already saved: ${bodyMeasurementResult.exceptionOrNull()?.message}"
+                        )
+                    }
+                }
+            }
+
+            refreshDashboardData()
+            _workoutFinishSubmission.value = WorkoutFinishSubmissionState.Success(
+                recordsBeaten = recordsBeaten,
+                imageUrl = uploadedImageUrl
+            )
+        }
+    }
+
+    private suspend fun uploadImageToImgur(uri: Uri): Result<String> {
+        return runCatching {
+            val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "workout_finish.jpg"
+            val imageBytes = appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: throw IllegalStateException("Unable to read selected image")
+            imageBytes to fileName
+        }.fold(
+            onSuccess = { (bytes, fileName) -> imgurRepository.uploadImage(bytes, fileName) },
+            onFailure = { Result.failure(it) }
+        )
     }
 
     companion object {

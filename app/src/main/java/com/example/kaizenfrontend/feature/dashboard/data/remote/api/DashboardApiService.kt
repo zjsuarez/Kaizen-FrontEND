@@ -9,17 +9,19 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 
 data class BodyMeasurementRequest(
-    val weightKg: Double
+    val weightKg: Double? = null,
+    val bodyFatPercentage: Double? = null,
+    val progressPhotoUrl: String? = null
 )
 
 interface DashboardApiService {
     @GET("/api/users/me/dashboard")
     suspend fun getDashboardData(): Response<DashboardResponse>
 
-    @POST("/api/measurements")
-    suspend fun logBodyWeight(@Body request: BodyMeasurementRequest): Response<Unit>
+    @POST("/api/users/me/body-measurements")
+    suspend fun createBodyMeasurement(@Body request: BodyMeasurementRequest): Response<BodyMeasurementResponse>
 
-    @GET("/api/measurements")
+    @GET("/api/users/me/body-measurements")
     suspend fun getWeightHistory(): Response<List<BodyMeasurementResponse>>
 
     @PUT("/api/preferences/dashboard")

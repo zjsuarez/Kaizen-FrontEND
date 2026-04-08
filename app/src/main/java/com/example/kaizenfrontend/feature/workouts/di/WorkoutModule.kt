@@ -1,7 +1,11 @@
 package com.example.kaizenfrontend.feature.workouts.di
 
+import com.example.kaizenfrontend.BuildConfig
+import com.example.kaizenfrontend.feature.workouts.data.remote.imgur.ImgurApiService
+import com.example.kaizenfrontend.feature.workouts.data.repository.ImgurRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.data.remote.WorkoutApiService
 import com.example.kaizenfrontend.feature.workouts.data.repository.WorkoutRepositoryImpl
+import com.example.kaizenfrontend.feature.workouts.domain.repository.ImgurRepository
 import com.example.kaizenfrontend.feature.workouts.domain.repository.WorkoutRepository
 import com.example.kaizenfrontend.feature.workouts.domain.usecase.SaveWorkoutUseCase
 import dagger.Module
@@ -9,11 +13,33 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object WorkoutModule {
+
+    @Provides
+    @Singleton
+    fun provideImgurApiService(): ImgurApiService {
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://api.imgur.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        return retrofit.create(ImgurApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideImgurRepository(
+        apiService: ImgurApiService
+    ): ImgurRepository {
+        return ImgurRepositoryImpl(
+            apiService = apiService,
+            clientId = BuildConfig.IMGUR_CLIENT_ID
+        )
+    }
 
     @Provides
     @Singleton

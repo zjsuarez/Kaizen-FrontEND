@@ -26,4 +26,18 @@ class WorkoutRepositoryImpl(
                 Result.failure(e)
             }
         }
+
+    override suspend fun getWorkouts(): Result<List<WorkoutResponseDto>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getWorkouts()
+                if (response.isSuccessful) {
+                    Result.success(response.body().orEmpty())
+                } else {
+                    Result.failure(Exception(response.message() ?: "Unknown error"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
 }

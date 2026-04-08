@@ -56,7 +56,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
+import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ActiveWorkoutBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.WorkoutFinishScreen
+import com.example.kaizenfrontend.feature.workouts.presentation.components.WorkoutFinishSummary
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ZenModeScreen
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -78,6 +81,8 @@ import com.example.kaizenfrontend.feature.user.presentation.settings.SettingsScr
 import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutsScreen
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 // ──────────────────────────────────────────────────────────────
@@ -178,6 +183,9 @@ fun DashboardScreen(
     val widgetOrder by viewModel.widgetOrder.collectAsState()
     val weightHistory by viewModel.weightHistory.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
+    val finishSubmission by viewModel.workoutFinishSubmission.collectAsState()
+    val estimatedRecordsBeaten by viewModel.estimatedRecordsBeaten.collectAsState()
+    val historicalWorkoutCount by viewModel.historicalWorkoutCount.collectAsState()
     val userName = remember {
         SessionManager(context)
             .getUserEmail()
@@ -193,6 +201,7 @@ fun DashboardScreen(
     var selectedTab by remember { mutableStateOf(0) }
     var showAddWidgetSheet by remember { mutableStateOf(false) }
     var showActiveWorkoutSheet by remember { mutableStateOf(false) }
+    var finishWorkoutSnapshot by remember { mutableStateOf<ActiveWorkoutState?>(null) }
     var zenModeInitialPage by remember { mutableStateOf<Int?>(null) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -419,7 +428,9 @@ fun DashboardScreen(
             onFinish = {
                 val snapshot = com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.finishWorkout()
                 snapshot?.let {
-                    viewModel.saveWorkout(it)
+                    finishWorkoutSnapshot = it
+                    viewModel.resetWorkoutFinishSubmission()
+                    viewModel.estimateRecordsForWorkout(it)
                 }
                 showActiveWorkoutSheet = false
                 zenModeInitialPage = null // close Zen Mode if open
@@ -446,9 +457,82 @@ fun DashboardScreen(
             )
         }
     }
+
+    finishWorkoutSnapshot?.let { snapshot ->
+        val workoutDateLabel = remember(snapshot.startTime) {
+            SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(snapshot.startTime))
+        }
+        val totalVolume = remember(snapshot) {
+            snapshot.exercises.sumOf { exercise ->
+                exercise.sets.sumOf { set ->
+                    val weight = set.weight.toDoubleOrNull() ?: 0.0
+                    val reps = set.reps.toIntOrNull() ?: 0
+                    weight * reps
+                }
+            }
+        }
+
+        val summary = WorkoutFinishSummary(
+            title = snapshot.routineName,
+            dateLabel = workoutDateLabel,
+            durationLabel = formatWorkoutDuration(snapshot.elapsedTimeGlobal),
+            workoutNumber = historicalWorkoutCount + 1,
+            totalVolumeKg = totalVolume,
+            recordsBeaten = estimatedRecordsBeaten ?: 0
+        )
+
+        Dialog(
+            onDismissRequest = {
+                if (finishSubmission !is DashboardViewModel.WorkoutFinishSubmissionState.Submitting) {
+                    finishWorkoutSnapshot = null
+                    viewModel.resetWorkoutFinishSubmission()
+                }
+            },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            WorkoutFinishScreen(
+                summary = summary,
+                initialNotes = snapshot.notes,
+                isSubmitting = finishSubmission is DashboardViewModel.WorkoutFinishSubmissionState.Submitting,
+                submissionError = (finishSubmission as? DashboardViewModel.WorkoutFinishSubmissionState.Error)?.message,
+                onBack = {
+                    finishWorkoutSnapshot = null
+                    viewModel.resetWorkoutFinishSubmission()
+                },
+                onFinish = { notes, imageUri ->
+                    viewModel.submitFinishedWorkout(snapshot, notes, imageUri)
+                },
+                onShare = {
+                    // Share flow will be added in a separate pass.
+                }
+            )
+        }
+
+        LaunchedEffect(finishSubmission) {
+            if (finishSubmission is DashboardViewModel.WorkoutFinishSubmissionState.Success) {
+                finishWorkoutSnapshot = null
+                viewModel.resetWorkoutFinishSubmission()
+            }
+        }
+    }
             // close inner Box (already closed above, this is formatting fix)
         } // close Column
     }
+
+private fun formatWorkoutDuration(elapsedMillis: Long): String {
+    val totalSeconds = (elapsedMillis / 1000).coerceAtLeast(0)
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+
+    return if (hours > 0) {
+        "${hours}h ${minutes}m"
+    } else {
+        "${minutes}m"
+    }
+}
 
 // ──────────────────────────────────────────────────────────────
 // Widget Grid Engine  (dual-mode: grid view / drag-edit)
@@ -910,19 +994,20 @@ fun BodyWeightSheet(
             Text("No hay registros", color = LightGrey, fontSize = 14.sp)
         } else {
             weightHistory.take(3).forEachIndexed { index, measurement ->
+                val rawDate = measurement.recordedAt ?: measurement.date ?: ""
                 val dateStr = try {
-                    val date = java.time.LocalDate.parse(measurement.recordedAt.take(10))
+                    val date = java.time.LocalDate.parse(rawDate.take(10))
                     val monthNames = arrayOf("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
                     "${date.dayOfMonth} ${monthNames[date.monthValue - 1]}"
                 } catch (e: Exception) {
-                    measurement.recordedAt.take(10)
+                    rawDate.take(10)
                 }
 
                 val textColor = if (index == 0) PureWhite else LightGrey
                 val fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal
                 val fontSize = if (index == 0) 16.sp else 14.sp
 
-                Text("$dateStr: ${measurement.weightKg} kg", color = textColor, fontSize = fontSize, fontWeight = fontWeight)
+                Text("$dateStr: ${measurement.weightKg ?: "-"} kg", color = textColor, fontSize = fontSize, fontWeight = fontWeight)
             }
         }
     }

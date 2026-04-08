@@ -37,9 +37,33 @@ class DashboardRepository @Inject constructor(
     }
     suspend fun logBodyWeight(weight: Double): Result<Unit> {
         return try {
-            val response = apiService.logBodyWeight(
+            val response = apiService.createBodyMeasurement(
                 com.example.kaizenfrontend.feature.dashboard.data.remote.api.BodyMeasurementRequest(weightKg = weight)
             )
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createBodyMeasurement(
+        weightKg: Double? = null,
+        bodyFatPercentage: Double? = null,
+        progressPhotoUrl: String? = null
+    ): Result<Unit> {
+        return try {
+            val response = apiService.createBodyMeasurement(
+                com.example.kaizenfrontend.feature.dashboard.data.remote.api.BodyMeasurementRequest(
+                    weightKg = weightKg,
+                    bodyFatPercentage = bodyFatPercentage,
+                    progressPhotoUrl = progressPhotoUrl
+                )
+            )
+
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
