@@ -11,8 +11,9 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.kaizenfrontend.feature.dashboard.data.local.DashboardPreferences
 import com.example.kaizenfrontend.feature.dashboard.data.repository.DashboardRepository
+import com.example.kaizenfrontend.feature.dashboard.domain.model.RegisterBodyMeasurementCommand
+import com.example.kaizenfrontend.feature.dashboard.domain.usecase.RegisterBodyMeasurementUseCase
 import com.example.kaizenfrontend.feature.dashboard.worker.DashboardSyncWorker
-import com.example.kaizenfrontend.feature.workouts.domain.repository.ImgurRepository
 import com.example.kaizenfrontend.feature.workouts.domain.repository.WorkoutRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,7 +36,7 @@ constructor(
         private val repository: DashboardRepository,
         private val dashboardPreferences: DashboardPreferences,
     private val saveWorkoutUseCase: SaveWorkoutUseCase,
-    private val imgurRepository: ImgurRepository,
+    private val registerBodyMeasurementUseCase: RegisterBodyMeasurementUseCase,
     private val workoutRepository: WorkoutRepository,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
@@ -45,6 +46,17 @@ constructor(
         data object Submitting : WorkoutFinishSubmissionState
         data class Success(val recordsBeaten: Int, val imageUrl: String?) : WorkoutFinishSubmissionState
         data class Error(val message: String) : WorkoutFinishSubmissionState
+    }
+
+    sealed interface BodyMeasurementRegistrationState {
+        data object Idle : BodyMeasurementRegistrationState
+        data object Submitting : BodyMeasurementRegistrationState
+        data class Success(
+            val measurementId: String,
+            val progressPhotoUrl: String,
+            val recordedAt: String
+        ) : BodyMeasurementRegistrationState
+        data class Error(val message: String) : BodyMeasurementRegistrationState
     }
 
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
@@ -83,6 +95,11 @@ constructor(
 
     private val _historicalWorkoutCount = MutableStateFlow(0)
     val historicalWorkoutCount: StateFlow<Int> = _historicalWorkoutCount.asStateFlow()
+
+    private val _bodyMeasurementRegistration =
+        MutableStateFlow<BodyMeasurementRegistrationState>(BodyMeasurementRegistrationState.Idle)
+    val bodyMeasurementRegistration: StateFlow<BodyMeasurementRegistrationState> =
+        _bodyMeasurementRegistration.asStateFlow()
 
     fun toggleEditMode() {
         val wasEditing = _isEditing.value
@@ -221,6 +238,55 @@ constructor(
         _workoutFinishSubmission.value = WorkoutFinishSubmissionState.Idle
     }
 
+    fun resetBodyMeasurementRegistration() {
+        _bodyMeasurementRegistration.value = BodyMeasurementRegistrationState.Idle
+    }
+
+    fun registerBodyMeasurementExample(
+        weightKg: Double,
+        bodyFatPercentage: Double,
+        progressPhotoUri: Uri
+    ) {
+        viewModelScope.launch {
+            _bodyMeasurementRegistration.value = BodyMeasurementRegistrationState.Submitting
+
+            val imageBytes = appContext.contentResolver.openInputStream(progressPhotoUri)?.use { it.readBytes() }
+            if (imageBytes == null || imageBytes.isEmpty()) {
+                _bodyMeasurementRegistration.value = BodyMeasurementRegistrationState.Error(
+                    "No se pudo leer la imagen seleccionada"
+                )
+                return@launch
+            }
+
+            val fileName = progressPhotoUri.lastPathSegment?.substringAfterLast('/')
+                ?: "progress-photo.jpg"
+
+            val result = registerBodyMeasurementUseCase(
+                RegisterBodyMeasurementCommand(
+                    weightKg = weightKg,
+                    bodyFatPercentage = bodyFatPercentage,
+                    progressPhotoBytes = imageBytes,
+                    fileName = fileName
+                )
+            )
+
+            _bodyMeasurementRegistration.value = result.fold(
+                onSuccess = {
+                    BodyMeasurementRegistrationState.Success(
+                        measurementId = it.id,
+                        progressPhotoUrl = it.progressPhotoUrl,
+                        recordedAt = it.recordedAt
+                    )
+                },
+                onFailure = {
+                    BodyMeasurementRegistrationState.Error(
+                        it.message ?: "Error registrando medicion corporal"
+                    )
+                }
+            )
+        }
+    }
+
     fun estimateRecordsForWorkout(state: ActiveWorkoutState) {
         viewModelScope.launch {
             _estimatedRecordsBeaten.value = null
@@ -293,27 +359,44 @@ constructor(
 
             var uploadedImageUrl: String? = null
             if (imageUri != null) {
-                val uploadResult = uploadImageToImgur(imageUri)
-                if (uploadResult.isSuccess) {
-                    uploadedImageUrl = uploadResult.getOrNull()
-                } else {
+                val imageBytes = appContext.contentResolver
+                    .openInputStream(imageUri)
+                    ?.use { it.readBytes() }
+
+                if (imageBytes == null || imageBytes.isEmpty()) {
                     android.util.Log.w(
                         "KAIZEN",
-                        "Imgur upload failed, continuing workout finish without photo: ${uploadResult.exceptionOrNull()?.message}"
+                        "Measurement upload skipped: selected image could not be read"
                     )
-                }
+                } else {
+                    val fileName = imageUri.lastPathSegment?.substringAfterLast('/')
+                        ?: "progress-photo.jpg"
 
-                if (!uploadedImageUrl.isNullOrBlank()) {
-                    val bodyMeasurementResult = repository.createBodyMeasurement(
-                        progressPhotoUrl = uploadedImageUrl
+                    val measurementResult = registerBodyMeasurementUseCase(
+                        RegisterBodyMeasurementCommand(
+                            weightKg = null,
+                            bodyFatPercentage = null,
+                            progressPhotoBytes = imageBytes,
+                            fileName = fileName
+                        )
                     )
-                    if (bodyMeasurementResult.isFailure) {
+
+                    if (measurementResult.isSuccess) {
+                        val response = measurementResult.getOrNull()
+                        uploadedImageUrl = response?.progressPhotoUrl
+                        android.util.Log.i(
+                            "KAIZEN",
+                            "Measurement upsert success: id=${response?.id}, recordedAt=${response?.recordedAt}, url=${response?.progressPhotoUrl}"
+                        )
+                        fetchWeightHistory()
+                    } else {
                         android.util.Log.w(
                             "KAIZEN",
-                            "Body measurement photo entry failed, workout already saved: ${bodyMeasurementResult.exceptionOrNull()?.message}"
+                            "Body measurement multipart upload failed, workout already saved: ${measurementResult.exceptionOrNull()?.message}"
                         )
                     }
                 }
+
             }
 
             refreshDashboardData()
@@ -322,18 +405,6 @@ constructor(
                 imageUrl = uploadedImageUrl
             )
         }
-    }
-
-    private suspend fun uploadImageToImgur(uri: Uri): Result<String> {
-        return runCatching {
-            val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "workout_finish.jpg"
-            val imageBytes = appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                ?: throw IllegalStateException("Unable to read selected image")
-            imageBytes to fileName
-        }.fold(
-            onSuccess = { (bytes, fileName) -> imgurRepository.uploadImage(bytes, fileName) },
-            onFailure = { Result.failure(it) }
-        )
     }
 
     companion object {

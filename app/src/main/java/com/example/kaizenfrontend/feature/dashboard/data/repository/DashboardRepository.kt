@@ -3,11 +3,16 @@ package com.example.kaizenfrontend.feature.dashboard.data.repository
 import com.example.kaizenfrontend.feature.dashboard.data.local.dao.DashboardDao
 import com.example.kaizenfrontend.feature.dashboard.data.local.entity.DashboardEntity
 import com.example.kaizenfrontend.feature.dashboard.data.remote.api.DashboardApiService
+import com.example.kaizenfrontend.feature.dashboard.data.remote.dto.request.RegisterMeasurementMultipartRequest
+import com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.MeasurementUpsertResponse
 import com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.DashboardResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 
 class DashboardRepository @Inject constructor(
@@ -68,6 +73,46 @@ class DashboardRepository @Inject constructor(
                 Result.success(Unit)
             } else {
                 Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun registerBodyMeasurement(
+        request: RegisterMeasurementMultipartRequest
+    ): Result<MeasurementUpsertResponse> {
+        return try {
+            val weightPart = request.weightKg
+                ?.toString()
+                ?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val bodyFatPart = request.bodyFatPercentage
+                ?.toString()
+                ?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val photoRequestBody = request.progressPhotoBytes
+                .toRequestBody(request.mimeType.toMediaTypeOrNull())
+            val photoPart = MultipartBody.Part.createFormData(
+                name = "progressPhoto",
+                filename = request.fileName,
+                body = photoRequestBody
+            )
+
+            val response = apiService.registerBodyMeasurement(
+                weightKg = weightPart,
+                bodyFatPercentage = bodyFatPart,
+                progressPhoto = photoPart
+            )
+
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val errorPayload = response.errorBody()?.string().orEmpty()
+                val reason = if (errorPayload.isNotBlank()) {
+                    "Error: ${response.code()} ${response.message()} - $errorPayload"
+                } else {
+                    "Error: ${response.code()} ${response.message()} (empty body from /api/measurements)"
+                }
+                Result.failure(Exception(reason))
             }
         } catch (e: Exception) {
             Result.failure(e)
