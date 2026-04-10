@@ -342,7 +342,8 @@ fun DashboardScreen(
                                     onWidgetClick = { activeBottomSheet = it },
                                     onRemoveWidget = { widgetKey -> viewModel.removeWidget(widgetKey) },
                                     onMoveWidgetUp = { widgetKey -> viewModel.moveWidgetUp(widgetKey) },
-                                    onMoveWidgetDown = { widgetKey -> viewModel.moveWidgetDown(widgetKey) }
+                                    onMoveWidgetDown = { widgetKey -> viewModel.moveWidgetDown(widgetKey) },
+                                    onAddWidgetClick = { showAddWidgetSheet = true }
                                 )
                             }
                             is DashboardUiState.Empty -> {
@@ -464,13 +465,15 @@ fun DashboardWidgetGrid(
     onWidgetClick: (DashboardBottomSheetType) -> Unit,
     onRemoveWidget: (String) -> Unit,
     onMoveWidgetUp: (String) -> Unit,
-    onMoveWidgetDown: (String) -> Unit
+    onMoveWidgetDown: (String) -> Unit,
+    onAddWidgetClick: () -> Unit
 ) {
     val orderedWidgetTypes =
-        (if (widgetOrder.isEmpty()) fallbackWidgetOrder else widgetOrder)
-            .mapNotNull { runCatching { WidgetType.valueOf(it) }.getOrNull() }
+        widgetOrder.mapNotNull { runCatching { WidgetType.valueOf(it) }.getOrNull() }
 
-    if (!isEditing) {
+    if (orderedWidgetTypes.isEmpty()) {
+        DashboardEmptyState(onAddWidgetClick = onAddWidgetClick)
+    } else if (!isEditing) {
         // Normal Mode: 2 column grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -1089,6 +1092,45 @@ fun PrDetailsSheet(exerciseName: String) {
                 Text("Full Body", color = LightGrey, fontSize = 14.sp)
                 Text("Hace 3 meses", color = LightGrey, fontSize = 12.sp)
             }
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Empty State
+// ──────────────────────────────────────────────────────────────
+@Composable
+fun DashboardEmptyState(onAddWidgetClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.BarChart,
+            contentDescription = "Empty Dashboard",
+            tint = LightGrey,
+            modifier = Modifier.size(64.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Tu Kaizen Hub está vacío.\nAñade métricas para empezar a trackear tu progreso.",
+            color = PureWhite,
+            fontSize = 16.sp,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onAddWidgetClick,
+            colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue, contentColor = PureWhite),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(imageVector = Icons.Default.Add, contentDescription = "Añadir")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "Añadir Widget", fontWeight = FontWeight.SemiBold)
         }
     }
 }
