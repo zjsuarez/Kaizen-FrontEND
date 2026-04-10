@@ -1,5 +1,6 @@
 package com.example.kaizenfrontend.feature.statistics.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,16 +15,29 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
+import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
+import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatisticsScreen() {
+fun StatisticsScreen(
+    viewModel: StatisticsViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -50,6 +64,13 @@ fun StatisticsScreen() {
             contentPadding = PaddingValues(16.dp)
         ) {
             item {
+                TimeRangeSelector(
+                    selectedRange = uiState.selectedTimeRange,
+                    onRangeSelected = { viewModel.updateTimeRange(it) }
+                )
+            }
+            
+            item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -63,6 +84,39 @@ fun StatisticsScreen() {
                         fontWeight = FontWeight.Medium
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeRangeSelector(
+    selectedRange: TimeRange,
+    onRangeSelected: (TimeRange) -> Unit
+) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        TimeRange.entries.forEach { range ->
+            val isSelected = range == selectedRange
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isSelected) CrayolaBlue.copy(alpha = 0.2f) else ShadowGrey)
+                    .clickable { onRangeSelected(range) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = range.label,
+                    color = if (isSelected) CrayolaBlue else LightGrey,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
