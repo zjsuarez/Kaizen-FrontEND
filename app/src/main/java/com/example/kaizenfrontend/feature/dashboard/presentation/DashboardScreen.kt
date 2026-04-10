@@ -178,6 +178,7 @@ fun DashboardScreen(
     val widgetOrder by viewModel.widgetOrder.collectAsState()
     val weightHistory by viewModel.weightHistory.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
+    val todayRoutineName by viewModel.todayRoutineName.collectAsState()
     val userName = remember {
         SessionManager(context)
             .getUserEmail()
@@ -338,6 +339,7 @@ fun DashboardScreen(
                                     widgetOrder = widgetOrder,
                                     weightHistory = weightHistory,
                                     isEditing = isEditing,
+                                    todayRoutineName = todayRoutineName,
                                     onWorkoutClick = onWorkoutClick,
                                     onWidgetClick = { activeBottomSheet = it },
                                     onRemoveWidget = { widgetKey -> viewModel.removeWidget(widgetKey) },
@@ -460,6 +462,7 @@ fun DashboardWidgetGrid(
     widgetOrder: List<String>,
     weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>,
     isEditing: Boolean,
+    todayRoutineName: String?,
     onWorkoutClick: () -> Unit,
     onWidgetClick: (DashboardBottomSheetType) -> Unit,
     onRemoveWidget: (String) -> Unit,
@@ -490,7 +493,7 @@ fun DashboardWidgetGrid(
             ) { widgetType ->
                 val config = widgetConfigByType[widgetType] ?: return@items
                 val wMod = Modifier.fillMaxWidth().height(config.heightDp)
-                WidgetContent(widgetType, wMod, successState, onWorkoutClick, onWidgetClick)
+                WidgetContent(widgetType, wMod, successState, todayRoutineName, onWorkoutClick, onWidgetClick)
             }
         }
     } else {
@@ -539,6 +542,7 @@ private fun WidgetContent(
     widgetType: WidgetType,
     widgetModifier: Modifier,
     successState: DashboardUiState.Success,
+    todayRoutineName: String?,
     onWorkoutClick: () -> Unit,
     onWidgetClick: (DashboardBottomSheetType) -> Unit
 ) {
@@ -578,10 +582,10 @@ private fun WidgetContent(
             )
         WidgetType.NEXT_WORKOUT ->
             NextWorkoutWidget(
-                routineName = data.nextWorkout?.routineName,
+                routineName = todayRoutineName,
                 onStartClick = onWorkoutClick,
                 modifier = widgetModifier,
-                onClick = { onWidgetClick(DashboardBottomSheetType.NextWorkoutOptions(data.nextWorkout?.routineName ?: "Libre")) }
+                onClick = { onWidgetClick(DashboardBottomSheetType.NextWorkoutOptions(todayRoutineName ?: "Libre")) }
             )
         WidgetType.CALENDAR -> {
             val days = data.trainingDaysThisMonth.mapNotNull {

@@ -86,7 +86,7 @@ fun NextWorkoutWidget(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                        text = "NEXT WORKOUT",
+                        text = "TODAY'S WORKOUT",
                         color = LightGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -100,33 +100,38 @@ fun NextWorkoutWidget(
                     contentAlignment = Alignment.Center
             ) {
                 Text(
-                        text = routineName ?: "No workout scheduled",
+                        text = routineName ?: "Rest Day.\nEnjoy your recovery!",
                         color = if (routineName != null) PureWhite else LightGrey,
-                        fontSize = if (routineName != null) 32.sp else 16.sp,
+                        fontSize = if (routineName != null) 32.sp else 18.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         maxLines = 2,
+                        lineHeight = if (routineName != null) 36.sp else 24.sp,
                         overflow = TextOverflow.Ellipsis
                 )
             }
 
             // Footer: start button
-            Button(
-                    onClick = onStartClick,
-                    modifier = Modifier.fillMaxWidth().height(42.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors =
-                            ButtonDefaults.buttonColors(
-                                    containerColor = CrayolaBlue,
-                                    contentColor = Onyx
-                            )
-            ) {
-                Text(
-                        text = "START WORKOUT",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                )
+            if (routineName != null) {
+                Button(
+                        onClick = onStartClick,
+                        modifier = Modifier.fillMaxWidth().height(42.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors =
+                                ButtonDefaults.buttonColors(
+                                        containerColor = CrayolaBlue,
+                                        contentColor = Onyx
+                                )
+                ) {
+                    Text(
+                            text = "START WORKOUT",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.height(42.dp))
             }
         }
     }

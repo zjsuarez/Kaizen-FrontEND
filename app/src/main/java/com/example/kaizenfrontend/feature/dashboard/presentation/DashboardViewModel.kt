@@ -32,6 +32,8 @@ constructor(
         private val repository: DashboardRepository,
         private val dashboardPreferences: DashboardPreferences,
     private val saveWorkoutUseCase: SaveWorkoutUseCase,
+    private val getPlansUseCase: com.example.kaizenfrontend.feature.workouts.domain.usecase.GetPlansUseCase,
+    private val getRoutinesUseCase: com.example.kaizenfrontend.feature.workouts.domain.usecase.GetRoutinesUseCase,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -60,6 +62,9 @@ constructor(
     // Edit Mode
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing.asStateFlow()
+    
+    private val _todayRoutineName = MutableStateFlow<String?>(null)
+    val todayRoutineName: StateFlow<String?> = _todayRoutineName.asStateFlow()
 
     fun toggleEditMode() {
         val wasEditing = _isEditing.value
@@ -127,6 +132,61 @@ constructor(
         fetchWeightHistory()
     }
 
+    private fun fetchTodayRoutine() {
+        viewModelScope.launch {
+            val plansResult = getPlansUseCase()
+            if (plansResult.isSuccess) {
+                val plans = plansResult.getOrNull().orEmpty()
+                val activePlan = plans.find { it.isActive }
+                if (activePlan != null) {
+                    val routinesResult = getRoutinesUseCase(activePlan.id)
+                    if (routinesResult.isSuccess) {
+                        val routines = routinesResult.getOrNull().orEmpty()
+                        
+                        var foundRoutine: com.example.kaizenfrontend.feature.workouts.domain.model.Routine? = null
+                        if (activePlan.interval == "CYCLE") {
+                            val cycleLength = activePlan.cycleLength ?: 7
+                            if (cycleLength == 7) {
+                                val todayWeekday = java.time.LocalDate.now().dayOfWeek.name
+                                foundRoutine = routines.find { r ->
+                                    val days = parseWeekDays(r.schedulingValue)
+                                    days.contains(todayWeekday)
+                                }
+                            } else {
+                                runCatching {
+                                    val start = java.time.LocalDate.parse(activePlan.startingDate)
+                                    val today = java.time.LocalDate.now()
+                                    val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(start, today)
+                                    if (daysBetween >= 0) {
+                                        val currentCycleDay = (daysBetween % cycleLength).toInt() + 1
+                                        foundRoutine = routines.find { r ->
+                                            val days = parseCycleDays(r.schedulingValue)
+                                            days.contains(currentCycleDay)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        _todayRoutineName.value = foundRoutine?.name
+                    }
+                } else {
+                    _todayRoutineName.value = null
+                }
+            }
+        }
+    }
+
+    private fun parseWeekDays(value: String?): Set<String> {
+        if (value.isNullOrBlank()) return emptySet()
+        return value.split(',').map { it.trim().uppercase() }.toSet()
+    }
+
+    private fun parseCycleDays(value: String?): Set<Int> {
+        if (value.isNullOrBlank()) return emptySet()
+        return value.split(',').mapNotNull { it.trim().toIntOrNull() }.toSet()
+    }
+
     private fun fetchWeightHistory() {
         viewModelScope.launch {
             repository.getWeightHistory().onSuccess { history -> _weightHistory.value = history }
@@ -134,6 +194,7 @@ constructor(
     }
 
     fun refreshDashboardData() {
+        fetchTodayRoutine()
         viewModelScope.launch {
             // Only set to loading if we don't already have data
             if (_uiState.value !is DashboardUiState.Success) {
