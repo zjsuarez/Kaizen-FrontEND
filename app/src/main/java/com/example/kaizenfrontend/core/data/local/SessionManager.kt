@@ -2,12 +2,14 @@ package com.example.kaizenfrontend.core.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 
 /**
  * Manages persistent session data (auth token, calibration flag, and cached user preferences)
  * using SharedPreferences. Replaces the old TokenManager singleton.
  */
-class SessionManager(context: Context) {
+class SessionManager @Inject constructor(@ApplicationContext context: Context) {
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -15,6 +17,19 @@ class SessionManager(context: Context) {
     fun saveToken(token: String) = prefs.edit().putString(TOKEN_KEY, token).apply()
 
     fun getToken(): String? = prefs.getString(TOKEN_KEY, null)
+
+    fun getUserIdFromToken(): String {
+        val token = getToken() ?: return "default_anonymous"
+        return try {
+            val split = token.split(".")
+            if (split.size < 2) return "default_anonymous"
+            val decodedBytes = android.util.Base64.decode(split[1], android.util.Base64.URL_SAFE)
+            val json = String(decodedBytes, Charsets.UTF_8)
+            org.json.JSONObject(json).optString("sub", "default_anonymous")
+        } catch (e: Exception) {
+            "default_anonymous"
+        }
+    }
 
     fun clearToken() {
         prefs.edit()
