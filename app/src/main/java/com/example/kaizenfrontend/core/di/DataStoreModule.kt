@@ -1,6 +1,7 @@
 package com.example.kaizenfrontend.core.di
 
 import android.content.Context
+import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.feature.dashboard.data.local.DashboardPreferences
 import dagger.Module
 import dagger.Provides
@@ -15,7 +16,10 @@ object DataStoreModule {
 
     @Provides
     @Singleton
-    fun provideDashboardPreferences(@ApplicationContext context: Context): DashboardPreferences {
-        return DashboardPreferences(context)
+    fun provideDashboardPreferences(
+        @ApplicationContext context: Context,
+        sessionManager: SessionManager
+    ): DashboardPreferences {
+        return DashboardPreferences(context, sessionManager)
     }
 }
