@@ -36,12 +36,16 @@ class DashboardPreferences @Inject constructor(
             }
         }
         .map { preferences ->
-            preferences[getWidgetOrderKey()]
-                ?.split(",")
-                ?.map { it.trim() }
-                ?.filter { it.isNotBlank() }
-                ?.takeIf { it.isNotEmpty() }
-                ?: DEFAULT_WIDGET_ORDER
+            val orderString = preferences[getWidgetOrderKey()]
+            if (orderString == null) {
+                DEFAULT_WIDGET_ORDER
+            } else if (orderString.isBlank()) {
+                emptyList()
+            } else {
+                orderString.split(",")
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+            }
         }
 
     suspend fun saveWidgetOrder(order: List<String>) {
