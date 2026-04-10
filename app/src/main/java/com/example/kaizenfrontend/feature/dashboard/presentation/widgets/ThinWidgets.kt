@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.components.KaizenWidgetContainer
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
+import com.example.kaizenfrontend.core.ui.theme.MalachiteGreen
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 
 // ──────────────────────────────────────────────────────────────
@@ -38,6 +39,11 @@ fun RecoveryTimeWidget(
     hours: Int?,
     modifier: Modifier = Modifier
 ) {
+    val isRecovered = hours != null && hours <= 0
+    val displayHours = if (isRecovered) "0" else hours?.toString() ?: "--"
+    val subtext = if (isRecovered) "Recovered" else if (hours != null) "Recovering" else "No Data"
+    val accentColor = if (isRecovered) MalachiteGreen else CrayolaBlue
+
     KaizenWidgetContainer(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -49,7 +55,7 @@ fun RecoveryTimeWidget(
                 Icon(
                     imageVector = Icons.Default.BatteryChargingFull,
                     contentDescription = "Recovery",
-                    tint = CrayolaBlue,
+                    tint = accentColor,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -66,7 +72,7 @@ fun RecoveryTimeWidget(
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = hours?.toString() ?: "--",
+                        text = displayHours,
                         color = PureWhite,
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
@@ -82,7 +88,7 @@ fun RecoveryTimeWidget(
                     )
                 }
                 Text(
-                    text = if (hours != null && hours <= 24) "Ready to train" else "Recovering",
+                    text = subtext,
                     color = LightGrey.copy(alpha = 0.6f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Normal
