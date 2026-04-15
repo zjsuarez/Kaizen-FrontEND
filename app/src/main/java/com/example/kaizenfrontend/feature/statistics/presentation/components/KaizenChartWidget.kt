@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,7 +24,10 @@ import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 fun KaizenChartWidget(
     title: String,
     isEmpty: Boolean,
+    isLoading: Boolean,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    headerContent: (@Composable () -> Unit)? = null,
     emptyMessage: String = "Not enough data",
     content: @Composable () -> Unit
 ) {
@@ -40,10 +44,32 @@ fun KaizenChartWidget(
                 color = PureWhite,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = if (subtitle == null) 16.dp else 6.dp)
             )
 
-            if (isEmpty) {
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    color = LightGrey,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+
+            if (headerContent != null) {
+                headerContent()
+            }
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (isEmpty) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
