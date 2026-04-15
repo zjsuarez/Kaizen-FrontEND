@@ -2,9 +2,11 @@ package com.example.kaizenfrontend.feature.statistics.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,6 +32,8 @@ import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
+import com.example.kaizenfrontend.feature.statistics.presentation.components.BodyWeightTrendWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.Estimated1RmWidget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +41,8 @@ fun StatisticsScreen(
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val bodyWeightProducer = viewModel.bodyWeightModelProducer
+    val oneRmProducer = viewModel.estimated1RmModelProducer
 
     Scaffold(
         topBar = {
@@ -69,21 +75,26 @@ fun StatisticsScreen(
                     onRangeSelected = { viewModel.updateTimeRange(it) }
                 )
             }
-            
+
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 40.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Analytics widgets coming soon",
-                        color = LightGrey,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+                BodyWeightTrendWidget(
+                    uiState = uiState.bodyWeightChart,
+                    modelProducer = bodyWeightProducer
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                Estimated1RmWidget(
+                    uiState = uiState.estimated1RmChart,
+                    modelProducer = oneRmProducer,
+                    exercises = uiState.exercises,
+                    selectedExerciseId = uiState.selectedExerciseId,
+                    onExerciseSelected = viewModel::selectExercise
+                )
             }
         }
     }
