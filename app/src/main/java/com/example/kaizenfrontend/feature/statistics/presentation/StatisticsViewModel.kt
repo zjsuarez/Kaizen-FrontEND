@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.feature.statistics.data.repository.StatisticsRepository
 import com.example.kaizenfrontend.feature.statistics.data.repository.TrendPoint
+import com.example.kaizenfrontend.feature.statistics.data.repository.WeeklyVolumePoint
 import com.example.kaizenfrontend.feature.workouts.domain.repository.WorkoutRepository
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
 import com.patrykandpatrick.vico.core.entry.FloatEntry
@@ -44,7 +45,11 @@ data class StatisticsUiState(
         message = "No exercise selected for 1RM trend.",
         subtitle = "Strength estimate",
         valueSuffix = " kg"
-    )
+    ),
+    // Hypertrophy & Overload
+    val volumeTrend: VolumeTrendUiState = VolumeTrendUiState(),
+    val repRange: RepRangeUiState = RepRangeUiState(),
+    val muscleFrequency: MuscleFrequencyUiState = MuscleFrequencyUiState()
 )
 
 data class TrendChartUiState(
@@ -63,6 +68,41 @@ data class ExerciseOptionUiState(
     val name: String
 )
 
+// Hypertrophy & Overload UI state models 
+
+data class VolumeTrendUiState(
+    val isLoading: Boolean = true,
+    val isEmpty: Boolean = true,
+    val message: String = "Loading volume...",
+    val weekLabels: List<String> = emptyList()
+)
+
+data class RepRangeSegment(
+    val label: String,
+    val percentage: Float,
+    val color: androidx.compose.ui.graphics.Color
+)
+
+data class RepRangeUiState(
+    val isLoading: Boolean = true,
+    val isEmpty: Boolean = true,
+    val message: String = "Loading rep ranges...",
+    val segments: List<RepRangeSegment> = emptyList()
+)
+
+data class MuscleFrequencyUiItem(
+    val muscleGroup: String,
+    val hitCount: Int,
+    val percentage: Float
+)
+
+data class MuscleFrequencyUiState(
+    val isLoading: Boolean = true,
+    val isEmpty: Boolean = true,
+    val message: String = "Loading muscle data...",
+    val muscles: List<MuscleFrequencyUiItem> = emptyList()
+)
+
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
     private val repository: StatisticsRepository,
@@ -73,9 +113,11 @@ class StatisticsViewModel @Inject constructor(
 
     val bodyWeightModelProducer = ChartEntryModelProducer()
     val estimated1RmModelProducer = ChartEntryModelProducer()
+    val volumeBarModelProducer = ChartEntryModelProducer()
 
     private var bodyWeightRawData: List<TrendPoint> = emptyList()
     private var oneRepMaxRawData: List<TrendPoint> = emptyList()
+    private var volumeRawData: List<WeeklyVolumePoint> = emptyList()
 
     private var bodyWeightUnit: String = "KG"
     private var oneRepMaxExerciseName: String? = null
@@ -134,7 +176,10 @@ class StatisticsViewModel @Inject constructor(
                         } else {
                             "Loading trend..."
                         }
-                    )
+                    ),
+                    volumeTrend = it.volumeTrend.copy(isLoading = true, isEmpty = true, message = "Loading volume..."),
+                    repRange = it.repRange.copy(isLoading = true, isEmpty = true, message = "Loading rep ranges..."),
+                    muscleFrequency = it.muscleFrequency.copy(isLoading = true, isEmpty = true, message = "Loading muscle data...")
                 )
             }
 
@@ -142,9 +187,15 @@ class StatisticsViewModel @Inject constructor(
             val oneRmDeferred = async {
                 _uiState.value.selectedExerciseId?.let { repository.getOneRepMaxTrend(it) }
             }
+            val volumeDeferred = async { repository.getVolumeTrend() }
+            val repRangeDeferred = async { repository.getRepRanges() }
+            val muscleFreqDeferred = async { repository.getMuscleFrequency() }
 
             val bodyWeightResult = bodyWeightDeferred.await()
             val oneRmResult = oneRmDeferred.await()
+            val volumeResult = volumeDeferred.await()
+            val repRangeResult = repRangeDeferred.await()
+            val muscleFreqResult = muscleFreqDeferred.await()
 
             bodyWeightResult
                 .onSuccess { trend ->
@@ -191,6 +242,84 @@ class StatisticsViewModel @Inject constructor(
                 }
             }
 
+            // Volume Trend 
+            volumeResult
+                .onSuccess { trend ->
+                    volumeRawData = trend.dataPoints
+                }
+                .onFailure {
+                    _uiState.update { s ->
+                        s.copy(
+                            volumeTrend = s.volumeTrend.copy(
+                                isLoading = false,
+                                isEmpty = true,
+                                message = volumeResult.exceptionOrNull()?.message ?: "Unable to load volume trend."
+                            )
+                        )
+                    }
+                }
+
+            // Rep Ranges 
+            repRangeResult
+                .onSuccess { dist ->
+                    val segments = listOf(
+                        RepRangeSegment("Strength", dist.strengthPct.toFloat(), com.example.kaizenfrontend.core.ui.theme.SubtleRed),
+                        RepRangeSegment("Hypertrophy", dist.hypertrophyPct.toFloat(), com.example.kaizenfrontend.core.ui.theme.CrayolaBlue),
+                        RepRangeSegment("Endurance", dist.endurancePct.toFloat(), com.example.kaizenfrontend.core.ui.theme.MalachiteGreen)
+                    )
+                    val hasData = segments.any { it.percentage > 0f }
+                    _uiState.update { s ->
+                        s.copy(
+                            repRange = RepRangeUiState(
+                                isLoading = false,
+                                isEmpty = !hasData,
+                                message = if (hasData) "" else "No session data yet.",
+                                segments = segments
+                            )
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update { s ->
+                        s.copy(
+                            repRange = RepRangeUiState(
+                                isLoading = false,
+                                isEmpty = true,
+                                message = repRangeResult.exceptionOrNull()?.message ?: "Unable to load rep ranges."
+                            )
+                        )
+                    }
+                }
+
+            // Muscle Frequency 
+            muscleFreqResult
+                .onSuccess { freq ->
+                    val items = freq.muscles.map {
+                        MuscleFrequencyUiItem(it.muscleGroup, it.hitCount, it.percentage.toFloat())
+                    }
+                    _uiState.update { s ->
+                        s.copy(
+                            muscleFrequency = MuscleFrequencyUiState(
+                                isLoading = false,
+                                isEmpty = items.isEmpty(),
+                                message = if (items.isEmpty()) "No muscle data yet." else "",
+                                muscles = items
+                            )
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update { s ->
+                        s.copy(
+                            muscleFrequency = MuscleFrequencyUiState(
+                                isLoading = false,
+                                isEmpty = true,
+                                message = muscleFreqResult.exceptionOrNull()?.message ?: "Unable to load muscle data."
+                            )
+                        )
+                    }
+                }
+
             applyRangeAndUpdateModels(_uiState.value.selectedTimeRange)
         }
     }
@@ -202,10 +331,12 @@ class StatisticsViewModel @Inject constructor(
         } else {
             filterByRange(oneRepMaxRawData, range)
         }
+        val volumeFiltered = filterVolumeByRange(volumeRawData, range)
 
         val bodyWeightHasTrend = bodyWeightFiltered.size >= 2
         val oneRmHasTrend = oneRmFiltered.size >= 2
         val notEnoughTrendMessage = "Not enough data points in this range to establish a trend."
+        val volumeHasData = volumeFiltered.isNotEmpty()
 
         if (bodyWeightHasTrend) {
             val entries = bodyWeightFiltered.mapIndexed { index, point ->
@@ -213,7 +344,7 @@ class StatisticsViewModel @Inject constructor(
             }
             bodyWeightModelProducer.setEntriesSuspending(listOf(entries)).await()
         } else {
-            bodyWeightModelProducer.setEntriesSuspending(emptyList<List<FloatEntry>>()).await()
+            bodyWeightModelProducer.setEntriesSuspending(listOf(emptyList<FloatEntry>())).await()
         }
 
         if (oneRmHasTrend) {
@@ -222,11 +353,21 @@ class StatisticsViewModel @Inject constructor(
             }
             estimated1RmModelProducer.setEntriesSuspending(listOf(entries)).await()
         } else {
-            estimated1RmModelProducer.setEntriesSuspending(emptyList<List<FloatEntry>>()).await()
+            estimated1RmModelProducer.setEntriesSuspending(listOf(emptyList<FloatEntry>())).await()
+        }
+
+        if (volumeHasData) {
+            val entries = volumeFiltered.mapIndexed { index, point ->
+                FloatEntry(x = index.toFloat(), y = point.totalTonnage.toFloat())
+            }
+            volumeBarModelProducer.setEntriesSuspending(listOf(entries)).await()
+        } else {
+            volumeBarModelProducer.setEntriesSuspending(listOf(emptyList<FloatEntry>())).await()
         }
 
         val bodyWeightLabels = bodyWeightFiltered.map { it.date.format(dateLabelFormatter) }
         val oneRmLabels = oneRmFiltered.map { it.date.format(dateLabelFormatter) }
+        val volumeLabels = volumeFiltered.map { it.weekLabel }
 
         _uiState.update {
             val bodyWeightMinMax = calculateYAxisRange(bodyWeightFiltered)
@@ -257,6 +398,12 @@ class StatisticsViewModel @Inject constructor(
                     minY = oneRmMinMax.first,
                     maxY = oneRmMinMax.second,
                     xLabels = oneRmLabels
+                ),
+                volumeTrend = it.volumeTrend.copy(
+                    isLoading = false,
+                    isEmpty = !volumeHasData,
+                    message = if (volumeHasData) "" else "No volume data in this range.",
+                    weekLabels = volumeLabels
                 )
             )
         }
@@ -292,7 +439,6 @@ class StatisticsViewModel @Inject constructor(
     }
 
     private fun filterByRange(data: List<TrendPoint>, range: TimeRange): List<TrendPoint> {
-        if (range == TimeRange.LIFETIME) return data.sortedBy { it.date }
         if (data.isEmpty()) return emptyList()
 
         val latest = data.maxOf { it.date }
@@ -309,5 +455,17 @@ class StatisticsViewModel @Inject constructor(
             .filter { it.date >= startDate }
             .sortedBy { it.date }
             .toList()
+    }
+
+    private fun filterVolumeByRange(data: List<WeeklyVolumePoint>, range: TimeRange): List<WeeklyVolumePoint> {
+        if (data.isEmpty()) return data
+        val keep = when (range) {
+            TimeRange.ONE_MONTH -> 4
+            TimeRange.THREE_MONTHS -> 13
+            TimeRange.SIX_MONTHS -> 26
+            TimeRange.ONE_YEAR -> 52
+            TimeRange.LIFETIME -> data.size
+        }
+        return data.takeLast(keep)
     }
 }

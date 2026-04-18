@@ -34,6 +34,9 @@ import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.feature.statistics.presentation.components.BodyWeightTrendWidget
 import com.example.kaizenfrontend.feature.statistics.presentation.components.Estimated1RmWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.MuscleFrequencyWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.RepRangeWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.VolumeTrendWidget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +46,7 @@ fun StatisticsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val bodyWeightProducer = viewModel.bodyWeightModelProducer
     val oneRmProducer = viewModel.estimated1RmModelProducer
+    val volumeProducer = viewModel.volumeBarModelProducer
 
     Scaffold(
         topBar = {
@@ -76,6 +80,11 @@ fun StatisticsScreen(
                 )
             }
 
+            // Strength & Health 
+            item {
+                SectionHeader(title = "Strength & Health")
+            }
+
             item {
                 BodyWeightTrendWidget(
                     uiState = uiState.bodyWeightChart,
@@ -96,8 +105,58 @@ fun StatisticsScreen(
                     onExerciseSelected = viewModel::selectExercise
                 )
             }
+
+            item {
+                Spacer(modifier = Modifier.height(28.dp))
+            }
+
+            // Hypertrophy & Overload 
+            item {
+                SectionHeader(title = "Hypertrophy & Overload")
+            }
+
+            item {
+                VolumeTrendWidget(
+                    uiState = uiState.volumeTrend,
+                    modelProducer = volumeProducer
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                RepRangeWidget(uiState = uiState.repRange)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                MuscleFrequencyWidget(uiState = uiState.muscleFrequency)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
     }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        color = LightGrey,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 1.2.sp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp, top = 4.dp)
+    )
 }
 
 @Composable
