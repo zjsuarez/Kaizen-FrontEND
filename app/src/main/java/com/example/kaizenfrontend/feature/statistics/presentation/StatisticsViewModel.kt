@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.feature.statistics.data.repository.StatisticsRepository
 import com.example.kaizenfrontend.feature.statistics.data.repository.TrendPoint
 import com.example.kaizenfrontend.feature.statistics.data.repository.WeeklyVolumePoint
+import com.example.kaizenfrontend.feature.statistics.data.repository.FatiguePoint
+import com.example.kaizenfrontend.feature.statistics.data.repository.SessionEfficiencyPoint
 import com.example.kaizenfrontend.feature.workouts.domain.repository.WorkoutRepository
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
 import com.patrykandpatrick.vico.core.entry.FloatEntry
@@ -49,7 +51,11 @@ data class StatisticsUiState(
     // Hypertrophy & Overload
     val volumeTrend: VolumeTrendUiState = VolumeTrendUiState(),
     val repRange: RepRangeUiState = RepRangeUiState(),
-    val muscleFrequency: MuscleFrequencyUiState = MuscleFrequencyUiState()
+    val muscleFrequency: MuscleFrequencyUiState = MuscleFrequencyUiState(),
+    // Efficiency & Fatigue
+    val fatigue: FatigueUiState = FatigueUiState(),
+    val efficiency: EfficiencyUiState = EfficiencyUiState(),
+    val restTime: RestTimeUiState = RestTimeUiState()
 )
 
 data class TrendChartUiState(
@@ -103,6 +109,40 @@ data class MuscleFrequencyUiState(
     val muscles: List<MuscleFrequencyUiItem> = emptyList()
 )
 
+// ─── Efficiency & Fatigue UI state models ────────────────────────────
+
+data class FatigueUiState(
+    val isLoading: Boolean = true,
+    val isEmpty: Boolean = true,
+    val message: String = "Loading fatigue data...",
+    val dates: List<String> = emptyList(),
+    val maxVolume: Float = 0f
+)
+
+data class EfficiencyPointUi(
+    val durationMin: Long,
+    val volume: Float
+)
+
+data class EfficiencyUiState(
+    val isLoading: Boolean = true,
+    val isEmpty: Boolean = true,
+    val message: String = "Loading efficiency data...",
+    val points: List<EfficiencyPointUi> = emptyList()
+)
+
+data class RestBucketUi(
+    val category: String,
+    val percentage: Float
+)
+
+data class RestTimeUiState(
+    val isLoading: Boolean = true,
+    val isEmpty: Boolean = true,
+    val message: String = "Loading rest times...",
+    val buckets: List<RestBucketUi> = emptyList()
+)
+
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
     private val repository: StatisticsRepository,
@@ -114,10 +154,16 @@ class StatisticsViewModel @Inject constructor(
     val bodyWeightModelProducer = ChartEntryModelProducer()
     val estimated1RmModelProducer = ChartEntryModelProducer()
     val volumeBarModelProducer = ChartEntryModelProducer()
+    
+    // Efficiency & Fatigue
+    val fatigueModelProducer = ChartEntryModelProducer()
+    val efficiencyModelProducer = ChartEntryModelProducer()
 
     private var bodyWeightRawData: List<TrendPoint> = emptyList()
     private var oneRepMaxRawData: List<TrendPoint> = emptyList()
     private var volumeRawData: List<WeeklyVolumePoint> = emptyList()
+    private var fatigueRawData: List<FatiguePoint> = emptyList()
+    private var efficiencyRawData: List<SessionEfficiencyPoint> = emptyList()
 
     private var bodyWeightUnit: String = "KG"
     private var oneRepMaxExerciseName: String? = null
@@ -190,12 +236,18 @@ class StatisticsViewModel @Inject constructor(
             val volumeDeferred = async { repository.getVolumeTrend() }
             val repRangeDeferred = async { repository.getRepRanges() }
             val muscleFreqDeferred = async { repository.getMuscleFrequency() }
+            val fatigueDeferred = async { repository.getFatigueCorrelation() }
+            val efficiencyDeferred = async { repository.getSessionEfficiency() }
+            val densityDeferred = async { repository.getRestTimeDistribution() }
 
             val bodyWeightResult = bodyWeightDeferred.await()
             val oneRmResult = oneRmDeferred.await()
             val volumeResult = volumeDeferred.await()
             val repRangeResult = repRangeDeferred.await()
             val muscleFreqResult = muscleFreqDeferred.await()
+            val fatigueResult = fatigueDeferred.await()
+            val efficiencyResult = efficiencyDeferred.await()
+            val densityResult = densityDeferred.await()
 
             bodyWeightResult
                 .onSuccess { trend ->
@@ -320,6 +372,69 @@ class StatisticsViewModel @Inject constructor(
                     }
                 }
 
+            // Fatigue
+            fatigueResult
+                .onSuccess { fatigueData ->
+                    fatigueRawData = fatigueData.dataPoints
+                }
+                .onFailure {
+                    _uiState.update { s ->
+                        s.copy(
+                            fatigue = FatigueUiState(
+                                isLoading = false,
+                                isEmpty = true,
+                                message = fatigueResult.exceptionOrNull()?.message ?: "Unable to load fatigue data."
+                            )
+                        )
+                    }
+                }
+
+            // Efficiency
+            efficiencyResult
+                .onSuccess { efficiencyData ->
+                    efficiencyRawData = efficiencyData.dataPoints
+                }
+                .onFailure {
+                    _uiState.update { s ->
+                        s.copy(
+                            efficiency = EfficiencyUiState(
+                                isLoading = false,
+                                isEmpty = true,
+                                message = efficiencyResult.exceptionOrNull()?.message ?: "Unable to load efficiency data."
+                            )
+                        )
+                    }
+                }
+
+            // Density
+            densityResult
+                .onSuccess { densityData ->
+                    val buckets = densityData.buckets.map {
+                        RestBucketUi(it.category, it.percentage.toFloat())
+                    }
+                    _uiState.update { s ->
+                        s.copy(
+                            restTime = RestTimeUiState(
+                                isLoading = false,
+                                isEmpty = buckets.isEmpty(),
+                                message = if (buckets.isEmpty()) "No rest data found." else "",
+                                buckets = buckets
+                            )
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update { s ->
+                        s.copy(
+                            restTime = RestTimeUiState(
+                                isLoading = false,
+                                isEmpty = true,
+                                message = densityResult.exceptionOrNull()?.message ?: "Unable to load density data."
+                            )
+                        )
+                    }
+                }
+
             applyRangeAndUpdateModels(_uiState.value.selectedTimeRange)
         }
     }
@@ -365,9 +480,40 @@ class StatisticsViewModel @Inject constructor(
             volumeBarModelProducer.setEntriesSuspending(listOf(emptyList<FloatEntry>())).await()
         }
 
+        val fatigueFiltered = filterFatigueByRange(fatigueRawData, range)
+        val fatigueHasData = fatigueFiltered.size >= 2
+        val maxVolume = fatigueFiltered.maxOfOrNull { it.totalVolume.toFloat() }?.coerceAtLeast(10f) ?: 10f
+        
+        if (fatigueHasData) {
+            val volSeries = fatigueFiltered.mapIndexed { index, point ->
+                FloatEntry(x = index.toFloat(), y = point.totalVolume.toFloat())
+            }
+            val rpeSeries = fatigueFiltered.mapIndexed { index, point ->
+                // Normalize RPE (0-10) to visually match the Volume scale so they chart together beautifully
+                val normalizedRpe = (point.averageRpe.toFloat() / 10f) * maxVolume
+                FloatEntry(x = index.toFloat(), y = normalizedRpe)
+            }
+            fatigueModelProducer.setEntriesSuspending(listOf(volSeries, rpeSeries)).await()
+        } else {
+            fatigueModelProducer.setEntriesSuspending(listOf(emptyList<FloatEntry>(), emptyList<FloatEntry>())).await()
+        }
+
+        val efficiencyEntries = efficiencyRawData.map { point ->
+            // Scatter plots inherently use the actual data values on X and Y, rather than synthetic x indices
+            FloatEntry(x = point.durationMinutes.toFloat(), y = point.totalVolume.toFloat())
+        }.sortedBy { it.x }
+        
+        val efficiencyHasData = efficiencyEntries.isNotEmpty()
+        if (efficiencyHasData) {
+            efficiencyModelProducer.setEntriesSuspending(listOf(efficiencyEntries)).await()
+        } else {
+            efficiencyModelProducer.setEntriesSuspending(listOf(emptyList<FloatEntry>())).await()
+        }
+
         val bodyWeightLabels = bodyWeightFiltered.map { it.date.format(dateLabelFormatter) }
         val oneRmLabels = oneRmFiltered.map { it.date.format(dateLabelFormatter) }
         val volumeLabels = volumeFiltered.map { it.weekLabel }
+        val fatigueLabels = fatigueFiltered.map { it.date.format(dateLabelFormatter) }
 
         _uiState.update {
             val bodyWeightMinMax = calculateYAxisRange(bodyWeightFiltered)
@@ -404,6 +550,19 @@ class StatisticsViewModel @Inject constructor(
                     isEmpty = !volumeHasData,
                     message = if (volumeHasData) "" else "No volume data in this range.",
                     weekLabels = volumeLabels
+                ),
+                fatigue = it.fatigue.copy(
+                    isLoading = false,
+                    isEmpty = !fatigueHasData,
+                    message = if (fatigueHasData) "" else notEnoughTrendMessage,
+                    dates = fatigueLabels,
+                    maxVolume = maxVolume
+                ),
+                efficiency = it.efficiency.copy(
+                    isLoading = false,
+                    isEmpty = !efficiencyHasData,
+                    message = if (efficiencyHasData) "" else "No efficiency data available.",
+                    points = efficiencyRawData.map { p -> EfficiencyPointUi(p.durationMinutes, p.totalVolume.toFloat()) }
                 )
             )
         }
@@ -467,5 +626,18 @@ class StatisticsViewModel @Inject constructor(
             TimeRange.LIFETIME -> data.size
         }
         return data.takeLast(keep)
+    }
+
+    private fun filterFatigueByRange(data: List<FatiguePoint>, range: TimeRange): List<FatiguePoint> {
+        if (data.isEmpty()) return emptyList()
+        val latest = data.maxOf { it.date }
+        val startDate = when (range) {
+            TimeRange.ONE_MONTH -> latest.minusMonths(1)
+            TimeRange.THREE_MONTHS -> latest.minusMonths(3)
+            TimeRange.SIX_MONTHS -> latest.minusMonths(6)
+            TimeRange.ONE_YEAR -> latest.minusYears(1)
+            TimeRange.LIFETIME -> LocalDate.MIN
+        }
+        return data.filter { it.date >= startDate }.sortedBy { it.date }
     }
 }

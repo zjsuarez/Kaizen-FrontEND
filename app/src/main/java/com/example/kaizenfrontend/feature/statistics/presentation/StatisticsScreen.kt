@@ -37,6 +37,9 @@ import com.example.kaizenfrontend.feature.statistics.presentation.components.Est
 import com.example.kaizenfrontend.feature.statistics.presentation.components.MuscleFrequencyWidget
 import com.example.kaizenfrontend.feature.statistics.presentation.components.RepRangeWidget
 import com.example.kaizenfrontend.feature.statistics.presentation.components.VolumeTrendWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.FatigueCorrelationWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.SessionEfficiencyWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.RestTimeDensityWidget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +50,7 @@ fun StatisticsScreen(
     val bodyWeightProducer = viewModel.bodyWeightModelProducer
     val oneRmProducer = viewModel.estimated1RmModelProducer
     val volumeProducer = viewModel.volumeBarModelProducer
+    val fatigueProducer = viewModel.fatigueModelProducer
 
     Scaffold(
         topBar = {
@@ -136,6 +140,38 @@ fun StatisticsScreen(
 
             item {
                 MuscleFrequencyWidget(uiState = uiState.muscleFrequency)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(28.dp))
+            }
+
+            // Efficiency & Fatigue (The Brain)
+            item {
+                SectionHeader(title = "Efficiency & Fatigue")
+            }
+
+            item {
+                FatigueCorrelationWidget(
+                    uiState = uiState.fatigue,
+                    modelProducer = fatigueProducer
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                SessionEfficiencyWidget(uiState = uiState.efficiency)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                RestTimeDensityWidget(uiState = uiState.restTime)
             }
 
             item {

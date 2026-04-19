@@ -7,6 +7,9 @@ import com.example.kaizenfrontend.feature.statistics.data.remote.OneRepMaxTrendR
 import com.example.kaizenfrontend.feature.statistics.data.remote.RepRangeResponseDto
 import com.example.kaizenfrontend.feature.statistics.data.remote.StatisticsApiService
 import com.example.kaizenfrontend.feature.statistics.data.remote.VolumeTrendResponseDto
+import com.example.kaizenfrontend.feature.statistics.data.remote.FatigueCorrelationResponseDto
+import com.example.kaizenfrontend.feature.statistics.data.remote.SessionEfficiencyResponseDto
+import com.example.kaizenfrontend.feature.statistics.data.remote.RestTimeDistributionResponseDto
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -50,6 +53,39 @@ data class MuscleFrequencyItem(
 
 data class MuscleFrequency(
     val muscles: List<MuscleFrequencyItem>
+)
+
+// Efficiency & Fatigue domain models
+
+data class FatiguePoint(
+    val date: LocalDate,
+    val totalVolume: Double,
+    val averageRpe: Double
+)
+
+data class FatigueCorrelation(
+    val dataPoints: List<FatiguePoint>
+)
+
+data class SessionEfficiencyPoint(
+    val durationMinutes: Long,
+    val totalVolume: Double
+)
+
+data class SessionEfficiency(
+    val totalSessionsAnalyzed: Long,
+    val dataPoints: List<SessionEfficiencyPoint>
+)
+
+data class RestTimeBucket(
+    val category: String,
+    val count: Long,
+    val percentage: Double
+)
+
+data class RestTimeDistribution(
+    val totalWorkoutsAnalyzed: Long,
+    val buckets: List<RestTimeBucket>
 )
 
 class StatisticsRepository @Inject constructor(
@@ -179,6 +215,59 @@ class StatisticsRepository @Inject constructor(
         }
     }
 
+    suspend fun getFatigueCorrelation(): Result<FatigueCorrelation> {
+        return try {
+            val response = apiService.getFatigueCorrelation()
+            Log.d("StatisticsRepo", "getFatigueCorrelation: code=${response.code()} body=${response.body()}")
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.toDomain())
+            } else {
+                val msg = "GET /api/statistics/fatigue failed: ${response.code()}"
+                Log.w("StatisticsRepo", msg)
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Log.e("StatisticsRepo", "getFatigueCorrelation exception", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getSessionEfficiency(): Result<SessionEfficiency> {
+        return try {
+            val response = apiService.getSessionEfficiency()
+            Log.d("StatisticsRepo", "getSessionEfficiency: code=${response.code()} body=${response.body()}")
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.toDomain())
+            } else {
+                val msg = "GET /api/statistics/efficiency failed: ${response.code()}"
+                Log.w("StatisticsRepo", msg)
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Log.e("StatisticsRepo", "getSessionEfficiency exception", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getRestTimeDistribution(): Result<RestTimeDistribution> {
+        return try {
+            val response = apiService.getRestTimeDistribution()
+            Log.d("StatisticsRepo", "getRestTimeDistribution: code=${response.code()} body=${response.body()}")
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.toDomain())
+            } else {
+                val msg = "GET /api/statistics/density failed: ${response.code()}"
+                Log.w("StatisticsRepo", msg)
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Log.e("StatisticsRepo", "getRestTimeDistribution exception", e)
+            Result.failure(e)
+        }
+    }
+
+    // ─── DTO Converters ────────────────────────────────────────────────────────
+
     private fun VolumeTrendResponseDto.toDomain(): VolumeTrend {
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM dd")
         val points = (dataPoints ?: emptyList()).map { dto ->
@@ -214,7 +303,30 @@ class StatisticsRepository @Inject constructor(
                 percentage = it.percentage ?: 0.0
             )
         }
-        Log.d("StatisticsRepo", "MuscleFrequency mapped ${items.size} items: $items")
-        return MuscleFrequency(muscles = items)
+        val sorted = items.sortedByDescending { it.percentage }
+        Log.d("StatisticsRepo", "MuscleFrequency mapped ${sorted.size} items: $sorted")
+        return MuscleFrequency(muscles = sorted)
+    }
+
+    private fun FatigueCorrelationResponseDto.toDomain(): FatigueCorrelation {
+        val points = (dataPoints ?: emptyList()).mapNotNull { dto ->
+            val date = runCatching { LocalDate.parse(dto.date ?: "") }.getOrNull() ?: return@mapNotNull null
+            FatiguePoint(date, dto.totalVolume ?: 0.0, dto.averageRpe ?: 0.0)
+        }
+        return FatigueCorrelation(dataPoints = points)
+    }
+
+    private fun SessionEfficiencyResponseDto.toDomain(): SessionEfficiency {
+        val points = (dataPoints ?: emptyList()).map { dto ->
+            SessionEfficiencyPoint(dto.durationMinutes ?: 0L, dto.totalVolume ?: 0.0)
+        }
+        return SessionEfficiency(totalSessionsAnalyzed ?: 0L, points)
+    }
+
+    private fun RestTimeDistributionResponseDto.toDomain(): RestTimeDistribution {
+        val bucketsList = (buckets ?: emptyList()).map { dto ->
+            RestTimeBucket(dto.category ?: "Unknown", dto.count ?: 0L, dto.percentage ?: 0.0)
+        }
+        return RestTimeDistribution(totalWorkoutsAnalyzed ?: 0L, bucketsList)
     }
 }
