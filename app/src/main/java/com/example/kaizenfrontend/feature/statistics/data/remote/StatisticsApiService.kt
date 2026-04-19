@@ -56,6 +56,38 @@ data class MuscleFrequencyResponseDto(
         val muscles: List<MuscleFrequencyItemDto>?
 )
 
+// Efficiency & Fatigue DTOs
+data class FatiguePointDto(
+        @SerializedName("date") val date: String?,
+        @SerializedName("totalVolume") val totalVolume: Double?,
+        @SerializedName("averageRpe") val averageRpe: Double?
+)
+
+data class FatigueCorrelationResponseDto(
+        @SerializedName("dataPoints") val dataPoints: List<FatiguePointDto>?
+)
+
+data class SessionEfficiencyPointDto(
+        @SerializedName("durationMinutes") val durationMinutes: Long?,
+        @SerializedName("totalVolume") val totalVolume: Double?
+)
+
+data class SessionEfficiencyResponseDto(
+        @SerializedName("totalSessionsAnalyzed") val totalSessionsAnalyzed: Long?,
+        @SerializedName("dataPoints") val dataPoints: List<SessionEfficiencyPointDto>?
+)
+
+data class RestTimeBucketDto(
+        @SerializedName("category") val category: String?,
+        @SerializedName("count") val count: Long?,
+        @SerializedName("percentage") val percentage: Double?
+)
+
+data class RestTimeDistributionResponseDto(
+        @SerializedName("totalWorkoutsAnalyzed") val totalWorkoutsAnalyzed: Long?,
+        @SerializedName("buckets") val buckets: List<RestTimeBucketDto>?
+)
+
 // API interface 
 
 interface StatisticsApiService {
@@ -82,4 +114,14 @@ interface StatisticsApiService {
     // We call both and use whichever yields data.
     @GET("/api/statistics/muscle-frequency")
     suspend fun getMuscleFrequencyAsList(): Response<List<MuscleFrequencyItemDto>>
+
+    // Efficiency & Fatigue (The Brain)
+    @GET("/api/statistics/fatigue")
+    suspend fun getFatigueCorrelation(): Response<FatigueCorrelationResponseDto>
+
+    @GET("/api/statistics/efficiency")
+    suspend fun getSessionEfficiency(): Response<SessionEfficiencyResponseDto>
+
+    @GET("/api/statistics/density")
+    suspend fun getRestTimeDistribution(): Response<RestTimeDistributionResponseDto>
 }
