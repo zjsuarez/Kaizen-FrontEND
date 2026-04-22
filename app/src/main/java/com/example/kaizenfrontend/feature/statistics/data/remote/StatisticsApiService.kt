@@ -88,6 +88,48 @@ data class RestTimeDistributionResponseDto(
         @SerializedName("buckets") val buckets: List<RestTimeBucketDto>?
 )
 
+// Discipline & Habits DTOs
+
+data class ActivityHeatmapPointDto(
+        @SerializedName("date") val date: String?,
+        @SerializedName("durationMinutes", alternate = ["duration", "minutes", "workoutDurationMinutes"])
+        val durationMinutes: Int?
+)
+
+data class TrainingActivityResponseDto(
+        @SerializedName("totalActiveDays", alternate = ["totalDays", "total", "count"])
+        val totalActiveDays: Int?,
+        @SerializedName("dataPoints", alternate = ["points", "data", "items"])
+        val dataPoints: List<ActivityHeatmapPointDto>?
+)
+
+data class PrFrequencyPointDto(
+        @SerializedName("date") val date: String?,
+        @SerializedName("count", alternate = ["hits", "total", "prCount"])
+        val count: Int?
+)
+
+data class PrFrequencyResponseDto(
+        @SerializedName("totalPrDays", alternate = ["totalDays", "total", "count"])
+        val totalPrDays: Int?,
+        @SerializedName("dataPoints", alternate = ["points", "data", "items"])
+        val dataPoints: List<PrFrequencyPointDto>?
+)
+
+data class PrPeakTimePointDto(
+        @SerializedName("date", alternate = ["day", "workoutDate", "prDate", "timestamp"])
+        val date: String?,
+        @SerializedName("hourOfDay", alternate = ["hour", "hour_of_day"])
+        val hourOfDay: Int?,
+        @SerializedName("minuteOfHour", alternate = ["minute", "minute_of_hour"])
+        val minuteOfHour: Int?
+)
+
+data class PrPeakTimeResponseDto(
+        @SerializedName("dataPoints", alternate = ["points", "data", "peakTimes", "items"])
+        val dataPoints: List<PrPeakTimePointDto>?
+)
+
 // API interface 
 
 interface StatisticsApiService {
@@ -124,4 +166,18 @@ interface StatisticsApiService {
 
     @GET("/api/statistics/density")
     suspend fun getRestTimeDistribution(): Response<RestTimeDistributionResponseDto>
+
+        // Discipline & Habits
+        @GET("/api/statistics/activity-heatmap")
+        suspend fun getActivityHeatmap(): Response<TrainingActivityResponseDto>
+
+        @GET("/api/statistics/pr-heatmap")
+        suspend fun getPrHeatmap(): Response<PrFrequencyResponseDto>
+
+        @GET("/api/statistics/pr-peak-time")
+        suspend fun getPrPeakTime(): Response<PrPeakTimeResponseDto>
+
+        // Fallback for APIs returning a bare array of point objects
+        @GET("/api/statistics/pr-peak-time")
+        suspend fun getPrPeakTimeAsList(): Response<List<PrPeakTimePointDto>>
 }

@@ -6,6 +6,7 @@ import com.example.kaizenfrontend.feature.statistics.data.repository.StatisticsR
 import com.example.kaizenfrontend.feature.statistics.data.repository.TrendPoint
 import com.example.kaizenfrontend.feature.statistics.data.repository.WeeklyVolumePoint
 import com.example.kaizenfrontend.feature.statistics.data.repository.FatiguePoint
+import com.example.kaizenfrontend.feature.statistics.data.repository.PrPeakTimePoint
 import com.example.kaizenfrontend.feature.statistics.data.repository.SessionEfficiencyPoint
 import com.example.kaizenfrontend.feature.workouts.domain.repository.WorkoutRepository
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
@@ -55,7 +56,19 @@ data class StatisticsUiState(
     // Efficiency & Fatigue
     val fatigue: FatigueUiState = FatigueUiState(),
     val efficiency: EfficiencyUiState = EfficiencyUiState(),
-    val restTime: RestTimeUiState = RestTimeUiState()
+    val restTime: RestTimeUiState = RestTimeUiState(),
+    // Discipline & Habits
+    val activityHeatmap: HeatmapUiState = HeatmapUiState(
+        isLoading = true,
+        isEmpty = true,
+        message = "Loading activity heatmap..."
+    ),
+    val prHeatmap: HeatmapUiState = HeatmapUiState(
+        isLoading = true,
+        isEmpty = true,
+        message = "Loading PR heatmap..."
+    ),
+    val prPeakTime: PrPeakTimeUiState = PrPeakTimeUiState()
 )
 
 data class TrendChartUiState(
@@ -143,6 +156,31 @@ data class RestTimeUiState(
     val buckets: List<RestBucketUi> = emptyList()
 )
 
+data class HeatmapUiState(
+    val isLoading: Boolean,
+    val isEmpty: Boolean,
+    val message: String,
+    val dayValues: Map<LocalDate, Int> = emptyMap(),
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
+    val journeyStartDate: LocalDate? = null,
+    val totalHighlights: Int = 0
+)
+
+data class PrPeakTimePointUi(
+    val date: LocalDate,
+    val minutesOfDay: Int
+)
+
+data class PrPeakTimeUiState(
+    val isLoading: Boolean = true,
+    val isEmpty: Boolean = true,
+    val message: String = "Loading PR peak-time data...",
+    val points: List<PrPeakTimePointUi> = emptyList(),
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null
+)
+
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
     private val repository: StatisticsRepository,
@@ -164,6 +202,9 @@ class StatisticsViewModel @Inject constructor(
     private var volumeRawData: List<WeeklyVolumePoint> = emptyList()
     private var fatigueRawData: List<FatiguePoint> = emptyList()
     private var efficiencyRawData: List<SessionEfficiencyPoint> = emptyList()
+    private var activityHeatmapRawData: Map<LocalDate, Int> = emptyMap()
+    private var prHeatmapRawData: Map<LocalDate, Int> = emptyMap()
+    private var prPeakTimeRawData: List<PrPeakTimePoint> = emptyList()
 
     private var bodyWeightUnit: String = "KG"
     private var oneRepMaxExerciseName: String? = null
@@ -225,7 +266,22 @@ class StatisticsViewModel @Inject constructor(
                     ),
                     volumeTrend = it.volumeTrend.copy(isLoading = true, isEmpty = true, message = "Loading volume..."),
                     repRange = it.repRange.copy(isLoading = true, isEmpty = true, message = "Loading rep ranges..."),
-                    muscleFrequency = it.muscleFrequency.copy(isLoading = true, isEmpty = true, message = "Loading muscle data...")
+                    muscleFrequency = it.muscleFrequency.copy(isLoading = true, isEmpty = true, message = "Loading muscle data..."),
+                    activityHeatmap = it.activityHeatmap.copy(
+                        isLoading = true,
+                        isEmpty = true,
+                        message = "Loading activity heatmap..."
+                    ),
+                    prHeatmap = it.prHeatmap.copy(
+                        isLoading = true,
+                        isEmpty = true,
+                        message = "Loading PR heatmap..."
+                    ),
+                    prPeakTime = it.prPeakTime.copy(
+                        isLoading = true,
+                        isEmpty = true,
+                        message = "Loading PR peak-time data..."
+                    )
                 )
             }
 
@@ -239,6 +295,9 @@ class StatisticsViewModel @Inject constructor(
             val fatigueDeferred = async { repository.getFatigueCorrelation() }
             val efficiencyDeferred = async { repository.getSessionEfficiency() }
             val densityDeferred = async { repository.getRestTimeDistribution() }
+            val activityHeatmapDeferred = async { repository.getActivityHeatmap() }
+            val prHeatmapDeferred = async { repository.getPrHeatmap() }
+            val prPeakTimeDeferred = async { repository.getPrPeakTime() }
 
             val bodyWeightResult = bodyWeightDeferred.await()
             val oneRmResult = oneRmDeferred.await()
@@ -248,6 +307,9 @@ class StatisticsViewModel @Inject constructor(
             val fatigueResult = fatigueDeferred.await()
             val efficiencyResult = efficiencyDeferred.await()
             val densityResult = densityDeferred.await()
+            val activityHeatmapResult = activityHeatmapDeferred.await()
+            val prHeatmapResult = prHeatmapDeferred.await()
+            val prPeakTimeResult = prPeakTimeDeferred.await()
 
             bodyWeightResult
                 .onSuccess { trend ->
@@ -435,6 +497,62 @@ class StatisticsViewModel @Inject constructor(
                     }
                 }
 
+            // Discipline & Habits
+            activityHeatmapResult
+                .onSuccess { heatmap ->
+                    activityHeatmapRawData = heatmap.points
+                        .groupBy(keySelector = { it.date }, valueTransform = { it.durationMinutes })
+                        .mapValues { (_, values) -> values.sum().coerceAtLeast(0) }
+                }
+                .onFailure {
+                    _uiState.update { s ->
+                        s.copy(
+                            activityHeatmap = s.activityHeatmap.copy(
+                                isLoading = false,
+                                isEmpty = true,
+                                message = activityHeatmapResult.exceptionOrNull()?.message
+                                    ?: "Unable to load activity heatmap."
+                            )
+                        )
+                    }
+                }
+
+            prHeatmapResult
+                .onSuccess { heatmap ->
+                    prHeatmapRawData = heatmap.points
+                        .groupBy(keySelector = { it.date }, valueTransform = { it.count })
+                        .mapValues { (_, values) -> values.sum().coerceAtLeast(0) }
+                }
+                .onFailure {
+                    _uiState.update { s ->
+                        s.copy(
+                            prHeatmap = s.prHeatmap.copy(
+                                isLoading = false,
+                                isEmpty = true,
+                                message = prHeatmapResult.exceptionOrNull()?.message
+                                    ?: "Unable to load PR heatmap."
+                            )
+                        )
+                    }
+                }
+
+            prPeakTimeResult
+                .onSuccess { peakTime ->
+                    prPeakTimeRawData = peakTime.dataPoints
+                }
+                .onFailure {
+                    _uiState.update { s ->
+                        s.copy(
+                            prPeakTime = s.prPeakTime.copy(
+                                isLoading = false,
+                                isEmpty = true,
+                                message = prPeakTimeResult.exceptionOrNull()?.message
+                                    ?: "Unable to load PR peak-time data."
+                            )
+                        )
+                    }
+                }
+
             applyRangeAndUpdateModels(_uiState.value.selectedTimeRange)
         }
     }
@@ -447,6 +565,27 @@ class StatisticsViewModel @Inject constructor(
             filterByRange(oneRepMaxRawData, range)
         }
         val volumeFiltered = filterVolumeByRange(volumeRawData, range)
+        val journeyStartDate = activityHeatmapRawData.keys.minOrNull() ?: prHeatmapRawData.keys.minOrNull()
+
+        val activityWindow = calculateHeatmapWindow(
+            latestDate = activityHeatmapRawData.keys.maxOrNull(),
+            range = range,
+            journeyStartDate = journeyStartDate
+        )
+        val activityHeatmapFiltered = activityWindow?.let { window ->
+            filterHeatmapValuesByWindow(activityHeatmapRawData, window.first, window.second)
+        } ?: emptyMap()
+
+        val prWindow = calculateHeatmapWindow(
+            latestDate = prHeatmapRawData.keys.maxOrNull() ?: activityHeatmapRawData.keys.maxOrNull(),
+            range = range,
+            journeyStartDate = journeyStartDate
+        )
+        val prHeatmapFiltered = prWindow?.let { window ->
+            filterHeatmapValuesByWindow(prHeatmapRawData, window.first, window.second)
+        } ?: emptyMap()
+
+        val prPeakTimeFiltered = filterPrPeakByRange(prPeakTimeRawData, range)
 
         val bodyWeightHasTrend = bodyWeightFiltered.size >= 2
         val oneRmHasTrend = oneRmFiltered.size >= 2
@@ -515,6 +654,19 @@ class StatisticsViewModel @Inject constructor(
         val volumeLabels = volumeFiltered.map { it.weekLabel }
         val fatigueLabels = fatigueFiltered.map { it.date.format(dateLabelFormatter) }
 
+        val activityHeatmapStart = activityWindow?.first
+        val activityHeatmapEnd = activityWindow?.second
+        val prHeatmapStart = prWindow?.first
+        val prHeatmapEnd = prWindow?.second
+        val prPeakTimeStart = prPeakTimeFiltered.minOfOrNull { it.date }
+        val prPeakTimeEnd = prPeakTimeFiltered.maxOfOrNull { it.date }
+        val prPeakTimeUiPoints = prPeakTimeFiltered.map {
+            PrPeakTimePointUi(
+                date = it.date,
+                minutesOfDay = (it.hourOfDay * 60 + it.minuteOfHour).coerceIn(0, 1439)
+            )
+        }
+
         _uiState.update {
             val bodyWeightMinMax = calculateYAxisRange(bodyWeightFiltered)
             val oneRmMinMax = calculateYAxisRange(oneRmFiltered)
@@ -563,6 +715,46 @@ class StatisticsViewModel @Inject constructor(
                     isEmpty = !efficiencyHasData,
                     message = if (efficiencyHasData) "" else "No efficiency data available.",
                     points = efficiencyRawData.map { p -> EfficiencyPointUi(p.durationMinutes, p.totalVolume.toFloat()) }
+                ),
+                activityHeatmap = it.activityHeatmap.copy(
+                    isLoading = false,
+                    isEmpty = activityHeatmapFiltered.isEmpty(),
+                    message = if (activityHeatmapFiltered.isEmpty()) {
+                        "No workout activity in this range."
+                    } else {
+                        ""
+                    },
+                    dayValues = activityHeatmapFiltered,
+                    startDate = activityHeatmapStart,
+                    endDate = activityHeatmapEnd,
+                    journeyStartDate = journeyStartDate,
+                    totalHighlights = activityHeatmapFiltered.count { it.value > 0 }
+                ),
+                prHeatmap = it.prHeatmap.copy(
+                    isLoading = false,
+                    isEmpty = prHeatmapFiltered.isEmpty(),
+                    message = if (prHeatmapFiltered.isEmpty()) {
+                        "No PR activity in this range."
+                    } else {
+                        ""
+                    },
+                    dayValues = prHeatmapFiltered,
+                    startDate = prHeatmapStart,
+                    endDate = prHeatmapEnd,
+                    journeyStartDate = journeyStartDate,
+                    totalHighlights = prHeatmapFiltered.count { it.value > 0 }
+                ),
+                prPeakTime = it.prPeakTime.copy(
+                    isLoading = false,
+                    isEmpty = prPeakTimeUiPoints.isEmpty(),
+                    message = if (prPeakTimeUiPoints.isEmpty()) {
+                        "No PR timing events in this range."
+                    } else {
+                        ""
+                    },
+                    points = prPeakTimeUiPoints,
+                    startDate = prPeakTimeStart,
+                    endDate = prPeakTimeEnd
                 )
             )
         }
@@ -639,5 +831,47 @@ class StatisticsViewModel @Inject constructor(
             TimeRange.LIFETIME -> LocalDate.MIN
         }
         return data.filter { it.date >= startDate }.sortedBy { it.date }
+    }
+
+    private fun calculateHeatmapWindow(
+        latestDate: LocalDate?,
+        range: TimeRange,
+        journeyStartDate: LocalDate?
+    ): Pair<LocalDate, LocalDate>? {
+        val endDate = latestDate ?: return null
+        val startDate = when (range) {
+            TimeRange.ONE_MONTH -> endDate.minusMonths(1)
+            TimeRange.THREE_MONTHS -> endDate.minusMonths(3)
+            TimeRange.SIX_MONTHS -> endDate.minusMonths(6)
+            TimeRange.ONE_YEAR -> endDate.minusYears(1)
+            TimeRange.LIFETIME -> (journeyStartDate ?: endDate).withDayOfYear(1)
+        }
+        return startDate to endDate
+    }
+
+    private fun filterHeatmapValuesByWindow(
+        data: Map<LocalDate, Int>,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): Map<LocalDate, Int> {
+        if (data.isEmpty()) return emptyMap()
+        return data
+            .filter { (date, _) -> date >= startDate && date <= endDate }
+            .toSortedMap()
+    }
+
+    private fun filterPrPeakByRange(data: List<PrPeakTimePoint>, range: TimeRange): List<PrPeakTimePoint> {
+        if (data.isEmpty()) return emptyList()
+        val latest = data.maxOf { it.date }
+        val startDate = when (range) {
+            TimeRange.ONE_MONTH -> latest.minusMonths(1)
+            TimeRange.THREE_MONTHS -> latest.minusMonths(3)
+            TimeRange.SIX_MONTHS -> latest.minusMonths(6)
+            TimeRange.ONE_YEAR -> latest.minusYears(1)
+            TimeRange.LIFETIME -> LocalDate.MIN
+        }
+        return data
+            .filter { it.date >= startDate }
+            .sortedBy { it.date }
     }
 }

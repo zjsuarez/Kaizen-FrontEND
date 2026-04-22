@@ -4,12 +4,16 @@ import android.util.Log
 import com.example.kaizenfrontend.feature.statistics.data.remote.BodyWeightTrendResponseDto
 import com.example.kaizenfrontend.feature.statistics.data.remote.MuscleFrequencyResponseDto
 import com.example.kaizenfrontend.feature.statistics.data.remote.OneRepMaxTrendResponseDto
+import com.example.kaizenfrontend.feature.statistics.data.remote.PrPeakTimePointDto
+import com.example.kaizenfrontend.feature.statistics.data.remote.PrPeakTimeResponseDto
+import com.example.kaizenfrontend.feature.statistics.data.remote.PrFrequencyResponseDto
 import com.example.kaizenfrontend.feature.statistics.data.remote.RepRangeResponseDto
 import com.example.kaizenfrontend.feature.statistics.data.remote.StatisticsApiService
 import com.example.kaizenfrontend.feature.statistics.data.remote.VolumeTrendResponseDto
 import com.example.kaizenfrontend.feature.statistics.data.remote.FatigueCorrelationResponseDto
 import com.example.kaizenfrontend.feature.statistics.data.remote.SessionEfficiencyResponseDto
 import com.example.kaizenfrontend.feature.statistics.data.remote.RestTimeDistributionResponseDto
+import com.example.kaizenfrontend.feature.statistics.data.remote.TrainingActivityResponseDto
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -86,6 +90,36 @@ data class RestTimeBucket(
 data class RestTimeDistribution(
     val totalWorkoutsAnalyzed: Long,
     val buckets: List<RestTimeBucket>
+)
+
+// Discipline & Habits domain models
+
+data class ActivityHeatmapPoint(
+    val date: LocalDate,
+    val durationMinutes: Int
+)
+
+data class ActivityHeatmap(
+    val points: List<ActivityHeatmapPoint>
+)
+
+data class PrHeatmapPoint(
+    val date: LocalDate,
+    val count: Int
+)
+
+data class PrHeatmap(
+    val points: List<PrHeatmapPoint>
+)
+
+data class PrPeakTimePoint(
+    val date: LocalDate,
+    val hourOfDay: Int,
+    val minuteOfHour: Int
+)
+
+data class PrPeakTime(
+    val dataPoints: List<PrPeakTimePoint>
 )
 
 class StatisticsRepository @Inject constructor(
@@ -266,6 +300,83 @@ class StatisticsRepository @Inject constructor(
         }
     }
 
+    suspend fun getActivityHeatmap(): Result<ActivityHeatmap> {
+        return try {
+            val wrappedResponse = apiService.getActivityHeatmap()
+            Log.d(
+                "StatisticsRepo",
+                "getActivityHeatmap wrapped: code=${wrappedResponse.code()} size=${wrappedResponse.body()?.dataPoints?.size}"
+            )
+            if (wrappedResponse.isSuccessful && wrappedResponse.body() != null) {
+                val domain = wrappedResponse.body()!!.toDomain()
+                Result.success(domain)
+            } else {
+                val msg = "GET /api/statistics/activity-heatmap failed: ${wrappedResponse.code()}"
+                Log.w("StatisticsRepo", msg)
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Log.e("StatisticsRepo", "getActivityHeatmap exception", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPrHeatmap(): Result<PrHeatmap> {
+        return try {
+            val wrappedResponse = apiService.getPrHeatmap()
+            Log.d(
+                "StatisticsRepo",
+                "getPrHeatmap wrapped: code=${wrappedResponse.code()} size=${wrappedResponse.body()?.dataPoints?.size}"
+            )
+            if (wrappedResponse.isSuccessful && wrappedResponse.body() != null) {
+                val domain = wrappedResponse.body()!!.toDomain()
+                Result.success(domain)
+            } else {
+                val msg = "GET /api/statistics/pr-heatmap failed: ${wrappedResponse.code()}"
+                Log.w("StatisticsRepo", msg)
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Log.e("StatisticsRepo", "getPrHeatmap exception", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPrPeakTime(): Result<PrPeakTime> {
+        return try {
+            val wrappedResponse = apiService.getPrPeakTime()
+            Log.d(
+                "StatisticsRepo",
+                "getPrPeakTime wrapped: code=${wrappedResponse.code()} size=${wrappedResponse.body()?.dataPoints?.size}"
+            )
+            if (wrappedResponse.isSuccessful && wrappedResponse.body() != null) {
+                val domain = wrappedResponse.body()!!.toDomain()
+                if (domain.dataPoints.isNotEmpty()) {
+                    return Result.success(domain)
+                }
+            }
+
+            val listResponse = apiService.getPrPeakTimeAsList()
+            Log.d(
+                "StatisticsRepo",
+                "getPrPeakTime list fallback: code=${listResponse.code()} size=${listResponse.body()?.size}"
+            )
+            if (listResponse.isSuccessful && !listResponse.body().isNullOrEmpty()) {
+                val points = listResponse.body()!!
+                    .mapNotNull { it.toDomainPointOrNull() }
+                    .sortedBy { it.date }
+                Result.success(PrPeakTime(dataPoints = points))
+            } else {
+                val msg = "GET /api/statistics/pr-peak-time failed: ${listResponse.code()}"
+                Log.w("StatisticsRepo", msg)
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Log.e("StatisticsRepo", "getPrPeakTime exception", e)
+            Result.failure(e)
+        }
+    }
+
     // ─── DTO Converters ────────────────────────────────────────────────────────
 
     private fun VolumeTrendResponseDto.toDomain(): VolumeTrend {
@@ -328,5 +439,66 @@ class StatisticsRepository @Inject constructor(
             RestTimeBucket(dto.category ?: "Unknown", dto.count ?: 0L, dto.percentage ?: 0.0)
         }
         return RestTimeDistribution(totalWorkoutsAnalyzed ?: 0L, bucketsList)
+    }
+
+    private fun TrainingActivityResponseDto.toDomain(): ActivityHeatmap {
+        val aggregated = (dataPoints ?: emptyList())
+            .mapNotNull { point ->
+                val parsedDate = parseDateFlexible(point.date.orEmpty()) ?: return@mapNotNull null
+                parsedDate to (point.durationMinutes ?: 0).coerceAtLeast(0)
+            }
+            .groupBy(keySelector = { it.first }, valueTransform = { it.second })
+            .map { (date, values) ->
+                ActivityHeatmapPoint(
+                    date = date,
+                    durationMinutes = values.sum().coerceAtLeast(0)
+                )
+            }
+            .sortedBy { it.date }
+        return ActivityHeatmap(points = aggregated)
+    }
+
+    private fun PrFrequencyResponseDto.toDomain(): PrHeatmap {
+        val aggregated = (dataPoints ?: emptyList())
+            .mapNotNull { point ->
+                val parsedDate = parseDateFlexible(point.date.orEmpty()) ?: return@mapNotNull null
+                parsedDate to (point.count ?: 0).coerceAtLeast(0)
+            }
+            .groupBy(keySelector = { it.first }, valueTransform = { it.second })
+            .map { (date, values) ->
+                PrHeatmapPoint(
+                    date = date,
+                    count = values.sum().coerceAtLeast(0)
+                )
+            }
+            .sortedBy { it.date }
+        return PrHeatmap(points = aggregated)
+    }
+
+    private fun PrPeakTimeResponseDto.toDomain(): PrPeakTime {
+        val points = (dataPoints ?: emptyList())
+            .mapNotNull { it.toDomainPointOrNull() }
+            .sortedBy { it.date }
+        return PrPeakTime(dataPoints = points)
+    }
+
+    private fun PrPeakTimePointDto.toDomainPointOrNull(): PrPeakTimePoint? {
+        val parsedDate = parseDateFlexible(date ?: return null) ?: return null
+        val hour = (hourOfDay ?: return null).coerceIn(0, 23)
+        val minute = (minuteOfHour ?: return null).coerceIn(0, 59)
+        return PrPeakTimePoint(
+            date = parsedDate,
+            hourOfDay = hour,
+            minuteOfHour = minute
+        )
+    }
+
+    private fun parseDateFlexible(raw: String): LocalDate? {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) return null
+
+        // Accept plain dates and timestamp strings by truncating to the date portion.
+        val normalized = if (trimmed.length >= 10) trimmed.substring(0, 10) else trimmed
+        return runCatching { LocalDate.parse(normalized) }.getOrNull()
     }
 }

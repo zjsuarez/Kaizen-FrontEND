@@ -38,8 +38,9 @@ import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 // Streak Widget
 // ──────────────────────────────────────────────────────────────
 @Composable
-fun Modifier.StreakWidget(streakDays: Int, recordStreak: Int = 12) {
-    val isNewRecord = streakDays >= recordStreak && streakDays > 0
+fun Modifier.StreakWidget(streakDays: Int?, recordStreak: Int = 12) {
+    val currentStreak = streakDays ?: 0
+    val isNewRecord = currentStreak >= recordStreak && currentStreak > 0
     val iconTint = if (isNewRecord) PrGold else CrayolaBlue
 
     KaizenWidgetContainer(modifier = this) {
@@ -66,7 +67,7 @@ fun Modifier.StreakWidget(streakDays: Int, recordStreak: Int = 12) {
             Column {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                            text = "$streakDays",
+                            text = streakDays?.toString() ?: "--",
                             color = PureWhite,
                             fontSize = 40.sp,
                             fontWeight = FontWeight.Bold,
@@ -102,7 +103,7 @@ fun Modifier.StreakWidget(streakDays: Int, recordStreak: Int = 12) {
 // Average Time Widget
 // ──────────────────────────────────────────────────────────────
 @Composable
-fun AvgTimeWidget(minutes: Int, trendDiffMinutes: Int = 0, modifier: Modifier = Modifier) {
+fun AvgTimeWidget(minutes: Int?, trendDiffMinutes: Int = 0, modifier: Modifier = Modifier) {
     KaizenWidgetContainer(modifier = modifier) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             // Top: icon + label
@@ -127,7 +128,7 @@ fun AvgTimeWidget(minutes: Int, trendDiffMinutes: Int = 0, modifier: Modifier = 
             Column {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                            text = "$minutes",
+                            text = minutes?.toString() ?: "--",
                             color = PureWhite,
                             fontSize = 40.sp,
                             fontWeight = FontWeight.Bold,
@@ -181,7 +182,7 @@ fun AvgTimeWidget(minutes: Int, trendDiffMinutes: Int = 0, modifier: Modifier = 
 @Composable
 fun OneRmWidget(
     exercise: String,
-    weight: Double,
+    weight: Double?,
     isNewPr: Boolean = false,
     weightIncrease: Double = 0.0,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
@@ -213,10 +214,10 @@ fun OneRmWidget(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Format: strip ".0" for clean integers
                     val displayWeight =
-                            if (weight % 1.0 == 0.0) {
-                                weight.toInt().toString()
-                            } else {
-                                String.format("%.1f", weight)
+                            when {
+                                weight == null -> "--"
+                                weight % 1.0 == 0.0 -> weight.toInt().toString()
+                                else -> String.format("%.1f", weight)
                             }
                     Text(
                             text = displayWeight,

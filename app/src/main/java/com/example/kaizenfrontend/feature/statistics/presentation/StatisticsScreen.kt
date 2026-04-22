@@ -40,6 +40,9 @@ import com.example.kaizenfrontend.feature.statistics.presentation.components.Vol
 import com.example.kaizenfrontend.feature.statistics.presentation.components.FatigueCorrelationWidget
 import com.example.kaizenfrontend.feature.statistics.presentation.components.SessionEfficiencyWidget
 import com.example.kaizenfrontend.feature.statistics.presentation.components.RestTimeDensityWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.ActivityHeatmapWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.PrFrequencyHeatmapWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.PrPeakTimeWidget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -172,6 +175,35 @@ fun StatisticsScreen(
 
             item {
                 RestTimeDensityWidget(uiState = uiState.restTime)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(28.dp))
+            }
+
+            // Discipline & Habits
+            item {
+                SectionHeader(title = "Discipline & Habits")
+            }
+
+            item {
+                ActivityHeatmapWidget(uiState = uiState.activityHeatmap)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                PrFrequencyHeatmapWidget(uiState = uiState.prHeatmap)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                PrPeakTimeWidget(uiState = uiState.prPeakTime)
             }
 
             item {
