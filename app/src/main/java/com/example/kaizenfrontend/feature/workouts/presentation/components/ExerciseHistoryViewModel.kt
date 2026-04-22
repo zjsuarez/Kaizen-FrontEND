@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class ZenModeHistoryUiState(
+data class ExerciseHistoryUiState(
     val isLoading: Boolean = false,
     val workouts: List<com.example.kaizenfrontend.feature.workouts.data.remote.dto.WorkoutResponseDto> = emptyList(),
     val errorMessage: String? = null
@@ -41,14 +41,14 @@ data class ExerciseHistoryWorkoutUi(
 )
 
 @HiltViewModel
-class ZenModeHistoryViewModel
+class ExerciseHistoryViewModel
 @Inject
 constructor(
     private val workoutRepository: WorkoutRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ZenModeHistoryUiState(isLoading = true))
-    val uiState: StateFlow<ZenModeHistoryUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(ExerciseHistoryUiState(isLoading = true))
+    val uiState: StateFlow<ExerciseHistoryUiState> = _uiState.asStateFlow()
 
     init {
         refresh()
