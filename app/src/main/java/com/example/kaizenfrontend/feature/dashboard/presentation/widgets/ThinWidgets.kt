@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -107,7 +105,7 @@ fun LastSessionWidget(
     routineName: String?,
     timeLabel: String?,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
+    onClick: (() -> Unit)? = null
 ) {
     KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
         Row(
@@ -166,7 +164,7 @@ fun WeightTrendWidget(
     trendLabel: String?,
     isPositive: Boolean?,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
+    onClick: (() -> Unit)? = null
 ) {
     KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
         Row(
