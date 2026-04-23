@@ -113,7 +113,6 @@ class SettingsViewModel(context: Context) : ViewModel() {
 
     fun logout() {
         sessionManager.clearToken()
-        sessionManager.saveCalibrationComplete(false)
     }
 
     private fun updateProfile(request: UserUpdateRequest) {

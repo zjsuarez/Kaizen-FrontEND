@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.example.kaizenfrontend.core.data.local.SessionManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -16,12 +17,15 @@ import java.io.IOException
 import javax.inject.Inject
 
 class DashboardPreferences @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val sessionManager: SessionManager
 ) {
 
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
         produceFile = { context.preferencesDataStoreFile(DATASTORE_NAME) }
     )
+
+    private fun getWidgetOrderKey() = stringPreferencesKey("widget_order_${sessionManager.getUserIdFromToken()}")
 
     val widgetOrder: Flow<List<String>> = dataStore.data
         .catch { exception ->
@@ -32,24 +36,27 @@ class DashboardPreferences @Inject constructor(
             }
         }
         .map { preferences ->
-            preferences[WIDGET_ORDER_KEY]
-                ?.split(",")
-                ?.map { it.trim() }
-                ?.filter { it.isNotBlank() }
-                ?.takeIf { it.isNotEmpty() }
-                ?: DEFAULT_WIDGET_ORDER
+            val orderString = preferences[getWidgetOrderKey()]
+            if (orderString == null) {
+                DEFAULT_WIDGET_ORDER
+            } else if (orderString.isBlank()) {
+                emptyList()
+            } else {
+                orderString.split(",")
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+            }
         }
 
     suspend fun saveWidgetOrder(order: List<String>) {
         val serializedOrder = order.joinToString(",")
         dataStore.edit { preferences ->
-            preferences[WIDGET_ORDER_KEY] = serializedOrder
+            preferences[getWidgetOrderKey()] = serializedOrder
         }
     }
 
     companion object {
         private const val DATASTORE_NAME = "dashboard_preferences"
-        val WIDGET_ORDER_KEY = stringPreferencesKey("widget_order")
         private val DEFAULT_WIDGET_ORDER = listOf("NEXT_WORKOUT", "WEIGHT_TREND")
     }
 }

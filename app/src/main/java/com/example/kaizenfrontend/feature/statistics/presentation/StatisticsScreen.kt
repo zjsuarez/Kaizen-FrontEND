@@ -1,103 +1,261 @@
 package com.example.kaizenfrontend.feature.statistics.presentation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.DirectionsRun
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.kaizenfrontend.core.ui.theme.*
+import com.example.kaizenfrontend.core.ui.theme.LightGrey
+import com.example.kaizenfrontend.core.ui.theme.Onyx
+import com.example.kaizenfrontend.core.ui.theme.PureWhite
+import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
+import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
+import com.example.kaizenfrontend.feature.statistics.presentation.components.BodyWeightTrendWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.Estimated1RmWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.MuscleFrequencyWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.RepRangeWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.VolumeTrendWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.FatigueCorrelationWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.SessionEfficiencyWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.RestTimeDensityWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.ActivityHeatmapWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.PrFrequencyHeatmapWidget
+import com.example.kaizenfrontend.feature.statistics.presentation.components.PrPeakTimeWidget
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen(
-    // TODO: Inject real UiState from ViewModel
+    viewModel: StatisticsViewModel = hiltViewModel()
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Onyx)
-            .padding(horizontal = 24.dp)
-            .padding(top = 48.dp)
-    ) {
-        Text(text = "Statistics", color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Bold)
-        Text(
-            text = "Track your progress",
-            color = LightGrey,
-            fontSize = 14.sp,
-            modifier = Modifier.padding(top = 4.dp, bottom = 32.dp)
-        )
+    val uiState by viewModel.uiState.collectAsState()
+    val bodyWeightProducer = viewModel.bodyWeightModelProducer
+    val oneRmProducer = viewModel.estimated1RmModelProducer
+    val volumeProducer = viewModel.volumeBarModelProducer
+    val fatigueProducer = viewModel.fatigueModelProducer
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard(modifier = Modifier.weight(1f), icon = Icons.Default.LocalFireDepartment, label = "Calories", value = "—", unit = "kcal")
-            StatCard(modifier = Modifier.weight(1f), icon = Icons.Default.Timer, label = "Avg. Session", value = "—", unit = "min")
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard(modifier = Modifier.weight(1f), icon = Icons.Default.DirectionsRun, label = "Workouts", value = "—", unit = "total")
-            StatCard(modifier = Modifier.weight(1f), icon = Icons.Default.BarChart, label = "Best Streak", value = "—", unit = "days")
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = ShadowGrey)
-        ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.BarChart,
-                        contentDescription = null,
-                        tint = CrayolaBlue,
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
                     Text(
-                        text = "Progress Chart",
-                        color = LightGrey,
-                        fontSize = 14.sp
+                        text = "Analytics Lab",
+                        color = PureWhite,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
                     )
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Onyx,
+                    titleContentColor = PureWhite
+                )
+            )
+        },
+        containerColor = Onyx
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            item {
+                TimeRangeSelector(
+                    selectedRange = uiState.selectedTimeRange,
+                    onRangeSelected = { viewModel.updateTimeRange(it) }
+                )
+            }
+
+            // Strength & Health 
+            item {
+                SectionHeader(title = "Strength & Health")
+            }
+
+            item {
+                BodyWeightTrendWidget(
+                    uiState = uiState.bodyWeightChart,
+                    modelProducer = bodyWeightProducer
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                Estimated1RmWidget(
+                    uiState = uiState.estimated1RmChart,
+                    modelProducer = oneRmProducer,
+                    exercises = uiState.exercises,
+                    selectedExerciseId = uiState.selectedExerciseId,
+                    onExerciseSelected = viewModel::selectExercise
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(28.dp))
+            }
+
+            // Hypertrophy & Overload 
+            item {
+                SectionHeader(title = "Hypertrophy & Overload")
+            }
+
+            item {
+                VolumeTrendWidget(
+                    uiState = uiState.volumeTrend,
+                    modelProducer = volumeProducer
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                RepRangeWidget(uiState = uiState.repRange)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                MuscleFrequencyWidget(uiState = uiState.muscleFrequency)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(28.dp))
+            }
+
+            // Efficiency & Fatigue (The Brain)
+            item {
+                SectionHeader(title = "Efficiency & Fatigue")
+            }
+
+            item {
+                FatigueCorrelationWidget(
+                    uiState = uiState.fatigue,
+                    modelProducer = fatigueProducer
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                SessionEfficiencyWidget(uiState = uiState.efficiency)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                RestTimeDensityWidget(uiState = uiState.restTime)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(28.dp))
+            }
+
+            // Discipline & Habits
+            item {
+                SectionHeader(title = "Discipline & Habits")
+            }
+
+            item {
+                ActivityHeatmapWidget(uiState = uiState.activityHeatmap)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                PrFrequencyHeatmapWidget(uiState = uiState.prHeatmap)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                PrPeakTimeWidget(uiState = uiState.prPeakTime)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
 }
 
 @Composable
-private fun StatCard(modifier: Modifier = Modifier, icon: ImageVector, label: String, value: String, unit: String) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = ShadowGrey)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Icon(imageVector = icon, contentDescription = label, tint = CrayolaBlue, modifier = Modifier.size(24.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = value, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text(text = "$label ($unit)", color = LightGrey, fontSize = 12.sp)
-        }
-    }
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        color = LightGrey,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 1.2.sp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp, top = 4.dp)
+    )
 }
 
-@Preview(showBackground = true)
 @Composable
-fun StatisticsScreenPreview() {
-    MaterialTheme { StatisticsScreen() }
+private fun TimeRangeSelector(
+    selectedRange: TimeRange,
+    onRangeSelected: (TimeRange) -> Unit
+) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        TimeRange.entries.forEach { range ->
+            val isSelected = range == selectedRange
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isSelected) CrayolaBlue.copy(alpha = 0.2f) else ShadowGrey)
+                    .clickable { onRangeSelected(range) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = range.label,
+                    color = if (isSelected) CrayolaBlue else LightGrey,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
 }

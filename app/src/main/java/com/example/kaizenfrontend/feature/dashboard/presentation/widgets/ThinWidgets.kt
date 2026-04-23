@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -27,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.components.KaizenWidgetContainer
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
+import com.example.kaizenfrontend.core.ui.theme.MalachiteGreen
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 
 // ──────────────────────────────────────────────────────────────
@@ -38,6 +37,11 @@ fun RecoveryTimeWidget(
     hours: Int?,
     modifier: Modifier = Modifier
 ) {
+    val isRecovered = hours != null && hours <= 0
+    val displayHours = if (isRecovered) "0" else hours?.toString() ?: "--"
+    val subtext = if (isRecovered) "Recovered" else if (hours != null) "Recovering" else "No Data"
+    val accentColor = if (isRecovered) MalachiteGreen else CrayolaBlue
+
     KaizenWidgetContainer(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -49,7 +53,7 @@ fun RecoveryTimeWidget(
                 Icon(
                     imageVector = Icons.Default.BatteryChargingFull,
                     contentDescription = "Recovery",
-                    tint = CrayolaBlue,
+                    tint = accentColor,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -66,7 +70,7 @@ fun RecoveryTimeWidget(
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = hours?.toString() ?: "--",
+                        text = displayHours,
                         color = PureWhite,
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
@@ -82,7 +86,7 @@ fun RecoveryTimeWidget(
                     )
                 }
                 Text(
-                    text = if (hours != null && hours <= 24) "Ready to train" else "Recovering",
+                    text = subtext,
                     color = LightGrey.copy(alpha = 0.6f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Normal
@@ -101,7 +105,7 @@ fun LastSessionWidget(
     routineName: String?,
     timeLabel: String?,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
+    onClick: (() -> Unit)? = null
 ) {
     KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
         Row(
@@ -160,7 +164,7 @@ fun WeightTrendWidget(
     trendLabel: String?,
     isPositive: Boolean?,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
+    onClick: (() -> Unit)? = null
 ) {
     KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
         Row(

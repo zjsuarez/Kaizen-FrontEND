@@ -82,8 +82,7 @@ fun KaizenNavHost() {
             LoginScreen(
                 onBackClick = { navController.popBackStack() },
                 onLoginClick = {
-                    val destination = if (sessionManager.isCalibrationComplete()) "dashboard" else "calibration"
-                    navController.navigate(destination) {
+                    navController.navigate("splash") {
                         popUpTo("start") { inclusive = true }
                     }
                 }

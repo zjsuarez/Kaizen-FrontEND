@@ -72,9 +72,10 @@ fun NextWorkoutWidget(
         routineName: String?,
         onStartClick: () -> Unit = {},
         modifier: Modifier = Modifier,
-        onClick: () -> Unit = {}
+        onClick: (() -> Unit)? = null,
+        isGhost: Boolean = false
 ) {
-    KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
+    KaizenWidgetContainer(modifier = modifier, onClick = if (isGhost) null else onClick) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             // Header: icon + label
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -100,9 +101,9 @@ fun NextWorkoutWidget(
                     contentAlignment = Alignment.Center
             ) {
                 Text(
-                        text = routineName ?: "No workout scheduled",
+                    text = routineName ?: if (isGhost) "--" else "No workout scheduled",
                         color = if (routineName != null) PureWhite else LightGrey,
-                        fontSize = if (routineName != null) 32.sp else 16.sp,
+                    fontSize = if (routineName != null || isGhost) 32.sp else 16.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         maxLines = 2,
@@ -113,6 +114,7 @@ fun NextWorkoutWidget(
             // Footer: start button
             Button(
                     onClick = onStartClick,
+                    enabled = !isGhost,
                     modifier = Modifier.fillMaxWidth().height(42.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors =
@@ -140,10 +142,11 @@ fun NextWorkoutWidget(
 fun RecentPrsWidget(
         prs: List<RecentPrMock>,
         modifier: Modifier = Modifier,
-        onClick: () -> Unit = {},
-        onPrClick: (String) -> Unit = {}
+        onClick: (() -> Unit)? = null,
+        onPrClick: (String) -> Unit = {},
+        isGhost: Boolean = false
 ) {
-    KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
+    KaizenWidgetContainer(modifier = modifier, onClick = if (isGhost) null else onClick) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Top) {
             // Header: icon + label
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -185,7 +188,7 @@ fun RecentPrsWidget(
                         verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     prs.forEachIndexed { index, pr ->
-                        PrRow(pr = pr, onPrClick = onPrClick)
+                        PrRow(pr = pr, onPrClick = onPrClick, isGhost = isGhost)
                         if (index < prs.lastIndex) {
                             HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 8.dp),
@@ -201,9 +204,12 @@ fun RecentPrsWidget(
 }
 
 @Composable
-private fun PrRow(pr: RecentPrMock, onPrClick: (String) -> Unit) {
+private fun PrRow(pr: RecentPrMock, onPrClick: (String) -> Unit, isGhost: Boolean) {
     Row(
-            modifier = Modifier.fillMaxWidth().clickable { onPrClick(pr.exercise) }.padding(vertical = 4.dp),
+        modifier =
+            Modifier.fillMaxWidth()
+                .clickable(enabled = !isGhost) { onPrClick(pr.exercise) }
+                .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
     ) {
@@ -257,8 +263,9 @@ private fun PrRow(pr: RecentPrMock, onPrClick: (String) -> Unit) {
 fun CalendarWidget(
         trainingDays: List<Int>,
         modifier: Modifier = Modifier,
-        onClick: () -> Unit = {},
-        onDayClick: (Int, Boolean) -> Unit = { _, _ -> }
+    onClick: (() -> Unit)? = null,
+    onDayClick: (Int, Boolean) -> Unit = { _, _ -> },
+    isGhost: Boolean = false
 ) {
     // TODO (Tech Debt): Fetch calendar data for selected month
     var currentMonthOffset by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(0) }
@@ -284,7 +291,7 @@ fun CalendarWidget(
     val rawDow = calendar.get(Calendar.DAY_OF_WEEK) // Sun=1, Mon=2 ...
     val startOffset = if (rawDow == Calendar.SUNDAY) 6 else rawDow - 2
 
-    KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
+    KaizenWidgetContainer(modifier = modifier, onClick = if (isGhost) null else onClick) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Top) {
             // Header: icon + month name + nav chevrons
             Row(
@@ -312,7 +319,11 @@ fun CalendarWidget(
 
                 // Right: month navigation
                 Row {
-                    IconButton(onClick = { currentMonthOffset-- }, modifier = Modifier.size(28.dp)) {
+                        IconButton(
+                            onClick = { currentMonthOffset-- },
+                            enabled = !isGhost,
+                            modifier = Modifier.size(28.dp)
+                        ) {
                         Icon(
                                 imageVector = Icons.Default.ChevronLeft,
                                 contentDescription = "Previous month",
@@ -320,7 +331,11 @@ fun CalendarWidget(
                                 modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = { currentMonthOffset++ }, modifier = Modifier.size(28.dp)) {
+                        IconButton(
+                            onClick = { currentMonthOffset++ },
+                            enabled = !isGhost,
+                            modifier = Modifier.size(28.dp)
+                        ) {
                         Icon(
                                 imageVector = Icons.Default.ChevronRight,
                                 contentDescription = "Next month",
@@ -380,6 +395,7 @@ fun CalendarWidget(
                                             day = dayNumber,
                                             isTrainingDay = dayNumber in trainingDays,
                                             isToday = dayNumber == today,
+                                            isInteractive = !isGhost,
                                             onClick = { onDayClick(dayNumber, dayNumber in trainingDays) }
                                     )
                                 }
@@ -424,6 +440,7 @@ private fun CalendarDayCell(
     day: Int,
     isTrainingDay: Boolean,
     isToday: Boolean,
+    isInteractive: Boolean,
     onClick: () -> Unit
 ) {
     val intensityColor = remember(day) {
@@ -448,7 +465,7 @@ private fun CalendarDayCell(
                     .clip(CircleShape)
                     .background(bgColor, CircleShape)
                     .then(borderMod)
-                    .clickable(onClick = onClick),
+                        .clickable(enabled = isInteractive, onClick = onClick),
             contentAlignment = Alignment.Center
     ) {
         Text(
