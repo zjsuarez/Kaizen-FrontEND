@@ -75,7 +75,10 @@ import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.WeightT
 import com.example.kaizenfrontend.feature.statistics.presentation.StatisticsScreen
 import com.example.kaizenfrontend.feature.user.presentation.settings.SettingsScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutsScreen
+import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -84,7 +87,7 @@ import java.util.Locale
 // ──────────────────────────────────────────────────────────────
 
 sealed class DashboardBottomSheetType {
-    data class CalendarDay(val day: Int, val isTrainingDay: Boolean) : DashboardBottomSheetType()
+    data class CalendarDay(val date: LocalDate, val hasWorkout: Boolean) : DashboardBottomSheetType()
     data class NextWorkoutOptions(val currentRoutineName: String) : DashboardBottomSheetType()
     data class PrDetails(val exerciseName: String) : DashboardBottomSheetType()
     data class LogBodyWeight(val currentWeight: Double?) : DashboardBottomSheetType()
@@ -176,6 +179,8 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val widgetOrder by viewModel.widgetOrder.collectAsState()
     val weightHistory by viewModel.weightHistory.collectAsState()
+    val nextWorkoutExercises by viewModel.nextWorkoutExercises.collectAsState()
+    val workoutsByDate by viewModel.workoutsByDate.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
     val userName = remember {
         SessionManager(context)
@@ -312,6 +317,7 @@ fun DashboardScreen(
                                     successState = state,
                                     widgetOrder = widgetOrder,
                                     weightHistory = weightHistory,
+                                    workoutDates = workoutsByDate.keys,
                                     isEditing = isEditing,
                                     onWorkoutClick = onWorkoutClick,
                                     onWidgetClick = { activeBottomSheet = it },
@@ -397,7 +403,9 @@ fun DashboardScreen(
                     onWorkoutClick()
                     activeBottomSheet = null
                 },
-                weightHistory = weightHistory
+                weightHistory = weightHistory,
+                nextWorkoutExercises = nextWorkoutExercises,
+                workoutsByDate = workoutsByDate
             )
         }
     }
@@ -461,6 +469,7 @@ fun DashboardWidgetGrid(
     successState: DashboardUiState.Success,
     widgetOrder: List<String>,
     weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>,
+    workoutDates: Set<LocalDate>,
     isEditing: Boolean,
     onWorkoutClick: () -> Unit,
     onWidgetClick: (DashboardBottomSheetType) -> Unit,
@@ -524,7 +533,7 @@ fun DashboardWidgetGrid(
             ) { widgetType ->
                 val config = widgetConfigByType[widgetType] ?: return@items
                 val wMod = Modifier.fillMaxWidth().height(config.heightDp)
-                WidgetContent(widgetType, wMod, successState, onWorkoutClick, onWidgetClick)
+                WidgetContent(widgetType, wMod, successState, workoutDates, onWorkoutClick, onWidgetClick)
             }
         }
     } else {
@@ -656,6 +665,7 @@ private fun WidgetContent(
     widgetType: WidgetType,
     widgetModifier: Modifier,
     successState: DashboardUiState.Success,
+    workoutDates: Set<LocalDate>,
     onWorkoutClick: () -> Unit,
     onWidgetClick: (DashboardBottomSheetType) -> Unit
 ) {
@@ -704,11 +714,26 @@ private fun WidgetContent(
             val days = data.trainingDaysThisMonth.mapNotNull {
                 runCatching { LocalDate.parse(it).dayOfMonth }.getOrNull()
             }
+            val today = LocalDate.now()
             CalendarWidget(
                 trainingDays = days,
                 modifier = widgetModifier,
-                onClick = { onWidgetClick(DashboardBottomSheetType.CalendarDay(LocalDate.now().dayOfMonth, days.contains(LocalDate.now().dayOfMonth))) },
-                onDayClick = { day, isTrainingDay -> onWidgetClick(DashboardBottomSheetType.CalendarDay(day, isTrainingDay)) }
+                onClick = {
+                    onWidgetClick(
+                        DashboardBottomSheetType.CalendarDay(
+                            date = today,
+                            hasWorkout = workoutDates.contains(today)
+                        )
+                    )
+                },
+                onDayClick = { date, isTrainingDay ->
+                    onWidgetClick(
+                        DashboardBottomSheetType.CalendarDay(
+                            date = date,
+                            hasWorkout = workoutDates.contains(date) || isTrainingDay
+                        )
+                    )
+                }
             )
         }
         WidgetType.RECENT_PRS -> {
@@ -892,7 +917,9 @@ private fun BottomSheetContent(
     onDismiss: () -> Unit,
     onLogWeight: (Double) -> Unit = {},
     onWorkoutClick: () -> Unit = {},
-    weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse> = emptyList()
+    weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse> = emptyList(),
+    nextWorkoutExercises: List<NextWorkoutExerciseUi> = emptyList(),
+    workoutsByDate: Map<LocalDate, List<CalendarWorkoutUi>> = emptyMap()
 ) {
     Column(
         modifier = Modifier
@@ -902,10 +929,18 @@ private fun BottomSheetContent(
     ) {
         when (sheetType) {
             is DashboardBottomSheetType.CalendarDay -> {
-                CalendarDaySheet(sheetType.day, sheetType.isTrainingDay)
+                CalendarDaySheet(
+                    date = sheetType.date,
+                    workouts = workoutsByDate[sheetType.date].orEmpty(),
+                    hasTrainingMarker = sheetType.hasWorkout
+                )
             }
             is DashboardBottomSheetType.NextWorkoutOptions -> {
-                NextWorkoutSheet(sheetType.currentRoutineName, onWorkoutClick)
+                NextWorkoutSheet(
+                    routineName = sheetType.currentRoutineName,
+                    exercises = nextWorkoutExercises,
+                    onWorkoutClick = onWorkoutClick
+                )
             }
             is DashboardBottomSheetType.PrDetails -> {
                 PrDetailsSheet(sheetType.exerciseName)
@@ -932,25 +967,45 @@ private fun BottomSheetContent(
 }
 
 @Composable
-fun NextWorkoutSheet(routineName: String, onWorkoutClick: () -> Unit) {
-    Text("Día de Tirón (Pull)", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+fun NextWorkoutSheet(
+    routineName: String,
+    exercises: List<NextWorkoutExerciseUi>,
+    onWorkoutClick: () -> Unit
+) {
+    val title = routineName.takeIf { it.isNotBlank() } ?: "Next Workout"
+    Text(title, color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(16.dp))
 
-    Column(
-        modifier = Modifier.fillMaxWidth().background(ShadowGrey, RoundedCornerShape(12.dp)).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text("1. Peso Muerto (4x8)", color = LightGrey, fontSize = 14.sp)
-        Text("2. Dominadas (3x10)", color = LightGrey, fontSize = 14.sp)
-        Text("3. Remo (3x12)", color = LightGrey, fontSize = 14.sp)
-    }
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Box(
-        modifier = Modifier.fillMaxWidth().background(Onyx, RoundedCornerShape(12.dp)).border(1.dp, LightGrey.copy(alpha = 0.2f), RoundedCornerShape(12.dp)).padding(16.dp)
-    ) {
-        Text("Próximas rutinas en tu plan: Jueves (Pierna), Viernes (Descanso)", color = LightGrey, fontSize = 14.sp)
+    if (exercises.isEmpty()) {
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .background(ShadowGrey, RoundedCornerShape(12.dp))
+                    .border(1.dp, LightGrey.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                    .padding(16.dp)
+        ) {
+            Text(
+                "No planned exercises found for this routine yet.",
+                color = LightGrey,
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            )
+        }
+    } else {
+        Column(
+            modifier = Modifier.fillMaxWidth().background(ShadowGrey, RoundedCornerShape(12.dp)).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            exercises.forEachIndexed { index, exercise ->
+                val setsSuffix =
+                    exercise.targetSets?.let { targetSets -> " (${targetSets} sets)" }.orEmpty()
+                Text(
+                    text = "${index + 1}. ${exercise.name}$setsSuffix",
+                    color = LightGrey,
+                    fontSize = 14.sp
+                )
+            }
+        }
     }
 
     Spacer(modifier = Modifier.height(24.dp))
@@ -1092,26 +1147,81 @@ fun LastSessionSheet(routineName: String) {
 }
 
 @Composable
-fun CalendarDaySheet(day: Int, isTrainingDay: Boolean) {
-    if (isTrainingDay) {
-        Text("Día de Tirón (Pull)", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-        Column(
-            modifier = Modifier.fillMaxWidth().background(ShadowGrey, RoundedCornerShape(12.dp)).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("• Sentadilla: 100kg x 8, 100kg x 7", color = PureWhite, fontSize = 15.sp)
-            Text("• Prensa: 200kg x 10, 200kg x 10", color = PureWhite, fontSize = 15.sp)
-        }
-    } else {
-        Text("Día de Descanso", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
+fun CalendarDaySheet(
+    date: LocalDate,
+    workouts: List<CalendarWorkoutUi>,
+    hasTrainingMarker: Boolean
+) {
+    val title = if (workouts.isNotEmpty()) "Training Day" else "Rest Day"
+    Text(title, color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = date.format(DateTimeFormatter.ofPattern("EEE, dd MMM yyyy", Locale.getDefault())),
+        color = LightGrey,
+        fontSize = 13.sp
+    )
+    Spacer(modifier = Modifier.height(16.dp))
+
+    if (workouts.isEmpty()) {
         Box(
-            modifier = Modifier.fillMaxWidth().background(ShadowGrey, RoundedCornerShape(12.dp)).border(1.dp, LightGrey.copy(alpha = 0.2f), RoundedCornerShape(12.dp)).padding(16.dp)
+            modifier =
+                Modifier.fillMaxWidth()
+                    .background(ShadowGrey, RoundedCornerShape(12.dp))
+                    .border(1.dp, LightGrey.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                    .padding(16.dp)
         ) {
-            Text("Recomendación: Caminar 10.000 pasos hoy para recuperación activa.", color = LightGrey, fontSize = 15.sp, lineHeight = 22.sp)
+            val guidance =
+                if (hasTrainingMarker) {
+                    "No detailed workout sets were returned for this day. Sync your workout history and try again."
+                } else {
+                    "No workouts logged for this date."
+                }
+            Text(guidance, color = LightGrey, fontSize = 15.sp, lineHeight = 22.sp)
+        }
+        return
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        workouts.forEach { workout ->
+            Column(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .background(ShadowGrey, RoundedCornerShape(12.dp))
+                        .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = workout.routineName,
+                    color = PureWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                workout.completedAt?.let { completedAt ->
+                    Text(
+                        text = formatDashboardTimestamp(completedAt),
+                        color = LightGrey.copy(alpha = 0.8f),
+                        fontSize = 12.sp
+                    )
+                }
+                workout.exerciseSummaries.take(6).forEach { line ->
+                    Text(text = "• $line", color = LightGrey, fontSize = 14.sp)
+                }
+            }
         }
     }
+}
+
+private fun formatDashboardTimestamp(raw: String): String {
+    val zone = ZoneId.systemDefault()
+    val parsed =
+        runCatching { OffsetDateTime.parse(raw).toInstant().atZone(zone) }.getOrNull()
+            ?: runCatching { Instant.parse(raw).atZone(zone) }.getOrNull()
+
+    return parsed?.format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale.getDefault()))
+        ?: raw.take(16)
 }
 
 @Composable

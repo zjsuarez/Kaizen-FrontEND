@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,6 +51,7 @@ import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.PrGold
 import com.example.kaizenfrontend.core.ui.theme.MalachiteGreen
 import com.example.kaizenfrontend.core.ui.theme.SubtleRed
+import java.time.LocalDate
 import java.util.Calendar
 
 // ──────────────────────────────────────────────────────────────
@@ -78,21 +80,36 @@ fun NextWorkoutWidget(
     KaizenWidgetContainer(modifier = modifier, onClick = if (isGhost) null else onClick) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             // Header: icon + label
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = "Next Workout",
                         tint = CrayolaBlue,
                         modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
                         text = "NEXT WORKOUT",
                         color = LightGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         letterSpacing = 1.sp
-                )
+                    )
+                }
+
+                if (!isGhost && onClick != null) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Open next workout",
+                        tint = LightGrey.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
 
             // Body: routine name centered
@@ -149,21 +166,36 @@ fun RecentPrsWidget(
     KaizenWidgetContainer(modifier = modifier, onClick = if (isGhost) null else onClick) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Top) {
             // Header: icon + label
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
                         imageVector = Icons.Default.EmojiEvents,
                         contentDescription = "Recent PRs",
                         tint = CrayolaBlue,
                         modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
                         text = "RECENT PRs",
                         color = LightGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         letterSpacing = 1.sp
-                )
+                    )
+                }
+
+                if (!isGhost && onClick != null) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Open PR details",
+                        tint = LightGrey.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -264,7 +296,7 @@ fun CalendarWidget(
         trainingDays: List<Int>,
         modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    onDayClick: (Int, Boolean) -> Unit = { _, _ -> },
+    onDayClick: (LocalDate, Boolean) -> Unit = { _, _ -> },
     isGhost: Boolean = false
 ) {
     // TODO (Tech Debt): Fetch calendar data for selected month
@@ -284,6 +316,7 @@ fun CalendarWidget(
 
     val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, java.util.Locale.getDefault())?.uppercase() ?: ""
     val year = calendar.get(Calendar.YEAR)
+    val monthIndex = calendar.get(Calendar.MONTH) + 1
     val dynamicMonthLabel = "$monthName $year"
 
     // First day of month → day-of-week offset (Mon=0 .. Sun=6)
@@ -315,6 +348,15 @@ fun CalendarWidget(
                             fontWeight = FontWeight.Medium,
                             letterSpacing = 1.sp
                     )
+                    if (!isGhost && onClick != null) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Open activity details",
+                            tint = LightGrey.copy(alpha = 0.7f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
 
                 // Right: month navigation
@@ -391,12 +433,13 @@ fun CalendarWidget(
                                     contentAlignment = Alignment.Center
                             ) {
                                 if (isValidDay) {
+                                    val selectedDate = LocalDate.of(year, monthIndex, dayNumber)
                                     CalendarDayCell(
                                             day = dayNumber,
                                             isTrainingDay = dayNumber in trainingDays,
                                             isToday = dayNumber == today,
                                             isInteractive = !isGhost,
-                                            onClick = { onDayClick(dayNumber, dayNumber in trainingDays) }
+                                            onClick = { onDayClick(selectedDate, dayNumber in trainingDays) }
                                     )
                                 }
                             }

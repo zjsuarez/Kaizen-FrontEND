@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material3.Icon
@@ -129,6 +130,15 @@ fun LastSessionWidget(
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 1.sp
                 )
+                if (onClick != null) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Open last session details",
+                        tint = LightGrey.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
 
             // Right: routine name + time label
@@ -188,6 +198,15 @@ fun WeightTrendWidget(
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 1.sp
                 )
+                if (onClick != null) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Open bodyweight details",
+                        tint = LightGrey.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
 
             // Right: weight + trend

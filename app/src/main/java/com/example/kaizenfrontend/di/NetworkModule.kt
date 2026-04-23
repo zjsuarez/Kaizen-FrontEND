@@ -3,6 +3,7 @@ package com.example.kaizenfrontend.di
 import android.content.Context
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.feature.dashboard.data.remote.api.DashboardApiService
+import com.example.kaizenfrontend.feature.workouts.data.remote.RoutineApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -79,5 +80,11 @@ object NetworkModule {
     @Singleton
     fun provideDashboardApiService(retrofit: Retrofit): DashboardApiService {
         return retrofit.create(DashboardApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRoutineApiService(retrofit: Retrofit): RoutineApiService {
+        return retrofit.create(RoutineApiService::class.java)
     }
 }
