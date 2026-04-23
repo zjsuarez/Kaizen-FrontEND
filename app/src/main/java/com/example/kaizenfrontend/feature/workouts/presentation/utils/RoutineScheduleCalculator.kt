@@ -31,9 +31,29 @@ object RoutineScheduleCalculator {
                 }
             }
             PlanIntervalType.CYCLE -> {
-                val cycleDays = parseCycleDays(routine.schedulingValue)
-                if (cycleDays.isEmpty()) null
-                else calculateNextForCycle(cycleDays, parseDateOrToday(plan.startingDate, today), intervalConfig.cycleLengthDays.coerceAtLeast(1), today)
+                if (intervalConfig.cycleMode == CycleMode.WEEKLY) {
+                    val weekDays = parseWeekDays(routine.schedulingValue)
+                    if (weekDays.isNotEmpty()) {
+                        calculateNextForWeekly(weekDays, today)
+                    } else {
+                        val normalizedWeekDays = parseCycleDays(routine.schedulingValue)
+                            .mapNotNull { day ->
+                                runCatching { DayOfWeek.of(day.coerceIn(1, 7)) }.getOrNull()
+                            }
+                            .toSet()
+                        if (normalizedWeekDays.isEmpty()) null
+                        else calculateNextForWeekly(normalizedWeekDays, today)
+                    }
+                } else {
+                    val cycleDays = parseCycleDays(routine.schedulingValue)
+                    if (cycleDays.isEmpty()) null
+                    else calculateNextForCycle(
+                        cycleDays,
+                        parseDateOrToday(plan.startingDate, today),
+                        intervalConfig.cycleLengthDays.coerceAtLeast(1),
+                        today
+                    )
+                }
             }
         } ?: return null
 

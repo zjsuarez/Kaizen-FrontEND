@@ -320,13 +320,7 @@ fun CreatePlanBottomSheet(
                                 )
                             }
 
-                            if (planIntervalType == PlanIntervalType.FREQUENCY) {
-                                Text(
-                                    text = "Frequency is configured in each routine as days of rest between workouts.",
-                                    color = LightGrey,
-                                    fontSize = 12.sp
-                                )
-                            } else {
+                            if (planIntervalType == PlanIntervalType.CYCLE) {
                                 Text(
                                     text = "Cycle setup",
                                     color = Color.White,
@@ -361,6 +355,14 @@ fun CreatePlanBottomSheet(
                                     )
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            SelectedScheduleInfoText(
+                                planIntervalType = planIntervalType,
+                                cycleMode = cycleMode,
+                                customCycleLengthDays = customCycleLengthDays
+                            )
                         }
                     }
 
@@ -394,6 +396,68 @@ fun CreatePlanBottomSheet(
 
             Spacer(modifier = Modifier.height(14.dp))
         }
+    }
+}
+
+@Composable
+private fun SelectedScheduleInfoText(
+    planIntervalType: PlanIntervalType,
+    cycleMode: CycleMode,
+    customCycleLengthDays: Int
+) {
+    val selectedModeLabel = when (planIntervalType) {
+        PlanIntervalType.CYCLE -> {
+            if (cycleMode == CycleMode.WEEKLY) "Selected: Weekly cycle" else "Selected: Custom cycle"
+        }
+        PlanIntervalType.FREQUENCY -> "Selected: Frequency"
+    }
+
+    val detailsLabel = when (planIntervalType) {
+        PlanIntervalType.CYCLE -> {
+            if (cycleMode == CycleMode.WEEKLY) {
+                "Pick weekdays for each routine. Best for stable weekly splits."
+            } else {
+                "Plan runs in a $customCycleLengthDays-day loop. Pick cycle days for each routine."
+            }
+        }
+        PlanIntervalType.FREQUENCY -> "Each routine defines rest days between sessions. Best for recovery-based training."
+    }
+
+    val exampleLabel = when (planIntervalType) {
+        PlanIntervalType.CYCLE -> {
+            if (cycleMode == CycleMode.WEEKLY) {
+                "Example: Mon train, Wed train, Fri train."
+            } else {
+                val cycleLength = customCycleLengthDays.coerceAtLeast(1)
+                val mid = (cycleLength + 1) / 2
+                "Example: Day 1, Day $mid and Day $cycleLength in each $cycleLength-day cycle."
+            }
+        }
+        PlanIntervalType.FREQUENCY -> "Example: Train, Rest, Rest, Train, Rest, Rest."
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = selectedModeLabel,
+            color = CrayolaBlue,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = detailsLabel,
+            color = LightGrey,
+            fontSize = 12.sp,
+            lineHeight = 17.sp
+        )
+        Text(
+            text = exampleLabel,
+            color = LightGrey,
+            fontSize = 12.sp,
+            lineHeight = 17.sp
+        )
     }
 }
 
