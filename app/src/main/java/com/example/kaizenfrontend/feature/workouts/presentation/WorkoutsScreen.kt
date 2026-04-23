@@ -33,6 +33,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -189,6 +190,8 @@ fun WorkoutsScreen(
                             }
                         )
                     } else {
+                        val hasAnyRoutine = state.routinesByPlanId.values.any { it.isNotEmpty() } || state.unassignedRoutines.isNotEmpty()
+
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(bottom = 80.dp) // Leave room for bottom nav
@@ -219,12 +222,22 @@ fun WorkoutsScreen(
                                     )
                                 }
 
+                                if (!hasAnyRoutine) {
+                                    item(key = "routine_hint_${plan.id}") {
+                                        RoutineOnboardingHint(isEditMode = isEditMode)
+                                    }
+                                }
+
                                 if (state.expandedPlanIds.contains(plan.id)) {
                                     val routines = state.routinesByPlanId[plan.id] ?: emptyList()
                                     if (routines.isEmpty()) {
                                         item(key = "empty_${plan.id}") {
                                             Text(
-                                                text = "No workouts in this plan yet.",
+                                                text = if (isEditMode) {
+                                                    "No routines in this plan yet. Tap + and select Create Routine."
+                                                } else {
+                                                    "No routines in this plan yet. Enter Edit mode to create one."
+                                                },
                                                 color = LightGrey,
                                                 fontSize = 13.sp,
                                                 modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 16.dp)
@@ -436,6 +449,67 @@ fun WorkoutsScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoutineOnboardingHint(isEditMode: Boolean) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 22.dp, end = 12.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "NEXT STEP",
+            color = LightGrey.copy(alpha = 0.72f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.sp
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White.copy(alpha = 0.03f), RoundedCornerShape(12.dp))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .size(width = 3.dp, height = 34.dp)
+                    .background(CrayolaBlue, RoundedCornerShape(50))
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "You already have a plan. Add your first routine now.",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = if (isEditMode) {
+                        "Tap +, then Create Routine."
+                    } else {
+                        "Tap Edit -> + -> Create Routine."
+                    },
+                    color = LightGrey,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
