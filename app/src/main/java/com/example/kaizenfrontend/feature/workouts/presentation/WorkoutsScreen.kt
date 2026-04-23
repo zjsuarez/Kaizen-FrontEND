@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +35,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +50,7 @@ import com.example.kaizenfrontend.feature.workouts.presentation.components.Creat
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ExerciseCatalogBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.PlanDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineDetailsSheetContent
+import com.example.kaizenfrontend.feature.workouts.presentation.components.WorkoutsEmptyState
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.utils.RoutineScheduleCalculator
 import com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager
@@ -72,6 +76,7 @@ fun WorkoutsScreen(
     var selectedPlanRoutines by remember { mutableStateOf<List<Routine>>(emptyList()) }
     var pendingDelete by remember { mutableStateOf<DeleteTarget?>(null) }
     var showRoutineDetailsExerciseCatalog by remember { mutableStateOf(false) }
+    var selectedFocusPlanId by rememberSaveable { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -180,66 +185,143 @@ fun WorkoutsScreen(
                     }
                 }
                 is WorkoutsUiState.Success -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 80.dp) // Leave room for bottom nav
-                    ) {
-                        state.plans.forEach { plan ->
-                            item(key = "plan_${plan.id}") {
-                                val isExpanded = state.expandedPlanIds.contains(plan.id)
-                                PlanHeaderItem(
-                                    plan = plan,
-                                    isExpanded = isExpanded,
-                                    isEditMode = isEditMode,
-                                    onClick = {
-                                        if (isEditMode) {
-                                            viewModel.togglePlanExpansion(plan.id)
-                                        } else {
-                                            selectedPlanForDetails = plan
-                                            selectedPlanRoutines = state.routinesByPlanId[plan.id] ?: emptyList()
-                                        }
-                                    },
-                                    onDeleteClick = {
-                                        pendingDelete = DeleteTarget.Plan(
-                                            planId = plan.id,
-                                            planName = plan.name
-                                        )
-                                    },
-                                    onMoveUpClick = { viewModel.movePlanUp(plan.id) },
-                                    onMoveDownClick = { viewModel.movePlanDown(plan.id) }
-                                )
+                    if (state.plans.isEmpty() && state.unassignedRoutines.isEmpty()) {
+                        WorkoutsEmptyState(
+                            onCreatePlanClick = {
+                                isEditMode = true
+                                showCreatePlanDialog = true
                             }
-                            
-                            if (state.expandedPlanIds.contains(plan.id)) {
-                                val routines = state.routinesByPlanId[plan.id] ?: emptyList()
-                                if (routines.isEmpty()) {
-                                    item(key = "empty_${plan.id}") {
-                                        Text(
-                                            text = "No workouts in this plan yet.",
-                                            color = LightGrey,
-                                            fontSize = 13.sp,
-                                            modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 16.dp)
-                                        )
+                        )
+                    } else {
+                        val hasAnyRoutine = state.routinesByPlanId.values.any { it.isNotEmpty() } || state.unassignedRoutines.isNotEmpty()
+
+                        if (!isEditMode) {
+                            val preferredPlan = state.plans.firstOrNull { it.id == selectedFocusPlanId }
+                                ?: state.plans.firstOrNull { it.isActive }
+                                ?: state.plans.first()
+
+                            LaunchedEffect(state.plans) {
+                                if (state.plans.none { it.id == selectedFocusPlanId }) {
+                                    selectedFocusPlanId = preferredPlan.id
+                                }
+                            }
+
+                            val selectedPlan = preferredPlan
+                            val selectedPlanRoutinesForFocus = state.routinesByPlanId[selectedPlan.id] ?: emptyList()
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(bottom = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                FocusPlanSelectorRow(
+                                    plans = state.plans,
+                                    selectedPlanId = selectedPlan.id,
+                                    onSelectPlan = { selectedFocusPlanId = it }
+                                )
+
+                                FocusPlanOverviewCard(
+                                    plan = selectedPlan,
+                                    routineCount = selectedPlanRoutinesForFocus.size,
+                                    onOpenPlanDetails = {
+                                        selectedPlanForDetails = selectedPlan
+                                        selectedPlanRoutines = selectedPlanRoutinesForFocus
                                     }
+                                )
+
+                                if (selectedPlanRoutinesForFocus.isEmpty()) {
+                                    FocusNoRoutineState(
+                                        isFirstRoutineJourney = !hasAnyRoutine,
+                                        onCreateRoutineClick = { showCreateRoutineWizard = true }
+                                    )
                                 } else {
-                                    items(routines, key = { it.id }) { routine ->
-                                        val nextOccurrenceText = remember(routine, plan) {
-                                            RoutineScheduleCalculator.getDisplayStringOrFallback(routine, plan)
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(bottom = 80.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        items(selectedPlanRoutinesForFocus, key = { it.id }) { routine ->
+                                            val nextOccurrenceText = remember(routine, selectedPlan) {
+                                                RoutineScheduleCalculator.getDisplayStringOrFallback(routine, selectedPlan)
+                                            }
+                                            RoutineCard(
+                                                routine = routine,
+                                                isEditMode = false,
+                                                nextOccurrenceText = nextOccurrenceText,
+                                                onClick = { selectedRoutineForDetails = routine },
+                                                onDeleteClick = {},
+                                                onMoveUpClick = {},
+                                                onMoveDownClick = {}
+                                            )
                                         }
-                                        RoutineCard(
-                                            routine = routine,
+                                    }
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 80.dp) // Leave room for bottom nav
+                            ) {
+                                state.plans.forEach { plan ->
+                                    item(key = "plan_${plan.id}") {
+                                        val isExpanded = state.expandedPlanIds.contains(plan.id)
+                                        PlanHeaderItem(
+                                            plan = plan,
+                                            isExpanded = isExpanded,
                                             isEditMode = isEditMode,
-                                            nextOccurrenceText = nextOccurrenceText,
-                                            onClick = { selectedRoutineForDetails = routine },
+                                            onClick = {
+                                                viewModel.togglePlanExpansion(plan.id)
+                                            },
                                             onDeleteClick = {
-                                                pendingDelete = DeleteTarget.Routine(
-                                                    routineId = routine.id,
-                                                    routineName = routine.name
+                                                pendingDelete = DeleteTarget.Plan(
+                                                    planId = plan.id,
+                                                    planName = plan.name
                                                 )
                                             },
-                                            onMoveUpClick = { viewModel.moveRoutineUp(routine.id, plan.id) },
-                                            onMoveDownClick = { viewModel.moveRoutineDown(routine.id, plan.id) }
+                                            onMoveUpClick = { viewModel.movePlanUp(plan.id) },
+                                            onMoveDownClick = { viewModel.movePlanDown(plan.id) }
                                         )
+                                    }
+
+                                    if (!hasAnyRoutine) {
+                                        item(key = "routine_hint_${plan.id}") {
+                                            RoutineOnboardingHint(isEditMode = true)
+                                        }
+                                    }
+
+                                    if (state.expandedPlanIds.contains(plan.id)) {
+                                        val routines = state.routinesByPlanId[plan.id] ?: emptyList()
+                                        if (routines.isEmpty()) {
+                                            item(key = "empty_${plan.id}") {
+                                                Text(
+                                                    text = "No routines in this plan yet. Tap + and select Create Routine.",
+                                                    color = LightGrey,
+                                                    fontSize = 13.sp,
+                                                    modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 16.dp)
+                                                )
+                                            }
+                                        } else {
+                                            items(routines, key = { it.id }) { routine ->
+                                                val nextOccurrenceText = remember(routine, plan) {
+                                                    RoutineScheduleCalculator.getDisplayStringOrFallback(routine, plan)
+                                                }
+                                                RoutineCard(
+                                                    routine = routine,
+                                                    isEditMode = true,
+                                                    nextOccurrenceText = nextOccurrenceText,
+                                                    onClick = { selectedRoutineForDetails = routine },
+                                                    onDeleteClick = {
+                                                        pendingDelete = DeleteTarget.Routine(
+                                                            routineId = routine.id,
+                                                            routineName = routine.name
+                                                        )
+                                                    },
+                                                    onMoveUpClick = { viewModel.moveRoutineUp(routine.id, plan.id) },
+                                                    onMoveDownClick = { viewModel.moveRoutineDown(routine.id, plan.id) }
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -427,6 +509,181 @@ fun WorkoutsScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RoutineOnboardingHint(isEditMode: Boolean) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 22.dp, end = 12.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "NEXT STEP",
+            color = LightGrey.copy(alpha = 0.72f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.sp
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White.copy(alpha = 0.03f), RoundedCornerShape(12.dp))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .size(width = 3.dp, height = 34.dp)
+                    .background(CrayolaBlue, RoundedCornerShape(50))
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "You already have a plan. Add your first routine now.",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = if (isEditMode) {
+                        "Tap +, then Create Routine."
+                    } else {
+                        "Tap Edit -> + -> Create Routine."
+                    },
+                    color = LightGrey,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FocusPlanSelectorRow(
+    plans: List<TrainingPlan>,
+    selectedPlanId: String,
+    onSelectPlan: (String) -> Unit
+) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(plans, key = { it.id }) { plan ->
+            val isSelected = plan.id == selectedPlanId
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = if (isSelected) CrayolaBlue.copy(alpha = 0.2f) else ShadowGrey,
+                border = BorderStroke(1.dp, if (isSelected) CrayolaBlue else Color.Transparent),
+                onClick = { onSelectPlan(plan.id) }
+            ) {
+                Text(
+                    text = plan.name,
+                    color = if (isSelected) CrayolaBlue else LightGrey,
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FocusPlanOverviewCard(
+    plan: TrainingPlan,
+    routineCount: Int,
+    onOpenPlanDetails: () -> Unit
+) {
+    val intervalLabel = plan.interval?.takeIf { it.isNotBlank() }?.let {
+        PlanIntervalConfig.fromBackend(it, plan.cycleLength).toDisplayLabel()
+    } ?: "Cycle (Weekly)"
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = ShadowGrey.copy(alpha = 0.72f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
+        onClick = onOpenPlanDetails
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = plan.name,
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = intervalLabel,
+                    color = LightGrey,
+                    fontSize = 12.sp
+                )
+            }
+
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = Onyx,
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+            ) {
+                Text(
+                    text = if (routineCount == 1) "1 routine" else "$routineCount routines",
+                    color = LightGrey,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FocusNoRoutineState(
+    isFirstRoutineJourney: Boolean,
+    onCreateRoutineClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = if (isFirstRoutineJourney) {
+                "You already created a plan. Now create your first routine."
+            } else {
+                "This plan has no routines yet."
+            },
+            color = LightGrey,
+            fontSize = 13.sp,
+            textAlign = TextAlign.Center
+        )
+        TextButton(onClick = onCreateRoutineClick) {
+            Text(
+                text = "Create routine",
+                color = CrayolaBlue,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
