@@ -403,12 +403,40 @@ fun WizardStep2Schedule(
         buildCycleAssignments(existingPlanRoutines, planInterval.cycleLengthDays)
     }
 
+    val scheduleTitle = when (planInterval.type) {
+        PlanIntervalType.CYCLE -> {
+            if (planInterval.cycleMode == CycleMode.WEEKLY) {
+                "Step 2: Pick weekdays"
+            } else {
+                "Step 2: Pick cycle days"
+            }
+        }
+        PlanIntervalType.FREQUENCY -> "Step 2: Set rest days"
+    }
+
+    val scheduleHelper = when (planInterval.type) {
+        PlanIntervalType.CYCLE -> {
+            if (planInterval.cycleMode == CycleMode.WEEKLY) {
+                "This routine repeats on the weekdays you select."
+            } else {
+                "This routine repeats on selected days inside a ${planInterval.cycleLengthDays}-day cycle."
+            }
+        }
+        PlanIntervalType.FREQUENCY -> "This routine repeats after the number of rest days you set."
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
-            text = "Step 2: Schedule",
+            text = scheduleTitle,
             color = Color.White,
             fontWeight = FontWeight.SemiBold,
             fontSize = 18.sp
+        )
+
+        Text(
+            text = scheduleHelper,
+            color = LightGrey,
+            fontSize = 12.sp
         )
 
         when (planInterval.type) {
@@ -447,6 +475,62 @@ fun WizardStep2Schedule(
                 FrequencyRoutineAssignments(existingRoutines = existingPlanRoutines)
             }
         }
+
+        RoutineSchedulePreviewCard(
+            planInterval = planInterval,
+            selectedWeekDays = selectedWeekDays,
+            selectedCycleDays = selectedCycleDays,
+            restDaysBetweenWorkouts = restDaysBetweenWorkouts
+        )
+    }
+}
+
+@Composable
+private fun RoutineSchedulePreviewCard(
+    planInterval: PlanIntervalConfig,
+    selectedWeekDays: Set<DayOfWeek>,
+    selectedCycleDays: Set<Int>,
+    restDaysBetweenWorkouts: Int
+) {
+    val previewText = when (planInterval.type) {
+        PlanIntervalType.CYCLE -> {
+            if (planInterval.cycleMode == CycleMode.WEEKLY) {
+                val selected = selectedWeekDays.sortedBy { it.value }
+                if (selected.isEmpty()) {
+                    "Preview: no weekday selected yet."
+                } else {
+                    val dayLabels = selected.joinToString(", ") { it.name.lowercase().replaceFirstChar(Char::uppercase) }
+                    "Preview: this routine will run on $dayLabels each week."
+                }
+            } else {
+                val selected = selectedCycleDays.sorted()
+                if (selected.isEmpty()) {
+                    "Preview: no cycle day selected yet."
+                } else {
+                    "Preview: cycle ${planInterval.cycleLengthDays}-day loop, training on Day ${selected.joinToString(", Day ")}."
+                }
+            }
+        }
+        PlanIntervalType.FREQUENCY -> {
+            val trainEvery = restDaysBetweenWorkouts + 1
+            "Preview: train every $trainEvery day(s) (${restDaysBetweenWorkouts} rest day(s) between sessions)."
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = ShadowGrey,
+        border = BorderStroke(1.dp, CrayolaBlue.copy(alpha = 0.35f))
+    ) {
+        Text(
+            text = previewText,
+            color = LightGrey,
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+        )
     }
 }
 
