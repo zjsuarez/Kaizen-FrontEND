@@ -3,6 +3,7 @@ package com.example.kaizenfrontend.feature.workouts.presentation.components
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,8 +23,12 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -75,6 +80,7 @@ fun RoutineDetailsSheetContent(
     val coroutineScope = rememberCoroutineScope()
     var draggingExerciseId by remember { mutableStateOf<String?>(null) }
     var draggingItemOffsetY by remember { mutableFloatStateOf(0f) }
+    var historyTarget by remember { mutableStateOf<ExerciseHistoryTarget?>(null) }
 
     Surface(
         modifier = modifier
@@ -150,6 +156,13 @@ fun RoutineDetailsSheetContent(
                                 exercise = exercise,
                                 isEditMode = state.isEditMode,
                                 isDragging = isDragging,
+                                onHistoryClick = {
+                                    historyTarget = ExerciseHistoryTarget(
+                                        exerciseId = exercise.exercise.id,
+                                        exerciseName = exercise.exercise.name,
+                                        isCustomExercise = exercise.exercise.isCustom
+                                    )
+                                },
                                 onRemoveClick = { onRemoveExercise(exercise.exercise.id) },
                                 onDragHandleDragStart = {
                                     draggingExerciseId = exercise.exercise.id
@@ -222,6 +235,13 @@ fun RoutineDetailsSheetContent(
                 isEditMode = state.isEditMode,
                 onDescriptionChange = onDescriptionChange
             )
+
+            historyTarget?.let { target ->
+                ExerciseHistoryBottomSheet(
+                    target = target,
+                    onDismissRequest = { historyTarget = null }
+                )
+            }
         }
     }
 }
@@ -393,11 +413,14 @@ private fun RoutineExerciseCard(
     exercise: RoutineExercise,
     isEditMode: Boolean,
     isDragging: Boolean,
+    onHistoryClick: () -> Unit,
     onRemoveClick: () -> Unit,
     onDragHandleDragStart: () -> Unit,
     onDragHandleDrag: (Float) -> Unit,
     onDragHandleDragEnd: () -> Unit
 ) {
+    var showMenu by remember(exercise.exercise.id) { mutableStateOf(false) }
+
     val cardColor = if (isDragging) Color(0xFF32313A) else ShadowGrey
     val cardBorderModifier = if (isDragging) {
         Modifier.border(1.dp, CrayolaBlue, RoundedCornerShape(16.dp))
@@ -408,6 +431,7 @@ private fun RoutineExerciseCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (!isEditMode) Modifier.clickable { showMenu = true } else Modifier)
             .then(cardBorderModifier),
         color = cardColor,
         shape = RoundedCornerShape(16.dp)
@@ -469,6 +493,43 @@ private fun RoutineExerciseCard(
                                 imageVector = Icons.Filled.DragHandle,
                                 contentDescription = "Reorder exercise",
                                 tint = LightGrey
+                            )
+                        }
+                    }
+                } else {
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = "Exercise options",
+                                tint = LightGrey
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            containerColor = ShadowGrey
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "History",
+                                        color = PureWhite,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.History,
+                                        contentDescription = null,
+                                        tint = LightGrey
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onHistoryClick()
+                                }
                             )
                         }
                     }

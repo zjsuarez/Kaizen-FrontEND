@@ -1,6 +1,7 @@
 package com.example.kaizenfrontend.feature.workouts.presentation.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +23,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,9 +37,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,6 +66,9 @@ fun ZenModeScreen(
 ) {
     val workoutState by ActiveWorkoutManager.currentWorkout.collectAsState()
     val state = workoutState ?: return // Render nothing if no workout
+
+    var expandedMenuExerciseId by remember { mutableStateOf<String?>(null) }
+    var historyTarget by remember { mutableStateOf<ExerciseHistoryTarget?>(null) }
 
     // Pager for horizontal swiping between exercises
     val pagerState = rememberPagerState(
@@ -134,18 +144,66 @@ fun ZenModeScreen(
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Hero Section: Exercise Name
-                Text(
-                    text = exercise.exerciseName,
-                    color = PureWhite,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                    lineHeight = 38.sp,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // Hero Section: Exercise Name + options menu
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = exercise.exerciseName,
+                        color = PureWhite,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 40.dp),
+                        lineHeight = 38.sp,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                        IconButton(
+                            onClick = { expandedMenuExerciseId = exercise.id },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Exercise options",
+                                tint = LightGrey
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = expandedMenuExerciseId == exercise.id,
+                            onDismissRequest = { expandedMenuExerciseId = null },
+                            containerColor = ShadowGrey
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "History",
+                                        color = PureWhite,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.History,
+                                        contentDescription = null,
+                                        tint = LightGrey
+                                    )
+                                },
+                                onClick = {
+                                    expandedMenuExerciseId = null
+                                    historyTarget = ExerciseHistoryTarget(
+                                        exerciseId = exercise.id,
+                                        exerciseName = exercise.exerciseName,
+                                        isCustomExercise = exercise.isCustom
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
 
                 Text(
                     text = "${exercise.sets.size} sets total",
@@ -269,5 +327,12 @@ fun ZenModeScreen(
                 )
             }
         }
+    }
+
+    historyTarget?.let { target ->
+        ExerciseHistoryBottomSheet(
+            target = target,
+            onDismissRequest = { historyTarget = null }
+        )
     }
 }

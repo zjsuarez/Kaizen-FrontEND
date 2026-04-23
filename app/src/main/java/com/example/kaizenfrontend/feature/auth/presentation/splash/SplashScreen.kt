@@ -15,6 +15,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.ui.theme.Onyx
+import com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl
+import com.example.kaizenfrontend.feature.user.domain.usecase.GetCurrentUserUseCase
 
 @Composable
 fun SplashScreen(
@@ -24,14 +26,40 @@ fun SplashScreen(
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
+    val getCurrentUserUseCase = remember {
+        GetCurrentUserUseCase(UserRepositoryImpl(sessionManager))
+    }
 
     LaunchedEffect(Unit) {
         val token = sessionManager.getToken()
-        when {
-            token == null -> onNavigateToStart()
-            !sessionManager.isCalibrationComplete() -> onNavigateToCalibration()
-            else -> onNavigateToDashboard()
+
+        if (token == null) {
+            onNavigateToStart()
+            return@LaunchedEffect
         }
+
+        val profileResult = getCurrentUserUseCase()
+        profileResult.fold(
+            onSuccess = { user ->
+                val isCalibrated =
+                    user.unitSystem.isNotBlank() &&
+                        user.effortMeasurement.isNotBlank()
+
+                if (isCalibrated) {
+                    sessionManager.saveCalibrationComplete(true)
+                    onNavigateToDashboard()
+                } else {
+                    sessionManager.saveCalibrationComplete(false)
+                    onNavigateToCalibration()
+                }
+            },
+            onFailure = {
+                // If token is stale/invalid, restart auth flow.
+                sessionManager.clearToken()
+                sessionManager.saveCalibrationComplete(false)
+                onNavigateToStart()
+            }
+        )
     }
 
     Box(
