@@ -47,6 +47,7 @@ import com.example.kaizenfrontend.feature.workouts.presentation.components.Creat
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ExerciseCatalogBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.PlanDetailsSheetContent
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineDetailsSheetContent
+import com.example.kaizenfrontend.feature.workouts.presentation.components.WorkoutsEmptyState
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.utils.RoutineScheduleCalculator
 import com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager
@@ -180,66 +181,75 @@ fun WorkoutsScreen(
                     }
                 }
                 is WorkoutsUiState.Success -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 80.dp) // Leave room for bottom nav
-                    ) {
-                        state.plans.forEach { plan ->
-                            item(key = "plan_${plan.id}") {
-                                val isExpanded = state.expandedPlanIds.contains(plan.id)
-                                PlanHeaderItem(
-                                    plan = plan,
-                                    isExpanded = isExpanded,
-                                    isEditMode = isEditMode,
-                                    onClick = {
-                                        if (isEditMode) {
-                                            viewModel.togglePlanExpansion(plan.id)
-                                        } else {
-                                            selectedPlanForDetails = plan
-                                            selectedPlanRoutines = state.routinesByPlanId[plan.id] ?: emptyList()
-                                        }
-                                    },
-                                    onDeleteClick = {
-                                        pendingDelete = DeleteTarget.Plan(
-                                            planId = plan.id,
-                                            planName = plan.name
-                                        )
-                                    },
-                                    onMoveUpClick = { viewModel.movePlanUp(plan.id) },
-                                    onMoveDownClick = { viewModel.movePlanDown(plan.id) }
-                                )
+                    if (state.plans.isEmpty() && state.unassignedRoutines.isEmpty()) {
+                        WorkoutsEmptyState(
+                            onCreatePlanClick = {
+                                isEditMode = true
+                                showCreatePlanDialog = true
                             }
-                            
-                            if (state.expandedPlanIds.contains(plan.id)) {
-                                val routines = state.routinesByPlanId[plan.id] ?: emptyList()
-                                if (routines.isEmpty()) {
-                                    item(key = "empty_${plan.id}") {
-                                        Text(
-                                            text = "No workouts in this plan yet.",
-                                            color = LightGrey,
-                                            fontSize = 13.sp,
-                                            modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 16.dp)
-                                        )
-                                    }
-                                } else {
-                                    items(routines, key = { it.id }) { routine ->
-                                        val nextOccurrenceText = remember(routine, plan) {
-                                            RoutineScheduleCalculator.getDisplayStringOrFallback(routine, plan)
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 80.dp) // Leave room for bottom nav
+                        ) {
+                            state.plans.forEach { plan ->
+                                item(key = "plan_${plan.id}") {
+                                    val isExpanded = state.expandedPlanIds.contains(plan.id)
+                                    PlanHeaderItem(
+                                        plan = plan,
+                                        isExpanded = isExpanded,
+                                        isEditMode = isEditMode,
+                                        onClick = {
+                                            if (isEditMode) {
+                                                viewModel.togglePlanExpansion(plan.id)
+                                            } else {
+                                                selectedPlanForDetails = plan
+                                                selectedPlanRoutines = state.routinesByPlanId[plan.id] ?: emptyList()
+                                            }
+                                        },
+                                        onDeleteClick = {
+                                            pendingDelete = DeleteTarget.Plan(
+                                                planId = plan.id,
+                                                planName = plan.name
+                                            )
+                                        },
+                                        onMoveUpClick = { viewModel.movePlanUp(plan.id) },
+                                        onMoveDownClick = { viewModel.movePlanDown(plan.id) }
+                                    )
+                                }
+
+                                if (state.expandedPlanIds.contains(plan.id)) {
+                                    val routines = state.routinesByPlanId[plan.id] ?: emptyList()
+                                    if (routines.isEmpty()) {
+                                        item(key = "empty_${plan.id}") {
+                                            Text(
+                                                text = "No workouts in this plan yet.",
+                                                color = LightGrey,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 16.dp)
+                                            )
                                         }
-                                        RoutineCard(
-                                            routine = routine,
-                                            isEditMode = isEditMode,
-                                            nextOccurrenceText = nextOccurrenceText,
-                                            onClick = { selectedRoutineForDetails = routine },
-                                            onDeleteClick = {
-                                                pendingDelete = DeleteTarget.Routine(
-                                                    routineId = routine.id,
-                                                    routineName = routine.name
-                                                )
-                                            },
-                                            onMoveUpClick = { viewModel.moveRoutineUp(routine.id, plan.id) },
-                                            onMoveDownClick = { viewModel.moveRoutineDown(routine.id, plan.id) }
-                                        )
+                                    } else {
+                                        items(routines, key = { it.id }) { routine ->
+                                            val nextOccurrenceText = remember(routine, plan) {
+                                                RoutineScheduleCalculator.getDisplayStringOrFallback(routine, plan)
+                                            }
+                                            RoutineCard(
+                                                routine = routine,
+                                                isEditMode = isEditMode,
+                                                nextOccurrenceText = nextOccurrenceText,
+                                                onClick = { selectedRoutineForDetails = routine },
+                                                onDeleteClick = {
+                                                    pendingDelete = DeleteTarget.Routine(
+                                                        routineId = routine.id,
+                                                        routineName = routine.name
+                                                    )
+                                                },
+                                                onMoveUpClick = { viewModel.moveRoutineUp(routine.id, plan.id) },
+                                                onMoveDownClick = { viewModel.moveRoutineDown(routine.id, plan.id) }
+                                            )
+                                        }
                                     }
                                 }
                             }
