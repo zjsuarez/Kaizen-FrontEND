@@ -25,12 +25,12 @@ class MockExerciseRepository : ExerciseRepository {
             id = "custom_${System.currentTimeMillis()}",
             name = trimmedName,
             muscleTarget = mapPrimaryTarget(command.selectedMuscles),
-            equipmentType = EquipmentType.BODYWEIGHT,
+            equipmentType = command.equipmentType,
             gifUrl = null,
             isCustom = true,
             description = command.description?.trim().takeUnless { it.isNullOrBlank() },
             selectedMuscles = command.selectedMuscles,
-            metric = command.metric
+            metric = command.metrics.toExerciseMetric()
         )
 
         synchronized(lock) {
@@ -49,6 +49,16 @@ class MockExerciseRepository : ExerciseRepository {
             normalized.any { it in setOf("quads", "hamstrings", "glutes", "calves", "legs") } -> MuscleTarget.LEGS
             normalized.any { it in setOf("core", "abs") } -> MuscleTarget.CORE
             else -> MuscleTarget.BACK
+        }
+    }
+
+    private fun String.toExerciseMetric(): com.example.kaizenfrontend.feature.workouts.domain.model.ExerciseMetric {
+        return when (trim().lowercase()) {
+            "set", "sets" -> com.example.kaizenfrontend.feature.workouts.domain.model.ExerciseMetric.SETS
+            "duration" -> com.example.kaizenfrontend.feature.workouts.domain.model.ExerciseMetric.DURATION
+            "distance", "distance_km" -> com.example.kaizenfrontend.feature.workouts.domain.model.ExerciseMetric.DISTANCE
+            "simplecheckoff", "simple_check_off", "simple-check-off", "simple check off" -> com.example.kaizenfrontend.feature.workouts.domain.model.ExerciseMetric.SIMPLE_CHECK_OFF
+            else -> com.example.kaizenfrontend.feature.workouts.domain.model.ExerciseMetric.SETS
         }
     }
 

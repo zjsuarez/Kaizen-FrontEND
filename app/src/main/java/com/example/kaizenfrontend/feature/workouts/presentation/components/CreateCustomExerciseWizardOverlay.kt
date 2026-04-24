@@ -48,6 +48,7 @@ import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.feature.workouts.domain.model.CreateCustomExerciseCommand
+import com.example.kaizenfrontend.feature.workouts.domain.model.EquipmentType
 import com.example.kaizenfrontend.feature.workouts.domain.model.ExerciseMetric
 
 private enum class WizardMetricOption(val label: String, val metric: ExerciseMetric) {
@@ -72,6 +73,18 @@ private val wizardMuscleOptions = listOf(
     "Back"
 )
 
+private val wizardEquipmentOptions = listOf(
+    EquipmentType.BAND,
+    EquipmentType.CARDIO,
+    EquipmentType.MACHINE,
+    EquipmentType.DUMBBELL,
+    EquipmentType.BODYWEIGHT,
+    EquipmentType.SMITH_MACHINE,
+    EquipmentType.CABLE,
+    EquipmentType.KETTLEBELL,
+    EquipmentType.BARBELL
+)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CreateCustomExerciseWizardOverlay(
@@ -86,10 +99,12 @@ fun CreateCustomExerciseWizardOverlay(
     var description by remember { mutableStateOf("") }
     var selectedMuscles by remember { mutableStateOf<Set<String>>(emptySet()) }
     var selectedMetric by remember { mutableStateOf<WizardMetricOption?>(null) }
+    var selectedEquipment by remember { mutableStateOf<EquipmentType?>(null) }
 
     var nameError by remember { mutableStateOf<String?>(null) }
     var musclesError by remember { mutableStateOf<String?>(null) }
     var metricError by remember { mutableStateOf<String?>(null) }
+    var equipmentError by remember { mutableStateOf<String?>(null) }
 
     fun goBack() {
         if (step == 1) onDismissRequest() else step -= 1
@@ -109,6 +124,14 @@ fun CreateCustomExerciseWizardOverlay(
             if (musclesError == null) {
                 step = 3
             }
+            return
+        }
+
+        if (step == 3) {
+            metricError = if (selectedMetric == null) "Select one metric" else null
+            if (metricError == null) {
+                step = 4
+            }
         }
     }
 
@@ -116,15 +139,16 @@ fun CreateCustomExerciseWizardOverlay(
         if (isSubmitting) return
         onClearExternalError()
 
-        metricError = if (selectedMetric == null) "Select one metric" else null
-        if (metricError != null) return
+        equipmentError = if (selectedEquipment == null) "Select one equipment type" else null
+        if (equipmentError != null) return
 
         onFinish(
             CreateCustomExerciseCommand(
                 name = name.trim(),
                 description = description.trim().ifBlank { null },
                 selectedMuscles = selectedMuscles.toList(),
-                metric = selectedMetric!!.metric
+                metrics = selectedMetric!!.metric.toBackendMetrics(),
+                equipmentType = selectedEquipment!!
             )
         )
     }
@@ -168,7 +192,7 @@ fun CreateCustomExerciseWizardOverlay(
                             )
                         }
                         Text(
-                            text = "$step/3",
+                            text = "$step/4",
                             color = LightGrey,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
@@ -274,7 +298,7 @@ fun CreateCustomExerciseWizardOverlay(
                             )
                         }
 
-                        else -> {
+                        3 -> {
                             Text(
                                 text = "Select metrics",
                                 color = PureWhite,
@@ -330,6 +354,71 @@ fun CreateCustomExerciseWizardOverlay(
                             }
 
                             ValidationSlot(error = metricError)
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            WizardActionButton(
+                                text = "NEXT",
+                                onClick = ::goNext,
+                                enabled = !isSubmitting
+                            )
+                        }
+
+                        else -> {
+                            Text(
+                                text = "Select equipment",
+                                color = PureWhite,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Choose the equipment type that best fits this exercise.",
+                                color = LightGrey,
+                                fontSize = 13.sp
+                            )
+
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                wizardEquipmentOptions.forEach { equipment ->
+                                    val selected = selectedEquipment == equipment
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                if (isSubmitting) return@clickable
+                                                selectedEquipment = equipment
+                                                equipmentError = null
+                                                onClearExternalError()
+                                            },
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = if (selected) CrayolaBlue.copy(alpha = 0.2f) else Onyx,
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (selected) CrayolaBlue else Color.White.copy(alpha = 0.08f)
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 14.dp, vertical = 14.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = equipment.name.replace('_', ' '),
+                                                color = PureWhite,
+                                                fontSize = 14.sp,
+                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .height(16.dp)
+                                                    .fillMaxWidth(0.05f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            ValidationSlot(error = equipmentError)
                             ValidationSlot(error = externalError)
                             Spacer(modifier = Modifier.weight(1f))
 
@@ -423,5 +512,14 @@ private fun WizardActionButton(
                 fontWeight = FontWeight.SemiBold
             )
         }
+    }
+}
+
+private fun ExerciseMetric.toBackendMetrics(): String {
+    return when (this) {
+        ExerciseMetric.SETS -> "sets"
+        ExerciseMetric.DURATION -> "duration"
+        ExerciseMetric.DISTANCE -> "distance_km"
+        ExerciseMetric.SIMPLE_CHECK_OFF -> "simple_check_off"
     }
 }

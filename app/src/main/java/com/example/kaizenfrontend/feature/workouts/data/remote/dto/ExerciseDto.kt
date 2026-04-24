@@ -10,6 +10,7 @@ data class ExerciseRequest(
     val name: String,
     val description: String?,
     val muscleTarget: String,
+    val metrics: String,
     val type: String,
     val isCustom: Boolean = true
 )
@@ -19,6 +20,7 @@ data class ExerciseResponse(
     val name: String,
     val description: String? = null,
     val muscleTarget: String? = null,
+    val metrics: String? = null,
     val type: String? = null,
     val isCustom: Boolean = false,
     @SerializedName(value = "createdByUserId", alternate = ["createdByUserId_FK", "createdByUserIdFk"])
@@ -41,7 +43,7 @@ fun ExerciseResponse.toDomain(): Exercise {
         isCustom = isCustom,
         description = description,
         selectedMuscles = muscleList,
-        metric = type.toExerciseMetric(),
+        metric = metrics.toExerciseMetric(),
         createdByUserId = createdByUserId
     )
 }
@@ -66,11 +68,15 @@ private fun String?.toPrimaryTarget(): MuscleTarget {
 
 private fun String?.toEquipmentType(): EquipmentType {
     return when (this?.uppercase()) {
+        EquipmentType.BAND.name -> EquipmentType.BAND
+        EquipmentType.CARDIO.name -> EquipmentType.CARDIO
+        EquipmentType.MACHINE.name -> EquipmentType.MACHINE
         EquipmentType.DUMBBELL.name -> EquipmentType.DUMBBELL
         EquipmentType.BARBELL.name -> EquipmentType.BARBELL
-        EquipmentType.MACHINE.name -> EquipmentType.MACHINE
         EquipmentType.CABLE.name -> EquipmentType.CABLE
-        EquipmentType.BANDS.name, "BAND" -> EquipmentType.BANDS
+        EquipmentType.KETTLEBELL.name -> EquipmentType.KETTLEBELL
+        EquipmentType.SMITH_MACHINE.name -> EquipmentType.SMITH_MACHINE
+        EquipmentType.BODYWEIGHT.name -> EquipmentType.BODYWEIGHT
         else -> EquipmentType.BODYWEIGHT
     }
 }
@@ -79,7 +85,7 @@ private fun String?.toExerciseMetric(): ExerciseMetric {
     return when (this?.trim()?.lowercase()) {
         "set", "sets" -> ExerciseMetric.SETS
         "duration" -> ExerciseMetric.DURATION
-        "distance" -> ExerciseMetric.DISTANCE
+        "distance", "distance_km" -> ExerciseMetric.DISTANCE
         "simplecheckoff", "simple_check_off", "simple-check-off", "simple check off" -> ExerciseMetric.SIMPLE_CHECK_OFF
         else -> ExerciseMetric.SETS
     }

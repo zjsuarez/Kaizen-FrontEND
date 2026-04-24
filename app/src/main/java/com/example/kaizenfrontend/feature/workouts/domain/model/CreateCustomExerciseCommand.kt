@@ -4,5 +4,6 @@ data class CreateCustomExerciseCommand(
     val name: String,
     val description: String?,
     val selectedMuscles: List<String>,
-    val metric: ExerciseMetric
+    val metrics: String,
+    val equipmentType: EquipmentType
 )

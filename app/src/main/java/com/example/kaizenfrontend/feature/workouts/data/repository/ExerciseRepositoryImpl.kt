@@ -5,9 +5,7 @@ import com.example.kaizenfrontend.feature.workouts.data.remote.ExerciseApiServic
 import com.example.kaizenfrontend.feature.workouts.data.remote.dto.ExerciseRequest
 import com.example.kaizenfrontend.feature.workouts.data.remote.dto.toDomain
 import com.example.kaizenfrontend.feature.workouts.domain.model.CreateCustomExerciseCommand
-import com.example.kaizenfrontend.feature.workouts.domain.model.EquipmentType
 import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
-import com.example.kaizenfrontend.feature.workouts.domain.model.ExerciseMetric
 import com.example.kaizenfrontend.feature.workouts.domain.repository.ExerciseRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -60,7 +58,8 @@ class ExerciseRepositoryImpl(
                     .map { it.trim().uppercase() }
                     .filter { it.isNotBlank() }
                     .joinToString(","),
-                type = command.metric.toBackendType(),
+                metrics = command.metrics,
+                type = command.equipmentType.name,
                 isCustom = true
             )
 
@@ -80,14 +79,5 @@ class ExerciseRepositoryImpl(
         } catch (e: Exception) {
             fallbackRepository.createCustomExercise(command)
         }
-    }
-}
-
-private fun ExerciseMetric.toBackendType(): String {
-    return when (this) {
-        ExerciseMetric.SETS -> "Set"
-        ExerciseMetric.DURATION -> "Duration"
-        ExerciseMetric.DISTANCE -> "Distance"
-        ExerciseMetric.SIMPLE_CHECK_OFF -> "SimpleCheckOff"
     }
 }
