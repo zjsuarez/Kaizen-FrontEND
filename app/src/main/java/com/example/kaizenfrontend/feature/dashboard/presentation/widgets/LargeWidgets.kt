@@ -46,11 +46,10 @@ import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.components.KaizenWidgetContainer
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
-import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.PrGold
 import com.example.kaizenfrontend.core.ui.theme.MalachiteGreen
-import com.example.kaizenfrontend.core.ui.theme.SubtleRed
+import com.example.kaizenfrontend.core.ui.theme.Onyx
 import java.time.LocalDate
 import java.util.Calendar
 
@@ -72,6 +71,8 @@ data class RecentPrMock(
 @Composable
 fun NextWorkoutWidget(
         routineName: String?,
+    planName: String? = null,
+    scheduleHint: String? = null,
         onStartClick: () -> Unit = {},
         modifier: Modifier = Modifier,
         onClick: (() -> Unit)? = null,
@@ -117,15 +118,36 @@ fun NextWorkoutWidget(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = routineName ?: if (isGhost) "--" else "No workout scheduled",
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = routineName ?: if (isGhost) "--" else "No workout scheduled",
                         color = if (routineName != null) PureWhite else LightGrey,
-                    fontSize = if (routineName != null || isGhost) 32.sp else 16.sp,
+                        fontSize = if (routineName != null || isGhost) 32.sp else 16.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
-                )
+                    )
+                    if (!isGhost && !scheduleHint.isNullOrBlank() && routineName != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = scheduleHint,
+                            color = LightGrey,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    if (!isGhost && !planName.isNullOrBlank() && routineName != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Plan: $planName | Next: $routineName",
+                            color = LightGrey.copy(alpha = 0.85f),
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
 
             // Footer: start button
@@ -294,6 +316,8 @@ private fun PrRow(pr: RecentPrMock, onPrClick: (String) -> Unit, isGhost: Boolea
 @Composable
 fun CalendarWidget(
         trainingDays: List<Int>,
+    routineByDate: Map<LocalDate, String> = emptyMap(),
+    routineColorByName: Map<String, Color> = emptyMap(),
         modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     onDayClick: (LocalDate, Boolean) -> Unit = { _, _ -> },
@@ -318,6 +342,17 @@ fun CalendarWidget(
     val year = calendar.get(Calendar.YEAR)
     val monthIndex = calendar.get(Calendar.MONTH) + 1
     val dynamicMonthLabel = "$monthName $year"
+    val routineLegendEntries = remember(year, monthIndex, routineByDate, routineColorByName) {
+        routineByDate
+            .filterKeys { it.year == year && it.monthValue == monthIndex }
+            .values
+            .distinct()
+            .sortedBy { it.lowercase() }
+            .mapNotNull { routineName ->
+                val color = routineColorByName[routineName] ?: return@mapNotNull null
+                routineName to color
+            }
+    }
 
     // First day of month → day-of-week offset (Mon=0 .. Sun=6)
     calendar.set(Calendar.DAY_OF_MONTH, 1)
@@ -434,9 +469,12 @@ fun CalendarWidget(
                             ) {
                                 if (isValidDay) {
                                     val selectedDate = LocalDate.of(year, monthIndex, dayNumber)
+                                    val routineName = routineByDate[selectedDate]
+                                    val dayColor = routineName?.let { routineColorByName[it] } ?: CrayolaBlue
                                     CalendarDayCell(
                                             day = dayNumber,
                                             isTrainingDay = dayNumber in trainingDays,
+                                        trainingDayColor = dayColor,
                                             isToday = dayNumber == today,
                                             isInteractive = !isGhost,
                                             onClick = { onDayClick(selectedDate, dayNumber in trainingDays) }
@@ -448,31 +486,43 @@ fun CalendarWidget(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Legend
-            Row(
+            if (!isGhost && routineLegendEntries.isNotEmpty()) {
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(CrayolaBlue))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Push", color = LightGrey, fontSize = 9.sp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "ROUTINE LEGEND",
+                        color = LightGrey.copy(alpha = 0.75f),
+                        fontSize = 10.sp,
+                        letterSpacing = 0.8.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    routineLegendEntries.take(4).forEach { (routineName, routineColor) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(routineColor)
+                            )
+                            Text(
+                                text = routineName,
+                                color = LightGrey,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(MalachiteGreen))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Pull", color = LightGrey, fontSize = 9.sp)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(SubtleRed))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Pierna", color = LightGrey, fontSize = 9.sp)
-                }
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
@@ -482,17 +532,14 @@ fun CalendarWidget(
 private fun CalendarDayCell(
     day: Int,
     isTrainingDay: Boolean,
+    trainingDayColor: Color,
     isToday: Boolean,
     isInteractive: Boolean,
     onClick: () -> Unit
 ) {
-    val intensityColor = remember(day) {
-        listOf(CrayolaBlue, MalachiteGreen, SubtleRed)[day % 3]
-    }
-    
     val bgColor =
             when {
-                isTrainingDay -> intensityColor
+                isTrainingDay -> trainingDayColor
                 else -> Color.Transparent
             }
     val borderMod =

@@ -4,6 +4,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -20,9 +22,11 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
@@ -88,11 +92,11 @@ import java.util.Locale
 
 sealed class DashboardBottomSheetType {
     data class CalendarDay(val date: LocalDate, val hasWorkout: Boolean) : DashboardBottomSheetType()
-    data class NextWorkoutOptions(val currentRoutineName: String) : DashboardBottomSheetType()
-    data class PrDetails(val exerciseName: String) : DashboardBottomSheetType()
+    data class NextWorkoutOptions(val currentRoutineName: String, val currentPlanName: String?) : DashboardBottomSheetType()
+    data object PrLedger : DashboardBottomSheetType()
     data class LogBodyWeight(val currentWeight: Double?) : DashboardBottomSheetType()
-    data class LastSessionDetails(val routineName: String) : DashboardBottomSheetType()
-    data class RecoveryInfo(val hours: Int?) : DashboardBottomSheetType()
+    data object LastSessionDetails : DashboardBottomSheetType()
+    data object RecoveryInfo : DashboardBottomSheetType()
     data class MetricHistory(val metricName: String, val currentValue: String) : DashboardBottomSheetType()
 }
 
@@ -180,7 +184,13 @@ fun DashboardScreen(
     val widgetOrder by viewModel.widgetOrder.collectAsState()
     val weightHistory by viewModel.weightHistory.collectAsState()
     val nextWorkoutExercises by viewModel.nextWorkoutExercises.collectAsState()
+    val nextWorkoutDisplay by viewModel.nextWorkoutDisplay.collectAsState()
     val workoutsByDate by viewModel.workoutsByDate.collectAsState()
+    val lastSessionDetails by viewModel.lastSessionDetails.collectAsState()
+    val isWorkoutHistoryLoading by viewModel.isWorkoutHistoryLoading.collectAsState()
+    val recentPrLedger by viewModel.recentPrLedger.collectAsState()
+    val muscleReadiness by viewModel.muscleReadiness.collectAsState()
+    val isLoggingBodyWeight by viewModel.isLoggingBodyWeight.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
     val userName = remember {
         SessionManager(context)
@@ -317,7 +327,8 @@ fun DashboardScreen(
                                     successState = state,
                                     widgetOrder = widgetOrder,
                                     weightHistory = weightHistory,
-                                    workoutDates = workoutsByDate.keys,
+                                    nextWorkoutDisplay = nextWorkoutDisplay,
+                                    workoutsByDate = workoutsByDate,
                                     isEditing = isEditing,
                                     onWorkoutClick = onWorkoutClick,
                                     onWidgetClick = { activeBottomSheet = it },
@@ -405,7 +416,12 @@ fun DashboardScreen(
                 },
                 weightHistory = weightHistory,
                 nextWorkoutExercises = nextWorkoutExercises,
-                workoutsByDate = workoutsByDate
+                workoutsByDate = workoutsByDate,
+                lastSessionDetails = lastSessionDetails,
+                isWorkoutHistoryLoading = isWorkoutHistoryLoading,
+                recentPrLedger = recentPrLedger,
+                muscleReadiness = muscleReadiness,
+                isLoggingBodyWeight = isLoggingBodyWeight
             )
         }
     }
@@ -469,7 +485,8 @@ fun DashboardWidgetGrid(
     successState: DashboardUiState.Success,
     widgetOrder: List<String>,
     weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>,
-    workoutDates: Set<LocalDate>,
+    nextWorkoutDisplay: NextWorkoutDisplayUi?,
+    workoutsByDate: Map<LocalDate, List<CalendarWorkoutUi>>,
     isEditing: Boolean,
     onWorkoutClick: () -> Unit,
     onWidgetClick: (DashboardBottomSheetType) -> Unit,
@@ -533,7 +550,7 @@ fun DashboardWidgetGrid(
             ) { widgetType ->
                 val config = widgetConfigByType[widgetType] ?: return@items
                 val wMod = Modifier.fillMaxWidth().height(config.heightDp)
-                WidgetContent(widgetType, wMod, successState, workoutDates, onWorkoutClick, onWidgetClick)
+                WidgetContent(widgetType, wMod, successState, nextWorkoutDisplay, workoutsByDate, onWorkoutClick, onWidgetClick)
             }
         }
     } else {
@@ -665,23 +682,64 @@ private fun WidgetContent(
     widgetType: WidgetType,
     widgetModifier: Modifier,
     successState: DashboardUiState.Success,
-    workoutDates: Set<LocalDate>,
+    nextWorkoutDisplay: NextWorkoutDisplayUi?,
+    workoutsByDate: Map<LocalDate, List<CalendarWorkoutUi>>,
     onWorkoutClick: () -> Unit,
     onWidgetClick: (DashboardBottomSheetType) -> Unit
 ) {
     val data = successState.data
+    val routineByDate = remember(workoutsByDate) {
+        workoutsByDate.mapValues { (_, dayWorkouts) ->
+            dayWorkouts
+                .groupingBy { it.routineName }
+                .eachCount()
+                .maxByOrNull { it.value }
+                ?.key
+                ?: "Workout"
+        }
+    }
+    val routineColorByName = remember(routineByDate) { buildRoutineColorMap(routineByDate.values.toSet()) }
+
     when (widgetType) {
-        WidgetType.STREAK ->
-            widgetModifier.StreakWidget(streakDays = data.workoutStreak)
+        WidgetType.STREAK -> {
+            widgetModifier
+                .clickable {
+                    onWidgetClick(
+                        DashboardBottomSheetType.MetricHistory(
+                            metricName = "Workout Streak",
+                            currentValue = "${data.workoutStreak} days"
+                        )
+                    )
+                }
+                .StreakWidget(streakDays = data.workoutStreak)
+        }
         WidgetType.AVG_TIME ->
-            AvgTimeWidget(minutes = data.avgDurationMinutes, trendDiffMinutes = 0, modifier = widgetModifier)
+            AvgTimeWidget(
+                minutes = data.avgDurationMinutes,
+                trendDiffMinutes = 0,
+                modifier = widgetModifier.clickable {
+                    onWidgetClick(
+                        DashboardBottomSheetType.MetricHistory(
+                            metricName = "Average Session Time",
+                            currentValue = "${data.avgDurationMinutes} min"
+                        )
+                    )
+                }
+            )
         WidgetType.ONE_RM ->
             OneRmWidget(
-                exercise = "Estimated 1RM",
+                exercise = data.recentPrs.maxByOrNull { it.weight }?.exerciseName ?: "Top Lift",
                 weight = data.estimated1RM,
                 isNewPr = false,
                 weightIncrease = 0.0,
-                modifier = widgetModifier
+                modifier = widgetModifier.clickable {
+                    onWidgetClick(
+                        DashboardBottomSheetType.MetricHistory(
+                            metricName = "Estimated 1RM",
+                            currentValue = "${formatVolumeKg(data.estimated1RM)} kg"
+                        )
+                    )
+                }
             )
         WidgetType.WEIGHT_TREND -> {
             val diff = data.weightDiff ?: 0.0
@@ -695,20 +753,33 @@ private fun WidgetContent(
             )
         }
         WidgetType.RECOVERY_TIME ->
-            RecoveryTimeWidget(hours = data.recoveryTimeHours ?: 0, modifier = widgetModifier)
+            RecoveryTimeWidget(
+                hours = data.recoveryTimeHours ?: 0,
+                modifier = widgetModifier,
+                onClick = { onWidgetClick(DashboardBottomSheetType.RecoveryInfo) }
+            )
         WidgetType.LAST_SESSION ->
             LastSessionWidget(
                 routineName = data.lastSession?.routineName ?: "Libre",
                 timeLabel = data.lastSession?.completedAt?.take(10) ?: "Nunca",
                 modifier = widgetModifier,
-                onClick = { onWidgetClick(DashboardBottomSheetType.LastSessionDetails(data.lastSession?.routineName ?: "Libre")) }
+                onClick = { onWidgetClick(DashboardBottomSheetType.LastSessionDetails) }
             )
         WidgetType.NEXT_WORKOUT ->
             NextWorkoutWidget(
-                routineName = data.nextWorkout?.routineName,
+                routineName = nextWorkoutDisplay?.routineName ?: data.nextWorkout?.routineName,
+                planName = nextWorkoutDisplay?.planName,
+                scheduleHint = nextWorkoutDisplay?.scheduleHint,
                 onStartClick = onWorkoutClick,
                 modifier = widgetModifier,
-                onClick = { onWidgetClick(DashboardBottomSheetType.NextWorkoutOptions(data.nextWorkout?.routineName ?: "Libre")) }
+                onClick = {
+                    onWidgetClick(
+                        DashboardBottomSheetType.NextWorkoutOptions(
+                            currentRoutineName = nextWorkoutDisplay?.routineName ?: data.nextWorkout?.routineName ?: "Libre",
+                            currentPlanName = nextWorkoutDisplay?.planName
+                        )
+                    )
+                }
             )
         WidgetType.CALENDAR -> {
             val days = data.trainingDaysThisMonth.mapNotNull {
@@ -717,12 +788,14 @@ private fun WidgetContent(
             val today = LocalDate.now()
             CalendarWidget(
                 trainingDays = days,
+                routineByDate = routineByDate,
+                routineColorByName = routineColorByName,
                 modifier = widgetModifier,
                 onClick = {
                     onWidgetClick(
                         DashboardBottomSheetType.CalendarDay(
                             date = today,
-                            hasWorkout = workoutDates.contains(today)
+                            hasWorkout = workoutsByDate.contains(today)
                         )
                     )
                 },
@@ -730,7 +803,7 @@ private fun WidgetContent(
                     onWidgetClick(
                         DashboardBottomSheetType.CalendarDay(
                             date = date,
-                            hasWorkout = workoutDates.contains(date) || isTrainingDay
+                            hasWorkout = workoutsByDate.contains(date) || isTrainingDay
                         )
                     )
                 }
@@ -743,8 +816,8 @@ private fun WidgetContent(
             RecentPrsWidget(
                 prs = mapPrs,
                 modifier = widgetModifier,
-                onClick = { onWidgetClick(DashboardBottomSheetType.PrDetails(data.recentPrs.firstOrNull()?.exerciseName ?: "Overview")) },
-                onPrClick = { exercise -> onWidgetClick(DashboardBottomSheetType.PrDetails(exercise)) }
+                onClick = { onWidgetClick(DashboardBottomSheetType.PrLedger) },
+                onPrClick = { _ -> onWidgetClick(DashboardBottomSheetType.PrLedger) }
             )
         }
     }
@@ -919,7 +992,12 @@ private fun BottomSheetContent(
     onWorkoutClick: () -> Unit = {},
     weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse> = emptyList(),
     nextWorkoutExercises: List<NextWorkoutExerciseUi> = emptyList(),
-    workoutsByDate: Map<LocalDate, List<CalendarWorkoutUi>> = emptyMap()
+    workoutsByDate: Map<LocalDate, List<CalendarWorkoutUi>> = emptyMap(),
+    lastSessionDetails: LastSessionModalUi? = null,
+    isWorkoutHistoryLoading: Boolean = false,
+    recentPrLedger: List<PrHistoryEntryUi> = emptyList(),
+    muscleReadiness: List<MuscleReadinessUi> = emptyList(),
+    isLoggingBodyWeight: Boolean = false
 ) {
     Column(
         modifier = Modifier
@@ -938,21 +1016,34 @@ private fun BottomSheetContent(
             is DashboardBottomSheetType.NextWorkoutOptions -> {
                 NextWorkoutSheet(
                     routineName = sheetType.currentRoutineName,
+                    planName = sheetType.currentPlanName,
                     exercises = nextWorkoutExercises,
                     onWorkoutClick = onWorkoutClick
                 )
             }
-            is DashboardBottomSheetType.PrDetails -> {
-                PrDetailsSheet(sheetType.exerciseName)
+            is DashboardBottomSheetType.PrLedger -> {
+                PrLedgerSheet(
+                    history = recentPrLedger,
+                    isLoading = isWorkoutHistoryLoading
+                )
             }
             is DashboardBottomSheetType.LogBodyWeight -> {
-                BodyWeightSheet(sheetType.currentWeight, onDismiss, onLogWeight, weightHistory)
+                BodyWeightSheet(
+                    currentWeight = sheetType.currentWeight,
+                    onDismiss = onDismiss,
+                    onLogWeight = onLogWeight,
+                    weightHistory = weightHistory,
+                    isSaving = isLoggingBodyWeight
+                )
             }
             is DashboardBottomSheetType.LastSessionDetails -> {
-                LastSessionSheet(sheetType.routineName)
+                LastSessionSheet(
+                    session = lastSessionDetails,
+                    isLoading = isWorkoutHistoryLoading
+                )
             }
             is DashboardBottomSheetType.RecoveryInfo -> {
-                RecoveryInfoSheet(sheetType.hours)
+                RecoveryInfoSheet(muscleReadiness = muscleReadiness)
             }
             is DashboardBottomSheetType.MetricHistory -> {
                 Text("${sheetType.metricName} History", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -969,11 +1060,20 @@ private fun BottomSheetContent(
 @Composable
 fun NextWorkoutSheet(
     routineName: String,
+    planName: String?,
     exercises: List<NextWorkoutExerciseUi>,
     onWorkoutClick: () -> Unit
 ) {
     val title = routineName.takeIf { it.isNotBlank() } ?: "Next Workout"
     Text(title, color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    if (!planName.isNullOrBlank()) {
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Plan: $planName",
+            color = LightGrey,
+            fontSize = 13.sp
+        )
+    }
     Spacer(modifier = Modifier.height(16.dp))
 
     if (exercises.isEmpty()) {
@@ -1010,7 +1110,7 @@ fun NextWorkoutSheet(
 
     Spacer(modifier = Modifier.height(24.dp))
     Button(onClick = onWorkoutClick, colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue), modifier = Modifier.fillMaxWidth()) {
-        Text("Comenzar Entrenamiento", color = Onyx, fontWeight = FontWeight.Bold)
+        Text("START WORKOUT", color = Onyx, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -1019,7 +1119,8 @@ fun BodyWeightSheet(
     currentWeight: Double?,
     onDismiss: () -> Unit,
     onLogWeight: (Double) -> Unit,
-    weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>
+    weightHistory: List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>,
+    isSaving: Boolean
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().background(ShadowGrey, RoundedCornerShape(12.dp)).padding(16.dp),
@@ -1071,78 +1172,176 @@ fun BodyWeightSheet(
     Spacer(modifier = Modifier.height(16.dp))
     Button(
         onClick = {
-            inputWeight.toDoubleOrNull()?.let { onLogWeight(it) } ?: onDismiss()
+            val parsed = inputWeight.replace(',', '.').toDoubleOrNull()
+            if (parsed != null) {
+                onLogWeight(parsed)
+            }
         },
+        enabled = !isSaving,
         modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue)
     ) {
-        Text("Guardar Registro", color = Onyx, fontWeight = FontWeight.Bold)
+        Text(if (isSaving) "Guardando..." else "Guardar Registro", color = Onyx, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
-fun RecoveryInfoSheet(hours: Int?) {
-    Icon(imageVector = Icons.Default.BatteryChargingFull, contentDescription = "Battery", tint = MalachiteGreen, modifier = Modifier.size(64.dp))
-    Spacer(modifier = Modifier.height(8.dp))
-    Text("48h Restantes", color = PureWhite, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-    Spacer(modifier = Modifier.height(16.dp))
+fun RecoveryInfoSheet(muscleReadiness: List<MuscleReadinessUi>) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(imageVector = Icons.Default.BatteryChargingFull, contentDescription = "Muscle readiness", tint = MalachiteGreen, modifier = Modifier.size(28.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("Muscle Readiness", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    }
+    Spacer(modifier = Modifier.height(14.dp))
 
-    Text(
-        "Basado en tu alto volumen en el Día de Pierna de ayer, tu Sistema Nervioso Central necesita descanso.",
-        color = LightGrey, fontSize = 15.sp, textAlign = TextAlign.Center, lineHeight = 22.sp
-    )
-    Spacer(modifier = Modifier.height(24.dp))
+    if (muscleReadiness.isEmpty()) {
+        Text("No recent set data available yet.", color = LightGrey, fontSize = 14.sp)
+        return
+    }
 
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-        Box(modifier = Modifier.background(Color(0xFF4A1A1A), RoundedCornerShape(8.dp)).border(1.dp, SubtleRed, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
-            Text("Piernas (Fatiga Alta)", color = SubtleRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-        Box(modifier = Modifier.background(Color(0xFF1A3320), RoundedCornerShape(8.dp)).border(1.dp, MalachiteGreen, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
-            Text("Pecho (Fresco)", color = MalachiteGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        muscleReadiness.forEach { muscle ->
+            val trackColor = ShadowGrey
+            val fillColor =
+                when {
+                    muscle.recoveredPercent >= 80 -> MalachiteGreen
+                    muscle.recoveredPercent >= 50 -> CrayolaBlue
+                    else -> SubtleRed
+                }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(ShadowGrey.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
+                    .padding(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(muscle.muscleName, color = PureWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text("${muscle.recoveredPercent}%", color = LightGrey, fontSize = 13.sp)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { muscle.recoveredPercent / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(999.dp)),
+                    color = fillColor,
+                    trackColor = trackColor,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = muscle.lastTrainedAt?.let { "${muscle.statusLabel} · Last hit: ${formatDashboardDate(it)}" }
+                        ?: "${muscle.statusLabel} · No recent session",
+                    color = LightGrey.copy(alpha = 0.85f),
+                    fontSize = 11.sp
+                )
+            }
         }
     }
 }
 
 @Composable
-fun LastSessionSheet(routineName: String) {
-    Text("Ticket de Resumen: $routineName", color = PureWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+fun LastSessionSheet(
+    session: LastSessionModalUi?,
+    isLoading: Boolean
+) {
+    val title = session?.routineName ?: "Last Session"
+    Text("Summary: $title", color = PureWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(24.dp))
+
+    if (isLoading) {
+        CircularProgressIndicator(color = CrayolaBlue)
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("Loading last session details...", color = LightGrey, fontSize = 14.sp)
+        return
+    }
+
+    if (session == null) {
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .background(ShadowGrey, RoundedCornerShape(12.dp))
+                    .border(1.dp, LightGrey.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                    .padding(16.dp)
+        ) {
+            Text("No completed sessions yet.", color = LightGrey, fontSize = 15.sp)
+        }
+        return
+    }
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(imageVector = Icons.Default.DateRange, contentDescription = "Date", tint = LightGrey, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.height(4.dp))
-            Text("12 Abril", color = LightGrey, fontSize = 14.sp)
+            Text(
+                session.completedAt?.let { formatDashboardDate(it) } ?: "--",
+                color = LightGrey,
+                fontSize = 14.sp
+            )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(imageVector = Icons.Default.Timer, contentDescription = "Duration", tint = LightGrey, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.height(4.dp))
-            Text("75 min", color = LightGrey, fontSize = 14.sp)
+            Text(
+                session.durationMinutes?.let { "$it min" } ?: "--",
+                color = LightGrey,
+                fontSize = 14.sp
+            )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = "Volume", tint = LightGrey, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.height(4.dp))
-            Text("6,400 kg", color = LightGrey, fontSize = 14.sp)
+            Text(
+                "${formatVolumeKg(session.totalVolumeKg)} kg",
+                color = LightGrey,
+                fontSize = 14.sp
+            )
         }
     }
 
     Spacer(modifier = Modifier.height(24.dp))
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        Text("Ejercicios Principales:", color = PureWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text("Session Intensity", color = PureWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            "• Sentadilla Libre\n• Prensa de Piernas\n• Extensiones",
-            color = LightGrey, fontSize = 14.sp, lineHeight = 22.sp
-        )
-    }
-
-    Spacer(modifier = Modifier.height(32.dp))
-
-    Box(
-        modifier = Modifier.fillMaxWidth().background(Color(0xFF2A2410), RoundedCornerShape(12.dp)).border(1.dp, PrGold, RoundedCornerShape(12.dp)).padding(16.dp)
-    ) {
-        Text("🏆 Logro destacado: Nuevo PR en Dominadas", color = PrGold, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(ShadowGrey, RoundedCornerShape(10.dp))
+                .padding(12.dp)
+        ) {
+            Text(
+                text = "Average RPE: ${session.averageRpe?.let { String.format(Locale.getDefault(), "%.1f", it) } ?: "--"}",
+                color = CrayolaBlue,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Lifts (${session.totalSets} sets):", color = PureWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        if (session.lifts.isEmpty()) {
+            Text("No set details available.", color = LightGrey, fontSize = 14.sp)
+        } else {
+            session.lifts.take(10).forEach { lift ->
+                val topWeightLabel = lift.topWeightKg?.let { "${formatVolumeKg(it)}kg" } ?: "--"
+                val avgRepsLabel = lift.averageReps?.let { String.format(Locale.getDefault(), "%.1f", it) } ?: "--"
+                Text(
+                    text = "• ${lift.name}: ${lift.sets} sets x $topWeightLabel (avg reps $avgRepsLabel)",
+                    color = LightGrey,
+                    fontSize = 14.sp,
+                    lineHeight = 22.sp
+                )
+            }
+        }
     }
 }
 
@@ -1225,45 +1424,123 @@ private fun formatDashboardTimestamp(raw: String): String {
 }
 
 @Composable
-fun PrDetailsSheet(exerciseName: String) {
-    Text("Historial: $exerciseName", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+fun PrLedgerSheet(
+    history: List<PrHistoryEntryUi>,
+    isLoading: Boolean
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = "PR ledger", tint = PrGold, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("PR Ledger", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    }
     Spacer(modifier = Modifier.height(24.dp))
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // Row 1
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text("105 kg x 1", fontSize = 18.sp, color = PureWhite, fontWeight = FontWeight.Bold)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("Push Day", color = LightGrey, fontSize = 14.sp)
-                Text("Hace 2 semanas", color = LightGrey, fontSize = 12.sp)
-            }
-        }
-        HorizontalDivider(color = Onyx)
+    if (isLoading) {
+        CircularProgressIndicator(color = CrayolaBlue)
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("Loading PR history...", color = LightGrey, fontSize = 14.sp)
+        return
+    }
 
-        // Row 2
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text("102.5 kg x 2", fontSize = 18.sp, color = PureWhite, fontWeight = FontWeight.Bold)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("Push Day", color = LightGrey, fontSize = 14.sp)
-                Text("Hace 1 mes", color = LightGrey, fontSize = 12.sp)
-            }
+    if (history.isEmpty()) {
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .background(ShadowGrey, RoundedCornerShape(12.dp))
+                    .border(1.dp, LightGrey.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                    .padding(16.dp)
+        ) {
+            Text("No PR history found for this exercise.", color = LightGrey, fontSize = 15.sp)
         }
-        HorizontalDivider(color = Onyx)
+        return
+    }
 
-        // Row 3
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text("100 kg x 3", fontSize = 18.sp, color = PureWhite, fontWeight = FontWeight.Bold)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("Full Body", color = LightGrey, fontSize = 14.sp)
-                Text("Hace 3 meses", color = LightGrey, fontSize = 12.sp)
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth().heightIn(max = 460.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        items(history) { entry ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(ShadowGrey.copy(alpha = 0.65f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    val weightLabel = entry.weightKg?.let { formatVolumeKg(it) } ?: "--"
+                    val repsLabel = entry.reps?.toString() ?: "--"
+                    Text(entry.exerciseName, fontSize = 13.sp, color = LightGrey)
+                    Text(
+                        "$weightLabel kg x $repsLabel",
+                        fontSize = 18.sp,
+                        color = PureWhite,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(entry.routineName, color = LightGrey, fontSize = 14.sp)
+                    Text(
+                        entry.achievedAt?.let { formatDashboardDate(it) } ?: "Unknown date",
+                        color = LightGrey,
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
+    }
+}
+
+private fun formatVolumeKg(value: Double): String {
+    return if (value % 1.0 == 0.0) {
+        value.toInt().toString()
+    } else {
+        String.format(Locale.getDefault(), "%.1f", value)
+    }
+}
+
+private fun formatDashboardDate(raw: String): String {
+    val zone = ZoneId.systemDefault()
+    val parsed =
+        runCatching { OffsetDateTime.parse(raw).toInstant().atZone(zone) }.getOrNull()
+            ?: runCatching { Instant.parse(raw).atZone(zone) }.getOrNull()
+
+    return parsed?.format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault()))
+        ?: raw.take(10)
+}
+
+private fun normalizeExerciseLookup(raw: String): String {
+    return raw
+        .trim()
+        .replace('_', ' ')
+        .replace('-', ' ')
+        .split(' ')
+        .filter { it.isNotBlank() }
+        .joinToString(" ")
+        .lowercase(Locale.getDefault())
+}
+
+private fun buildRoutineColorMap(routines: Set<String>): Map<String, Color> {
+    val palette = listOf(CrayolaBlue, MalachiteGreen, SubtleRed, PrGold, Color(0xFF3AAFA9), Color(0xFFFF9F1C))
+    val sorted = routines.filter { it.isNotBlank() }.sortedBy { it.lowercase(Locale.getDefault()) }
+
+    var fallbackIndex = 0
+    return sorted.associateWith { routineName ->
+        classifyRoutineColor(routineName) ?: palette[fallbackIndex++ % palette.size]
+    }
+}
+
+private fun classifyRoutineColor(routineName: String): Color? {
+    val normalized = routineName.lowercase(Locale.getDefault())
+    return when {
+        normalized.contains("push") -> CrayolaBlue
+        normalized.contains("pull") -> MalachiteGreen
+        normalized.contains("leg") -> SubtleRed
+        normalized.contains("upper") -> PrGold
+        normalized.contains("lower") -> Color(0xFFFF9F1C)
+        normalized.contains("full") -> Color(0xFF3AAFA9)
+        else -> null
     }
 }
 

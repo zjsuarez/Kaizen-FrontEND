@@ -36,14 +36,15 @@ import com.example.kaizenfrontend.core.ui.theme.PureWhite
 @Composable
 fun RecoveryTimeWidget(
     hours: Int?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
     val isRecovered = hours != null && hours <= 0
     val displayHours = if (isRecovered) "0" else hours?.toString() ?: "--"
     val subtext = if (isRecovered) "Recovered" else if (hours != null) "Recovering" else "No Data"
     val accentColor = if (isRecovered) MalachiteGreen else CrayolaBlue
 
-    KaizenWidgetContainer(modifier = modifier) {
+    KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -65,6 +66,15 @@ fun RecoveryTimeWidget(
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 1.sp
                 )
+                if (onClick != null) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Open recovery details",
+                        tint = LightGrey.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
 
             // Right: metric + subtitle
