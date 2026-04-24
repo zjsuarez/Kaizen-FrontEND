@@ -58,10 +58,13 @@ class RoutineRepositoryImpl(
                     Result.success(createdDto.toDomain())
                 } else {
                     val exercisesRequest = routineExercises.map { routineEx ->
+                        val customExerciseId = routineEx.exercise.id.takeIf { routineEx.exercise.isCustom }
+                        val builtinExerciseKey = routineEx.exercise.id.takeUnless { routineEx.exercise.isCustom }
+
                         RoutineExerciseRequest(
                             targetSets = routineEx.targetSets,
-                            builtinExerciseKey = routineEx.exercise.id,
-                            customExerciseId = null
+                            builtinExerciseKey = builtinExerciseKey,
+                            customExerciseId = customExerciseId
                         )
                     }
 
@@ -129,10 +132,13 @@ class RoutineRepositoryImpl(
             val bearerToken = "Bearer $token"
 
             val exerciseRequests = exercises.map { re ->
+                val customExerciseId = re.exercise.id.takeIf { re.exercise.isCustom }
+                val builtinExerciseKey = re.exercise.id.takeUnless { re.exercise.isCustom }
+
                 RoutineExerciseRequest(
                     targetSets = re.targetSets,
-                    customExerciseId = null,
-                    builtinExerciseKey = re.exercise.id
+                    customExerciseId = customExerciseId,
+                    builtinExerciseKey = builtinExerciseKey
                 )
             }
 
@@ -206,8 +212,10 @@ class RoutineRepositoryImpl(
                     val customId = exerciseDto.customExerciseId
 
                     val catalogExercise = builtinKey?.let { catalog[it] }
+                        ?: customId?.let { catalog[it] }
 
                     val exerciseName = catalogExercise?.name
+                        ?: customId
                         ?: builtinKey
                         ?: "Custom Exercise"
 
