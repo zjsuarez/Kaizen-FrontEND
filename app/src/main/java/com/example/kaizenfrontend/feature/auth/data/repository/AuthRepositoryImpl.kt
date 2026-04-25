@@ -42,4 +42,19 @@ class AuthRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun googleLogin(idToken: String): Result<String> {
+        return try {
+            val response = api.googleLogin(com.example.kaizenfrontend.feature.auth.data.remote.dto.GoogleLoginRequest(idToken))
+            if (response.isSuccessful && response.body() != null) {
+                val token = response.body()!!.token
+                sessionManager.saveToken(token)
+                Result.success(token)
+            } else {
+                Result.failure(Exception(response.errorBody()?.string() ?: "Google Login failed"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

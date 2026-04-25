@@ -139,7 +139,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { /* Handle Google Auth */ },
+            onClick = { viewModel.signInWithGoogle(context) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -147,16 +147,21 @@ fun LoginScreen(
                 containerColor = InputFieldColor,
                 contentColor = Color.White
             ),
-            shape = RoundedCornerShape(28.dp)
+            shape = RoundedCornerShape(28.dp),
+            enabled = uiState !is LoginUiState.Loading
         ) {
-            Icon(
-                painter = painterResource(id = android.R.drawable.ic_menu_gallery),
-                contentDescription = "Google Logo",
-                tint = Color.Unspecified,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(text = "LOG IN WITH GOOGLE", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            if (uiState is LoginUiState.Loading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(
+                    painter = painterResource(id = com.example.kaizenfrontend.R.drawable.ic_google),
+                    contentDescription = "Google Logo",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(text = "CONTINUE WITH GOOGLE", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
         }
     }
 }
