@@ -12,5 +12,6 @@ data class User(
     val restTimerDefault: Int,
     val profilePic: String? = null,
     val primaryGoal: String? = null,
-    val equipmentAvailable: List<String> = emptyList()
+    val equipmentAvailable: List<String> = emptyList(),
+    val authProvider: String? = null
 )

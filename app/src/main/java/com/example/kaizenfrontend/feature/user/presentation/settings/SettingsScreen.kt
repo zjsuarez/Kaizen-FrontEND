@@ -19,6 +19,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import com.example.kaizenfrontend.core.ui.theme.*
 
 @Composable
@@ -31,6 +33,10 @@ fun SettingsScreen(
     val context = LocalContext.current
     val viewModel = remember { SettingsViewModel(context) }
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshUserProfile()
+    }
 
     var showChangePasswordDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -99,6 +105,7 @@ fun SettingsScreen(
 
         SettingsAccountSection(
             email = uiState.email,
+            authProvider = uiState.authProvider,
             onChangePasswordClick = { showChangePasswordDialog = true },
             onLogoutClick = { showLogoutDialog = true },
             onDeleteAccountClick = onDeleteAccountClick
@@ -239,6 +246,7 @@ private fun RestTimerDialog(currentSeconds: Int, onDismiss: () -> Unit, onConfir
 @Composable
 private fun SettingsAccountSection(
     email: String,
+    authProvider: String?,
     onChangePasswordClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onDeleteAccountClick: () -> Unit
@@ -248,13 +256,74 @@ private fun SettingsAccountSection(
             Text(text = "Email", color = LightGrey, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = email, color = PureWhite, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // ── Auth provider badge ────────────────────────────────────────
+            when (authProvider) {
+                "GOOGLE" -> {
+                    AuthProviderBadge(
+                        showGoogle = true,
+                        showLock = false,
+                        label = "Linked via Google"
+                    )
+                }
+                "BOTH" -> {
+                    AuthProviderBadge(
+                        showGoogle = true,
+                        showLock = true,
+                        label = "Google & Local Password"
+                    )
+                }
+                // LOCAL or null → no badge needed
+                else -> {}
+            }
         }
         SettingsDivider()
-        SettingsTextButton(text = "Change Password", textColor = PureWhite, onClick = onChangePasswordClick)
+        // Password action: GOOGLE-only accounts must CREATE a password; all others CHANGE it.
+        val passwordText = if (authProvider == "GOOGLE") "Create Local Password" else "Change Password"
+        SettingsTextButton(text = passwordText, textColor = PureWhite, onClick = onChangePasswordClick)
         SettingsDivider()
         SettingsTextButton(text = "Log Out", textColor = SubtleRed, onClick = onLogoutClick)
         SettingsDivider()
         SettingsTextButton(text = "Delete Account", textColor = SubtleRed, onClick = onDeleteAccountClick)
+    }
+}
+
+@Composable
+private fun AuthProviderBadge(
+    showGoogle: Boolean,
+    showLock: Boolean,
+    label: String
+) {
+    Row(
+        modifier = Modifier
+            .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        if (showGoogle) {
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(id = com.example.kaizenfrontend.R.drawable.ic_google),
+                contentDescription = "Google",
+                tint = Color.Unspecified,
+                modifier = Modifier.size(13.dp)
+            )
+        }
+        if (showLock) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = "Local password",
+                tint = CrayolaBlue,
+                modifier = Modifier.size(12.dp)
+            )
+        }
+        Text(
+            text = label,
+            color = LightGrey,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

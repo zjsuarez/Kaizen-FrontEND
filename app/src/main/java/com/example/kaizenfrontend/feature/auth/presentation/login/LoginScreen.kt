@@ -22,11 +22,12 @@ import com.example.kaizenfrontend.core.ui.components.CustomTextField
 import com.example.kaizenfrontend.core.ui.theme.DarkBackground
 import com.example.kaizenfrontend.core.ui.theme.InputFieldColor
 import com.example.kaizenfrontend.core.ui.theme.LightGrayText
+import com.example.kaizenfrontend.core.ui.components.GoogleSignInButton
 
 @Composable
 fun LoginScreen(
     onBackClick: () -> Unit = {},
-    onLoginClick: () -> Unit = {}
+    onLoginClick: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel = remember { LoginViewModel(context) }
@@ -38,8 +39,9 @@ fun LoginScreen(
     // Navigate on success
     LaunchedEffect(uiState) {
         if (uiState is LoginUiState.Success) {
+            val needsCalibration = (uiState as LoginUiState.Success).needsCalibration
             viewModel.resetState()
-            onLoginClick()
+            onLoginClick(needsCalibration)
         }
     }
 
@@ -138,26 +140,10 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Button(
-            onClick = { /* Handle Google Auth */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = InputFieldColor,
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(28.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = android.R.drawable.ic_menu_gallery),
-                contentDescription = "Google Logo",
-                tint = Color.Unspecified,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(text = "LOG IN WITH GOOGLE", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        }
+        GoogleSignInButton(
+            onClick = { viewModel.signInWithGoogle(context) },
+            isLoading = uiState is LoginUiState.Loading
+        )
     }
 }
 
