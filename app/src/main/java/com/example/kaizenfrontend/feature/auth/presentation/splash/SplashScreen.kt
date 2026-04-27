@@ -41,9 +41,7 @@ fun SplashScreen(
         val profileResult = getCurrentUserUseCase()
         profileResult.fold(
             onSuccess = { user ->
-                val isCalibrated =
-                    user.unitSystem.isNotBlank() &&
-                        user.effortMeasurement.isNotBlank()
+                val isCalibrated = user.primaryGoal?.isNotBlank() == true
 
                 if (isCalibrated) {
                     sessionManager.saveCalibrationComplete(true)

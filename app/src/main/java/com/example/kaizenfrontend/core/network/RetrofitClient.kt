@@ -2,6 +2,7 @@ package com.example.kaizenfrontend.core.network
 
 import com.example.kaizenfrontend.feature.auth.data.remote.AuthApiService
 import com.example.kaizenfrontend.feature.user.data.remote.UserApiService
+import com.example.kaizenfrontend.feature.workouts.data.remote.ExerciseApiService
 import com.example.kaizenfrontend.feature.workouts.data.remote.PlanApiService
 import com.example.kaizenfrontend.feature.workouts.data.remote.RoutineApiService
 import com.example.kaizenfrontend.feature.workouts.data.remote.WorkoutApiService
@@ -37,5 +38,9 @@ object RetrofitClient {
 
     val workoutService: WorkoutApiService by lazy {
         retrofit.create(WorkoutApiService::class.java)
+    }
+
+    val exerciseService: ExerciseApiService by lazy {
+        retrofit.create(ExerciseApiService::class.java)
     }
 }

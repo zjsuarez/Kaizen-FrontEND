@@ -71,9 +71,15 @@ fun KaizenNavHost() {
         composable("signup") {
             SignUpScreen(
                 onBackClick = { navController.popBackStack() },
-                onSignUpClick = {
-                    navController.navigate("calibration") {
-                        popUpTo("start") { inclusive = true }
+                onSignUpClick = { needsCalibration ->
+                    if (needsCalibration) {
+                        navController.navigate("calibration") {
+                            popUpTo("start") { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate("dashboard") {
+                            popUpTo("start") { inclusive = true }
+                        }
                     }
                 }
             )
@@ -81,9 +87,15 @@ fun KaizenNavHost() {
         composable("login") {
             LoginScreen(
                 onBackClick = { navController.popBackStack() },
-                onLoginClick = {
-                    navController.navigate("splash") {
-                        popUpTo("start") { inclusive = true }
+                onLoginClick = { needsCalibration ->
+                    if (needsCalibration) {
+                        navController.navigate("calibration") {
+                            popUpTo("start") { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate("dashboard") {
+                            popUpTo("start") { inclusive = true }
+                        }
                     }
                 }
             )

@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.ui.theme.*
@@ -192,9 +193,10 @@ fun DashboardScreen(
     val muscleReadiness by viewModel.muscleReadiness.collectAsState()
     val isLoggingBodyWeight by viewModel.isLoggingBodyWeight.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
+    val showGoogleWelcomeSheet by viewModel.showGoogleWelcomePrompt.collectAsState()
+    val sessionManager = remember { SessionManager(context) }
     val userName = remember {
-        SessionManager(context)
-            .getUserEmail()
+        sessionManager.getUserEmail()
             ?.substringBefore("@")
             ?.trim()
             ?.takeIf { it.isNotBlank() }
@@ -211,6 +213,7 @@ fun DashboardScreen(
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val addWidgetSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val googleWelcomeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var activeBottomSheet by remember { mutableStateOf<DashboardBottomSheetType?>(null) }
 
     Scaffold(
@@ -436,6 +439,27 @@ fun DashboardScreen(
                 showAddWidgetSheet = false
             }
         )
+    }
+
+    if (showGoogleWelcomeSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                viewModel.dismissGoogleWelcomePrompt()
+            },
+            sheetState = googleWelcomeSheetState,
+            containerColor = Onyx,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = LightGrey) }
+        ) {
+            GoogleWelcomeBottomSheet(
+                onSetPasswordClick = {
+                    viewModel.dismissGoogleWelcomePrompt()
+                    selectedTab = 3 // Open Profile/Settings for password setup.
+                },
+                onNotNowClick = {
+                    viewModel.dismissGoogleWelcomePrompt()
+                }
+            )
+        }
     }
 
     // ── Active Workout "Tunnel Mode" bottom sheet ─────────

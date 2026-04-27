@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.network.RetrofitClient
+import com.example.kaizenfrontend.feature.workouts.data.repository.ExerciseRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.data.repository.PlanRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.data.repository.MockExerciseRepository
 import com.example.kaizenfrontend.feature.workouts.data.repository.RoutineRepositoryImpl
@@ -333,7 +334,11 @@ class WorkoutsViewModelFactory(private val context: Context) : ViewModelProvider
         if (modelClass.isAssignableFrom(WorkoutsViewModel::class.java)) {
             val sessionManager = SessionManager(context)
             val planRepo = PlanRepositoryImpl(RetrofitClient.planService, sessionManager)
-            val exerciseRepo = MockExerciseRepository()
+            val exerciseRepo = ExerciseRepositoryImpl(
+                api = RetrofitClient.exerciseService,
+                sessionManager = sessionManager,
+                fallbackRepository = MockExerciseRepository()
+            )
             val routineRepo = RoutineRepositoryImpl(RetrofitClient.routineService, sessionManager, exerciseRepo)
             @Suppress("UNCHECKED_CAST")
             return WorkoutsViewModel(
