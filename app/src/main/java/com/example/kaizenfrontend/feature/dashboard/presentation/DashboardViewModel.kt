@@ -8,9 +8,11 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.feature.dashboard.data.local.DashboardPreferences
 import com.example.kaizenfrontend.feature.dashboard.data.repository.DashboardRepository
 import com.example.kaizenfrontend.feature.dashboard.worker.DashboardSyncWorker
+import com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -49,6 +51,12 @@ constructor(
                     List<
                             com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>> =
             _weightHistory.asStateFlow()
+
+        private val _showGoogleWelcomePrompt = MutableStateFlow(false)
+        val showGoogleWelcomePrompt: StateFlow<Boolean> = _showGoogleWelcomePrompt.asStateFlow()
+
+        private val sessionManager by lazy { SessionManager(appContext) }
+        private val userRepository by lazy { UserRepositoryImpl(sessionManager) }
 
     val widgetOrder: StateFlow<List<String>> =
             dashboardPreferences.widgetOrder.stateIn(
@@ -125,6 +133,27 @@ constructor(
         }
         refreshDashboardData()
         fetchWeightHistory()
+        evaluateGoogleWelcomePrompt()
+    }
+
+    private fun evaluateGoogleWelcomePrompt() {
+        viewModelScope.launch {
+            if (!sessionManager.shouldShowGoogleWelcomePrompt()) {
+                _showGoogleWelcomePrompt.value = false
+                return@launch
+            }
+
+            userRepository.getCurrentUser().onSuccess { user ->
+                _showGoogleWelcomePrompt.value = user.authProvider.equals("GOOGLE", ignoreCase = true)
+            }.onFailure {
+                _showGoogleWelcomePrompt.value = false
+            }
+        }
+    }
+
+    fun dismissGoogleWelcomePrompt() {
+        sessionManager.clearGoogleWelcomePrompt()
+        _showGoogleWelcomePrompt.value = false
     }
 
     private fun fetchWeightHistory() {

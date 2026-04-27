@@ -12,27 +12,35 @@ class UserRepositoryImpl(
 
     private val api = RetrofitClient.userService
 
-    private fun bearerToken(): String = "Bearer ${sessionManager.getToken()}"
+    private fun toBearer(tokenOrBearer: String?): String? {
+        val normalized = tokenOrBearer
+            ?.trim()
+            ?.removePrefix("Bearer ")
+            ?.removePrefix("bearer ")
+            ?.takeIf { it.isNotBlank() }
+            ?: return null
+        return "Bearer $normalized"
+    }
 
-    override suspend fun getCurrentUser(): Result<User> {
+    private fun bearerToken(): String? = toBearer(sessionManager.getToken())
+
+    override suspend fun getCurrentUser(): Result<User> =
+        fetchUserWithBearer(bearerToken())
+
+    override suspend fun getCurrentUserWithToken(bearerToken: String): Result<User> =
+        fetchUserWithBearer(bearerToken)
+
+    private suspend fun fetchUserWithBearer(tokenOrBearer: String?): Result<User> {
+        val bearer = toBearer(tokenOrBearer)
+            ?: return Result.failure(Exception("Missing authentication token"))
         return try {
-            val response = api.getCurrentUser(bearerToken())
+            val response = api.getCurrentUser(bearer)
             if (response.isSuccessful && response.body() != null) {
                 val dto = response.body()!!
-                Result.success(
-                    User(
-                        id = dto.id,
-                        username = dto.username,
-                        email = dto.email,
-                        unitSystem = dto.unitSystem?.uppercase() ?: "METRIC",
-                        effortMeasurement = dto.effortMeasurement?.uppercase() ?: "RPE",
-                        restTimerDefault = dto.restTimerDefault ?: 90,
-                        profilePic = dto.profilePic,
-                        primaryGoal = dto.primaryGoal,
-                        equipmentAvailable = dto.equipmentAvailable ?: emptyList()
-                    )
-                )
+                android.util.Log.d("UserRepo", "getCurrentUser DTO=$dto")
+                Result.success(dto.toDomain())
             } else {
+                android.util.Log.w("UserRepo", "getCurrentUser HTTP ${response.code()}: ${response.errorBody()?.string()}")
                 Result.failure(Exception("Failed to fetch user: ${response.code()}"))
             }
         } catch (e: Exception) {
@@ -41,23 +49,11 @@ class UserRepositoryImpl(
     }
 
     override suspend fun updateUser(request: UserUpdateRequest): Result<User> {
+        val bearer = bearerToken() ?: return Result.failure(Exception("Missing authentication token"))
         return try {
-            val response = api.updateUserProfile(bearerToken(), request)
+            val response = api.updateUserProfile(bearer, request)
             if (response.isSuccessful && response.body() != null) {
-                val dto = response.body()!!
-                Result.success(
-                    User(
-                        id = dto.id,
-                        username = dto.username,
-                        email = dto.email,
-                        unitSystem = dto.unitSystem?.uppercase() ?: "METRIC",
-                        effortMeasurement = dto.effortMeasurement?.uppercase() ?: "RPE",
-                        restTimerDefault = dto.restTimerDefault ?: 90,
-                        profilePic = dto.profilePic,
-                        primaryGoal = dto.primaryGoal,
-                        equipmentAvailable = dto.equipmentAvailable ?: emptyList()
-                    )
-                )
+                Result.success(response.body()!!.toDomain())
             } else {
                 Result.failure(Exception("Failed to update user: ${response.code()}"))
             }
@@ -65,4 +61,18 @@ class UserRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    // ── DTO → Domain mapper ────────────────────────────────────────────────────
+    private fun com.example.kaizenfrontend.feature.user.data.remote.dto.UserResponse.toDomain() = User(
+        id = id,
+        username = username,
+        email = email,
+        unitSystem = unitSystem?.uppercase() ?: "METRIC",
+        effortMeasurement = effortMeasurement?.uppercase() ?: "RPE",
+        restTimerDefault = restTimerDefault ?: 90,
+        profilePic = profilePic,
+        primaryGoal = primaryGoal,
+        equipmentAvailable = equipmentAvailable ?: emptyList(),
+        authProvider = authProvider
+    )
 }

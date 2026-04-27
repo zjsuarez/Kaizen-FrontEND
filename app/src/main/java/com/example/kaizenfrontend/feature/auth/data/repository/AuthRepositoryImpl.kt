@@ -12,12 +12,15 @@ class AuthRepositoryImpl(
 
     private val api = RetrofitClient.authService
 
+    private fun normalizeToken(rawToken: String): String =
+        rawToken.trim().removePrefix("Bearer ").removePrefix("bearer ")
+
     override suspend fun login(email: String, password: String): Result<String> {
         return try {
             val response = api.loginUser(LoginRequest(email, password))
             if (response.isSuccessful && response.body() != null) {
-                val token = response.body()!!.token
-                sessionManager.saveToken(token)
+                val token = normalizeToken(response.body()!!.token)
+                sessionManager.saveTokenAndAwait(token)
                 Result.success(token)
             } else {
                 Result.failure(Exception(response.errorBody()?.string() ?: "Login failed"))
@@ -47,8 +50,8 @@ class AuthRepositoryImpl(
         return try {
             val response = api.googleLogin(com.example.kaizenfrontend.feature.auth.data.remote.dto.GoogleLoginRequest(idToken))
             if (response.isSuccessful && response.body() != null) {
-                val token = response.body()!!.token
-                sessionManager.saveToken(token)
+                val token = normalizeToken(response.body()!!.token)
+                sessionManager.saveTokenAndAwait(token)
                 Result.success(token)
             } else {
                 Result.failure(Exception(response.errorBody()?.string() ?: "Google Login failed"))

@@ -22,11 +22,12 @@ import com.example.kaizenfrontend.core.ui.components.CustomTextField
 import com.example.kaizenfrontend.core.ui.theme.DarkBackground
 import com.example.kaizenfrontend.core.ui.theme.InputFieldColor
 import com.example.kaizenfrontend.core.ui.theme.LightGrayText
+import com.example.kaizenfrontend.core.ui.components.GoogleSignInButton
 
 @Composable
 fun LoginScreen(
     onBackClick: () -> Unit = {},
-    onLoginClick: () -> Unit = {}
+    onLoginClick: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel = remember { LoginViewModel(context) }
@@ -38,8 +39,9 @@ fun LoginScreen(
     // Navigate on success
     LaunchedEffect(uiState) {
         if (uiState is LoginUiState.Success) {
+            val needsCalibration = (uiState as LoginUiState.Success).needsCalibration
             viewModel.resetState()
-            onLoginClick()
+            onLoginClick(needsCalibration)
         }
     }
 
@@ -138,31 +140,10 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Button(
+        GoogleSignInButton(
             onClick = { viewModel.signInWithGoogle(context) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = InputFieldColor,
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(28.dp),
-            enabled = uiState !is LoginUiState.Loading
-        ) {
-            if (uiState is LoginUiState.Loading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-            } else {
-                Icon(
-                    painter = painterResource(id = com.example.kaizenfrontend.R.drawable.ic_google),
-                    contentDescription = "Google Logo",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(text = "CONTINUE WITH GOOGLE", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            }
-        }
+            isLoading = uiState is LoginUiState.Loading
+        )
     }
 }
 
