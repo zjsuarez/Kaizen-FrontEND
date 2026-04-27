@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -176,7 +178,8 @@ fun CreateCustomExerciseWizardOverlay(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Row(
@@ -191,12 +194,29 @@ fun CreateCustomExerciseWizardOverlay(
                                 tint = PureWhite
                             )
                         }
-                        Text(
-                            text = "$step/4",
-                            color = LightGrey,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                        if (step == 4) {
+                            Button(
+                                onClick = ::finish,
+                                enabled = !isSubmitting,
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = CrayolaBlue,
+                                    contentColor = PureWhite
+                                )
+                            ) {
+                                Text(
+                                    text = if (isSubmitting) "SAVING..." else "FINISH",
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = "$step/4",
+                                color = LightGrey,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
 
                     when (step) {
@@ -420,13 +440,6 @@ fun CreateCustomExerciseWizardOverlay(
 
                             ValidationSlot(error = equipmentError)
                             ValidationSlot(error = externalError)
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            WizardActionButton(
-                                text = if (isSubmitting) "SAVING..." else "FINISH",
-                                onClick = ::finish,
-                                enabled = !isSubmitting
-                            )
                         }
                     }
                 }
