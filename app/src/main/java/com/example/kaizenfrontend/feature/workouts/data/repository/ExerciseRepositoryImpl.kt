@@ -18,28 +18,24 @@ class ExerciseRepositoryImpl(
 
     override suspend fun getExercises(): Result<List<Exercise>> = withContext(Dispatchers.IO) {
         try {
-            val token = sessionManager.getToken()
-                ?: return@withContext fallbackRepository.getExercises()
-            val bearerToken = "Bearer $token"
-            val currentUserId = sessionManager.getUserIdFromToken()
+            val fallbackExercises = fallbackRepository.getExercises().getOrDefault(emptyList())
 
-            val response = api.getExercises(
-                token = bearerToken,
-                createdByUserId = currentUserId
-            )
+            val token = sessionManager.getToken()
+                ?: return@withContext Result.success(fallbackExercises)
+
+            val bearerToken = "Bearer $token"
+
+            val response = api.getExercises(token = bearerToken)
+
             if (!response.isSuccessful) {
-                return@withContext fallbackRepository.getExercises()
+                return@withContext Result.success(fallbackExercises)
             }
 
-            val visibleExercises = response.body().orEmpty()
-                .map { it.toDomain() }
-                .filter { exercise ->
-                    !exercise.isCustom ||
-                        exercise.createdByUserId.isNullOrBlank() ||
-                        exercise.createdByUserId == currentUserId
-                }
+            val userExercises = response.body().orEmpty().map { it.toDomain() }
 
-            Result.success(visibleExercises)
+            // Merge: default mock catalog + user's custom exercises from backend
+            val combined = (fallbackExercises + userExercises).distinctBy { it.id }
+            Result.success(combined)
         } catch (e: Exception) {
             fallbackRepository.getExercises()
         }
@@ -65,12 +61,8 @@ class ExerciseRepositoryImpl(
 
             val response = api.createExercise(bearerToken, request)
             if (response.isSuccessful) {
-                val currentUserId = sessionManager.getUserIdFromToken()
                 response.body()?.let {
-                    val created = it.toDomain().copy(
-                        createdByUserId = it.createdByUserId ?: currentUserId
-                    )
-                    Result.success(created)
+                    Result.success(it.toDomain())
                 }
                     ?: Result.failure(Exception("Empty exercise response"))
             } else {

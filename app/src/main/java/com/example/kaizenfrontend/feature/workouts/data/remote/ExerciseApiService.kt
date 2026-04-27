@@ -7,15 +7,20 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
-import retrofit2.http.Query
+import retrofit2.http.Path
 
 interface ExerciseApiService {
 
     @GET("api/exercises")
     suspend fun getExercises(
-        @Header("Authorization") token: String,
-        @Query("createdByUserId") createdByUserId: String? = null
+        @Header("Authorization") token: String
     ): Response<List<ExerciseResponse>>
+
+    @GET("api/exercises/{exerciseId}")
+    suspend fun getExercise(
+        @Header("Authorization") token: String,
+        @Path("exerciseId") exerciseId: String
+    ): Response<ExerciseResponse>
 
     @POST("api/exercises")
     suspend fun createExercise(

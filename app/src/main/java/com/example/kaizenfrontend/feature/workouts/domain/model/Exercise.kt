@@ -9,6 +9,5 @@ data class Exercise(
     val isCustom: Boolean = false,
     val description: String? = null,
     val selectedMuscles: List<String> = emptyList(),
-    val metric: ExerciseMetric = ExerciseMetric.SETS,
-    val createdByUserId: String? = null
+    val metric: ExerciseMetric = ExerciseMetric.SETS
 )

@@ -1,6 +1,5 @@
 package com.example.kaizenfrontend.feature.workouts.data.remote.dto
 
-import com.google.gson.annotations.SerializedName
 import com.example.kaizenfrontend.feature.workouts.domain.model.EquipmentType
 import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.ExerciseMetric
@@ -23,8 +22,7 @@ data class ExerciseResponse(
     val metrics: String? = null,
     val type: String? = null,
     val isCustom: Boolean = false,
-    @SerializedName(value = "createdByUserId", alternate = ["createdByUserId_FK", "createdByUserIdFk"])
-    val createdByUserId: String? = null
+    val createdAt: String? = null
 )
 
 fun ExerciseResponse.toDomain(): Exercise {
@@ -43,8 +41,7 @@ fun ExerciseResponse.toDomain(): Exercise {
         isCustom = isCustom,
         description = description,
         selectedMuscles = muscleList,
-        metric = metrics.toExerciseMetric(),
-        createdByUserId = createdByUserId
+        metric = metrics.toExerciseMetric()
     )
 }
 
