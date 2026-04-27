@@ -33,25 +33,32 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.core.data.local.SessionManager
+import com.example.kaizenfrontend.core.network.RetrofitClient
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 import com.example.kaizenfrontend.feature.workouts.data.repository.MockExerciseRepository
+import com.example.kaizenfrontend.feature.workouts.data.repository.ExerciseRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.MuscleTarget
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
 import com.example.kaizenfrontend.feature.workouts.domain.repository.ExerciseRepository
+import kotlinx.coroutines.launch
 
 @Composable
 fun WizardStep3Exercises(
@@ -144,19 +151,33 @@ fun WizardStep3Exercises(
 fun ExerciseCatalogBottomSheet(
     onDismissRequest: () -> Unit,
     onExerciseSelected: (Exercise) -> Unit,
-    exerciseRepository: ExerciseRepository = MockExerciseRepository()
+    exerciseRepository: ExerciseRepository? = null
 ) {
+    val context = LocalContext.current
+    val resolvedExerciseRepository = remember(exerciseRepository, context) {
+        exerciseRepository ?: ExerciseRepositoryImpl(
+            api = RetrofitClient.exerciseService,
+            sessionManager = SessionManager(context),
+            fallbackRepository = MockExerciseRepository()
+        )
+    }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
     var exercises by remember { mutableStateOf<List<Exercise>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedTarget by remember { mutableStateOf<MuscleTarget?>(null) }
+    var refreshKey by remember { mutableIntStateOf(0) }
+    var showCreateWizard by remember { mutableStateOf(false) }
+    var createWizardError by remember { mutableStateOf<String?>(null) }
+    var isCreatingExercise by remember { mutableStateOf(false) }
 
-    LaunchedEffect(exerciseRepository) {
+    LaunchedEffect(resolvedExerciseRepository, refreshKey) {
         isLoading = true
         errorMessage = null
 
-        val result = exerciseRepository.getExercises()
+        val result = resolvedExerciseRepository.getExercises()
         if (result.isSuccess) {
             exercises = result.getOrNull().orEmpty()
         } else {
@@ -204,6 +225,25 @@ fun ExerciseCatalogBottomSheet(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 18.sp
             )
+
+            OutlinedButton(
+                onClick = { showCreateWizard = true },
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, CrayolaBlue),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = CrayolaBlue)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    tint = CrayolaBlue,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    text = "Create custom exercise",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
 
             MuscleFilterRow(
                 selectedTarget = selectedTarget,
@@ -259,6 +299,43 @@ fun ExerciseCatalogBottomSheet(
                 }
             }
         }
+    }
+
+    if (showCreateWizard) {
+        CreateCustomExerciseWizardOverlay(
+            onDismissRequest = {
+                if (!isCreatingExercise) {
+                    showCreateWizard = false
+                    createWizardError = null
+                }
+            },
+            isSubmitting = isCreatingExercise,
+            externalError = createWizardError,
+            onClearExternalError = { createWizardError = null },
+            onFinish = { command ->
+                scope.launch {
+                    isCreatingExercise = true
+                    createWizardError = null
+                    val createdResult = resolvedExerciseRepository.createCustomExercise(command)
+                    if (createdResult.isSuccess) {
+                        val created = createdResult.getOrNull()
+                        showCreateWizard = false
+                        selectedTarget = null
+                        refreshKey += 1
+                        createWizardError = null
+                        if (created != null) {
+                            onExerciseSelected(created)
+                        }
+                    } else {
+                        val message = createdResult.exceptionOrNull()?.message
+                            ?: "Unable to create custom exercise"
+                        createWizardError = message
+                        errorMessage = message
+                    }
+                    isCreatingExercise = false
+                }
+            }
+        )
     }
 }
 
@@ -341,6 +418,16 @@ private fun CatalogExerciseRow(
                 color = LightGrey,
                 fontSize = 12.sp
             )
+
+            if (exercise.isCustom) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "CUSTOM",
+                    color = CrayolaBlue,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
