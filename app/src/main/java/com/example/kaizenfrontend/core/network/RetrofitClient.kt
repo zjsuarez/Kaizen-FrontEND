@@ -11,7 +11,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
     // 10.0.2.2 connects to localhost from the Android emulator
-    private const val BASE_URL = "http://10.104.160.185:8080/"
+    private const val BASE_URL = "http://10.0.2.2:8080/"
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
