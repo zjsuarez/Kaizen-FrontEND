@@ -105,6 +105,8 @@ fun ActiveWorkoutBottomSheet(
     val context = androidx.compose.ui.platform.LocalContext.current
     val sessionManager = androidx.compose.runtime.remember { com.example.kaizenfrontend.core.data.local.SessionManager(context) }
     val effortMetric = androidx.compose.runtime.remember { sessionManager.getUserEffortMetric() ?: "RPE" }
+    val unitSystem = androidx.compose.runtime.remember { sessionManager.getUserUnitSystem() ?: "METRIC" }
+    val weightUnit = if (unitSystem == "IMPERIAL") "lbs" else "kg"
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val workoutState by ActiveWorkoutManager.currentWorkout.collectAsState()
@@ -122,6 +124,7 @@ fun ActiveWorkoutBottomSheet(
         ActiveWorkoutSheetContent(
             state = state,
             effortMetric = effortMetric,
+            weightUnit = weightUnit,
             onFinish = onFinish,
             onAddExercise = onAddExercise,
             onPlayPauseRest = {
@@ -148,6 +151,7 @@ fun ActiveWorkoutBottomSheet(
 internal fun ActiveWorkoutSheetContent(
     state: ActiveWorkoutState,
     effortMetric: String,
+    weightUnit: String,
     onFinish: () -> Unit,
     onAddExercise: () -> Unit,
     onPlayPauseRest: () -> Unit,
@@ -179,6 +183,7 @@ internal fun ActiveWorkoutSheetContent(
         ExerciseList(
             exercises = state.exercises,
             effortMetric = effortMetric,
+            weightUnit = weightUnit,
             onToggleExpansion = { ActiveWorkoutManager.toggleExerciseExpansion(it) },
             onAddSet = { ActiveWorkoutManager.addSet(it) },
             onUpdateSetData = { exerciseId, setId, weight, reps, rpe, type ->
@@ -382,6 +387,7 @@ internal fun formatRestTimer(seconds: Long): String {
 private fun ExerciseList(
     exercises: List<ActiveExerciseState>,
     effortMetric: String,
+    weightUnit: String,
     onToggleExpansion: (String) -> Unit,
     onAddSet: (String) -> Unit,
     onUpdateSetData: (exerciseId: String, setId: String, weight: String?, reps: String?, rpe: String?, type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType?) -> Unit,
@@ -400,6 +406,7 @@ private fun ExerciseList(
             ActiveExerciseRow(
                 exercise = exercise,
                 effortMetric = effortMetric,
+                weightUnit = weightUnit,
                 onToggleExpand = { onToggleExpansion(exercise.id) },
                 onAddSet = { onAddSet(exercise.id) },
                 onUpdateSetData = { setId, weight, reps, rpe, type ->
@@ -431,6 +438,7 @@ private fun ExerciseList(
 private fun ActiveExerciseRow(
     exercise: ActiveExerciseState,
     effortMetric: String,
+    weightUnit: String,
     onToggleExpand: () -> Unit,
     onAddSet: () -> Unit,
     onUpdateSetData: (setId: String, weight: String?, reps: String?, rpe: String?, type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType?) -> Unit,
@@ -563,6 +571,7 @@ private fun ActiveExerciseRow(
                     WorkoutSetRow(
                         set = set,
                         effortMetric = effortMetric,
+                        weightUnit = weightUnit,
                         onWeightChange = { onUpdateSetData(set.id, it, null, null, null) },
                         onRepsChange = { onUpdateSetData(set.id, null, it, null, null) },
                         onRpeChange = { onUpdateSetData(set.id, null, null, it, null) },
@@ -603,6 +612,7 @@ private fun ActiveExerciseRow(
 internal fun WorkoutSetRow(
     set: WorkoutSetState,
     effortMetric: String,
+    weightUnit: String,
     onWeightChange: (String) -> Unit,
     onRepsChange: (String) -> Unit,
     onRpeChange: (String) -> Unit,
@@ -680,7 +690,7 @@ internal fun WorkoutSetRow(
         SetInputField(
             value = set.weight,
             onValueChange = onWeightChange,
-            suffix = "kg",
+            suffix = weightUnit,
             placeholder = "—",
             modifier = Modifier.weight(1f)
         )

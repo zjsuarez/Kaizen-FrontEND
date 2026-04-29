@@ -67,6 +67,8 @@ fun ZenModeScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     val sessionManager = androidx.compose.runtime.remember { com.example.kaizenfrontend.core.data.local.SessionManager(context) }
     val effortMetric = androidx.compose.runtime.remember { sessionManager.getUserEffortMetric() ?: "RPE" }
+    val unitSystem = androidx.compose.runtime.remember { sessionManager.getUserUnitSystem() ?: "METRIC" }
+    val weightUnit = if (unitSystem == "IMPERIAL") "lbs" else "kg"
 
     val workoutState by ActiveWorkoutManager.currentWorkout.collectAsState()
     val state = workoutState ?: return // Render nothing if no workout
@@ -275,6 +277,7 @@ fun ZenModeScreen(
                         WorkoutSetRow(
                             set = set,
                             effortMetric = effortMetric,
+                            weightUnit = weightUnit,
                             onWeightChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, it, null, null, null) },
                             onRepsChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, it, null, null) },
                             onRpeChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, null, it, null) },
