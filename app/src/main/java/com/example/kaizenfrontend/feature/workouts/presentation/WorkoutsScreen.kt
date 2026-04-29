@@ -185,7 +185,7 @@ fun WorkoutsScreen(
                     }
                 }
                 is WorkoutsUiState.Success -> {
-                    if (state.plans.isEmpty() && state.unassignedRoutines.isEmpty()) {
+                    if (state.plans.isEmpty()) {
                         WorkoutsEmptyState(
                             onCreatePlanClick = {
                                 isEditMode = true
@@ -198,16 +198,17 @@ fun WorkoutsScreen(
                         if (!isEditMode) {
                             val preferredPlan = state.plans.firstOrNull { it.id == selectedFocusPlanId }
                                 ?: state.plans.firstOrNull { it.isActive }
-                                ?: state.plans.first()
+                                ?: state.plans.firstOrNull()
 
-                            LaunchedEffect(state.plans) {
-                                if (state.plans.none { it.id == selectedFocusPlanId }) {
-                                    selectedFocusPlanId = preferredPlan.id
+                            if (preferredPlan != null) {
+                                LaunchedEffect(state.plans) {
+                                    if (state.plans.none { it.id == selectedFocusPlanId }) {
+                                        selectedFocusPlanId = preferredPlan.id
+                                    }
                                 }
-                            }
 
-                            val selectedPlan = preferredPlan
-                            val selectedPlanRoutinesForFocus = state.routinesByPlanId[selectedPlan.id] ?: emptyList()
+                                val selectedPlan = preferredPlan
+                                val selectedPlanRoutinesForFocus = state.routinesByPlanId[selectedPlan.id] ?: emptyList()
 
                             Column(
                                 modifier = Modifier
@@ -256,6 +257,7 @@ fun WorkoutsScreen(
                                             )
                                         }
                                     }
+                                }
                                 }
                             }
                         } else {

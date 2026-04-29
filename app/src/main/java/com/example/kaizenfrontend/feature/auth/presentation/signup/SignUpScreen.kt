@@ -22,11 +22,12 @@ import com.example.kaizenfrontend.core.ui.components.CustomTextField
 import com.example.kaizenfrontend.core.ui.theme.DarkBackground
 import com.example.kaizenfrontend.core.ui.theme.InputFieldColor
 import com.example.kaizenfrontend.core.ui.theme.LightGrayText
+import com.example.kaizenfrontend.core.ui.components.GoogleSignInButton
 
 @Composable
 fun SignUpScreen(
     onBackClick: () -> Unit = {},
-    onSignUpClick: () -> Unit = {}
+    onSignUpClick: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel = remember { SignUpViewModel(context) }
@@ -38,8 +39,9 @@ fun SignUpScreen(
 
     LaunchedEffect(uiState) {
         if (uiState is SignUpUiState.Success) {
+            val needsCalibration = (uiState as SignUpUiState.Success).needsCalibration
             viewModel.resetState()
-            onSignUpClick()
+            onSignUpClick(needsCalibration)
         }
     }
 
@@ -159,26 +161,11 @@ fun SignUpScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Button(
-            onClick = { /* Handle Google Auth */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = InputFieldColor,
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(28.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = android.R.drawable.ic_menu_gallery),
-                contentDescription = "Google Logo",
-                tint = Color.Unspecified,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(text = "SIGN UP WITH GOOGLE", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        }
+        GoogleSignInButton(
+            onClick = { viewModel.signInWithGoogle(context) },
+            isLoading = uiState is SignUpUiState.Loading,
+            text = "SIGN UP WITH GOOGLE"
+        )
     }
 }
 
