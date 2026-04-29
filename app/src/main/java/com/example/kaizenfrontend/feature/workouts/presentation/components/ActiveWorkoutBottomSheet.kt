@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
@@ -615,25 +616,38 @@ internal fun WorkoutSetRow(
         // Set number indicator / type selector
         Box(
             modifier = Modifier
-                .width(26.dp)
+                .width(42.dp)
                 .clickable { dropdownExpanded = true },
             contentAlignment = Alignment.Center
         ) {
-            val typeIndicator = when(set.type) {
-                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.NORMAL -> "${set.setNumber}"
-                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.WARMUP -> "W"
-                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.DROP_SET -> "D"
-                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.SUPER_SET -> "S"
-                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.FAILURE -> "F"
-                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.MYO_REP -> "M"
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Change Set Type",
+                    tint = LightGrey.copy(alpha = 0.5f),
+                    modifier = Modifier.size(16.dp)
+                )
+                
+                val typeIndicator = when(set.type) {
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.NORMAL -> "${set.setNumber}"
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.WARMUP -> "W"
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.DROP_SET -> "D"
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.SUPER_SET -> "S"
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.FAILURE -> "F"
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.MYO_REP -> "M"
+                }
+                Text(
+                    text = typeIndicator,
+                    color = if (set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.NORMAL) LightGrey else CrayolaBlue,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(18.dp)
+                )
             }
-            Text(
-                text = typeIndicator,
-                color = if (set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.NORMAL) LightGrey else CrayolaBlue,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
             
             DropdownMenu(
                 expanded = dropdownExpanded,
