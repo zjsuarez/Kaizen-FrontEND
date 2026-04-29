@@ -57,6 +57,7 @@ import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ActiveWorkoutBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.WorkoutSummaryBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ZenModeScreen
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -195,6 +196,9 @@ fun DashboardScreen(
     var showAddWidgetSheet by remember { mutableStateOf(false) }
     var showActiveWorkoutSheet by remember { mutableStateOf(false) }
     var zenModeInitialPage by remember { mutableStateOf<Int?>(null) }
+    var finishedWorkoutSnapshot by remember {
+        mutableStateOf<com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState?>(null)
+    }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val addWidgetSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -445,6 +449,7 @@ fun DashboardScreen(
             onFinish = {
                 val snapshot = com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.finishWorkout()
                 snapshot?.let {
+                    finishedWorkoutSnapshot = it
                     viewModel.saveWorkout(it)
                 }
                 showActiveWorkoutSheet = false
@@ -453,6 +458,24 @@ fun DashboardScreen(
             onAddExercise = { /* TODO: open exercise catalog — Task 4+ */ },
             onNavigateToZenMode = { page ->
                 zenModeInitialPage = page
+            }
+        )
+    }
+
+    // ── Workout Summary Sheet (post-finish) ─────────
+    finishedWorkoutSnapshot?.let { snapshot ->
+        val unitSystem = remember { sessionManager.getUserUnitSystem() ?: "METRIC" }
+        val weightUnit = if (unitSystem == "IMPERIAL") "lbs" else "kg"
+        WorkoutSummaryBottomSheet(
+            workoutSnapshot = snapshot,
+            saveStatusFlow = viewModel.workoutSaveStatus,
+            weightUnit = weightUnit,
+            onDismiss = {
+                finishedWorkoutSnapshot = null
+                viewModel.resetWorkoutSaveStatus()
+            },
+            onRetry = {
+                viewModel.saveWorkout(snapshot)
             }
         )
     }
