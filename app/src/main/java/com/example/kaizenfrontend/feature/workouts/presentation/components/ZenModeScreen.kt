@@ -64,6 +64,12 @@ fun ZenModeScreen(
     initialPage: Int,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val sessionManager = androidx.compose.runtime.remember { com.example.kaizenfrontend.core.data.local.SessionManager(context) }
+    val effortMetric = androidx.compose.runtime.remember { sessionManager.getUserEffortMetric() ?: "RPE" }
+    val unitSystem = androidx.compose.runtime.remember { sessionManager.getUserUnitSystem() ?: "METRIC" }
+    val weightUnit = if (unitSystem == "IMPERIAL") "lbs" else "kg"
+
     val workoutState by ActiveWorkoutManager.currentWorkout.collectAsState()
     val state = workoutState ?: return // Render nothing if no workout
 
@@ -255,7 +261,7 @@ fun ZenModeScreen(
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "RIR",
+                                text = effortMetric,
                                 color = LightGrey.copy(alpha = 0.5f),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -270,9 +276,12 @@ fun ZenModeScreen(
                     items(exercise.sets) { set ->
                         WorkoutSetRow(
                             set = set,
-                            onWeightChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, it, null, null) },
-                            onRepsChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, it, null) },
-                            onRirChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, null, it) },
+                            effortMetric = effortMetric,
+                            weightUnit = weightUnit,
+                            onWeightChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, it, null, null, null) },
+                            onRepsChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, it, null, null) },
+                            onRpeChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, null, it, null) },
+                            onTypeChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, null, null, it) },
                             onToggleComplete = { ActiveWorkoutManager.toggleSetCompletion(exercise.id, set.id) }
                         )
                     }

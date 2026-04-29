@@ -213,7 +213,8 @@ constructor(
     }
     fun saveWorkout(state: ActiveWorkoutState) {
         viewModelScope.launch {
-            val result = saveWorkoutUseCase(state)
+            val unitSystem = sessionManager.getUserUnitSystem() ?: "METRIC"
+            val result = saveWorkoutUseCase(state, unitSystem)
             if (result.isSuccess) {
                 android.util.Log.d("KAIZEN", "Workout saved successfully! Updating dashboard...")
                 refreshDashboardData()
