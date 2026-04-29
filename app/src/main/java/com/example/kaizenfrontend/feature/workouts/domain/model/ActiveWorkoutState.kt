@@ -10,7 +10,7 @@ data class WorkoutSetState(
     val setNumber: Int,
     val weight: String = "",
     val reps: String = "",
-    val rir: String = "",
+    val rpe: String = "",
     val isCompleted: Boolean = false,
     val type: SetType = SetType.NORMAL
 )

@@ -34,7 +34,7 @@ class SaveWorkoutUseCase(
                             weightKg = set.weight?.toDoubleOrNull(),
                             isPR = false, // PR is calculated/handled in backend or requires extra logic
                             reps = set.reps?.toIntOrNull(),
-                            rpe = if (isZeroRirType) 0 else set.rir?.toIntOrNull(), // Backend expects RPE, mapping RIR roughly if we want or just sending as is. It's stored in rpe.
+                            rpe = if (isZeroRirType) 0 else set.rpe.toIntOrNull(),
                             type = set.type.name
                         )
                     )

@@ -185,7 +185,7 @@ object ActiveWorkoutManager {
         setId: String,
         weight: String? = null,
         reps: String? = null,
-        rir: String? = null,
+        rpe: String? = null,
         type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType? = null
     ) {
         mutateExercises { exercises ->
@@ -197,7 +197,7 @@ object ActiveWorkoutManager {
                         set.copy(
                             weight = weight ?: set.weight,
                             reps = reps ?: set.reps,
-                            rir = rir ?: set.rir,
+                            rpe = rpe ?: set.rpe,
                             type = type ?: set.type
                         )
                     }

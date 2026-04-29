@@ -102,6 +102,10 @@ fun ActiveWorkoutBottomSheet(
     onAddExercise: () -> Unit,
     onNavigateToZenMode: (initialPage: Int) -> Unit = {}
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val sessionManager = androidx.compose.runtime.remember { com.example.kaizenfrontend.core.data.local.SessionManager(context) }
+    val effortMetric = androidx.compose.runtime.remember { sessionManager.getUserEffortMetric() ?: "RPE" }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val workoutState by ActiveWorkoutManager.currentWorkout.collectAsState()
 
@@ -117,6 +121,7 @@ fun ActiveWorkoutBottomSheet(
     ) {
         ActiveWorkoutSheetContent(
             state = state,
+            effortMetric = effortMetric,
             onFinish = onFinish,
             onAddExercise = onAddExercise,
             onPlayPauseRest = {
@@ -142,6 +147,7 @@ fun ActiveWorkoutBottomSheet(
 @Composable
 internal fun ActiveWorkoutSheetContent(
     state: ActiveWorkoutState,
+    effortMetric: String,
     onFinish: () -> Unit,
     onAddExercise: () -> Unit,
     onPlayPauseRest: () -> Unit,
@@ -172,10 +178,11 @@ internal fun ActiveWorkoutSheetContent(
         // ── 2. Exercise list ─────────────────────────────────────────
         ExerciseList(
             exercises = state.exercises,
+            effortMetric = effortMetric,
             onToggleExpansion = { ActiveWorkoutManager.toggleExerciseExpansion(it) },
             onAddSet = { ActiveWorkoutManager.addSet(it) },
-            onUpdateSetData = { exerciseId, setId, weight, reps, rir, type ->
-                ActiveWorkoutManager.updateSetData(exerciseId, setId, weight, reps, rir, type)
+            onUpdateSetData = { exerciseId, setId, weight, reps, rpe, type ->
+                ActiveWorkoutManager.updateSetData(exerciseId, setId, weight, reps, rpe, type)
             },
             onToggleSetCompletion = { exerciseId, setId ->
                 ActiveWorkoutManager.toggleSetCompletion(exerciseId, setId)
@@ -374,9 +381,10 @@ internal fun formatRestTimer(seconds: Long): String {
 @Composable
 private fun ExerciseList(
     exercises: List<ActiveExerciseState>,
+    effortMetric: String,
     onToggleExpansion: (String) -> Unit,
     onAddSet: (String) -> Unit,
-    onUpdateSetData: (exerciseId: String, setId: String, weight: String?, reps: String?, rir: String?, type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType?) -> Unit,
+    onUpdateSetData: (exerciseId: String, setId: String, weight: String?, reps: String?, rpe: String?, type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType?) -> Unit,
     onToggleSetCompletion: (exerciseId: String, setId: String) -> Unit,
     onNavigateToZenMode: (Int) -> Unit,
     modifier: Modifier = Modifier
@@ -391,10 +399,11 @@ private fun ExerciseList(
         ) { index, exercise ->
             ActiveExerciseRow(
                 exercise = exercise,
+                effortMetric = effortMetric,
                 onToggleExpand = { onToggleExpansion(exercise.id) },
                 onAddSet = { onAddSet(exercise.id) },
-                onUpdateSetData = { setId, weight, reps, rir, type ->
-                    onUpdateSetData(exercise.id, setId, weight, reps, rir, type)
+                onUpdateSetData = { setId, weight, reps, rpe, type ->
+                    onUpdateSetData(exercise.id, setId, weight, reps, rpe, type)
                 },
                 onToggleSetCompletion = { setId ->
                     onToggleSetCompletion(exercise.id, setId)
@@ -421,9 +430,10 @@ private fun ExerciseList(
 @Composable
 private fun ActiveExerciseRow(
     exercise: ActiveExerciseState,
+    effortMetric: String,
     onToggleExpand: () -> Unit,
     onAddSet: () -> Unit,
-    onUpdateSetData: (setId: String, weight: String?, reps: String?, rir: String?, type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType?) -> Unit,
+    onUpdateSetData: (setId: String, weight: String?, reps: String?, rpe: String?, type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType?) -> Unit,
     onToggleSetCompletion: (setId: String) -> Unit,
     onZenModeClick: () -> Unit
 ) {
@@ -538,7 +548,7 @@ private fun ActiveExerciseRow(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "RIR",
+                        text = effortMetric,
                         color = LightGrey.copy(alpha = 0.5f),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -552,9 +562,10 @@ private fun ActiveExerciseRow(
                 exercise.sets.forEach { set ->
                     WorkoutSetRow(
                         set = set,
+                        effortMetric = effortMetric,
                         onWeightChange = { onUpdateSetData(set.id, it, null, null, null) },
                         onRepsChange = { onUpdateSetData(set.id, null, it, null, null) },
-                        onRirChange = { onUpdateSetData(set.id, null, null, it, null) },
+                        onRpeChange = { onUpdateSetData(set.id, null, null, it, null) },
                         onTypeChange = { onUpdateSetData(set.id, null, null, null, it) },
                         onToggleComplete = { onToggleSetCompletion(set.id) }
                     )
@@ -591,9 +602,10 @@ private fun ActiveExerciseRow(
 @Composable
 internal fun WorkoutSetRow(
     set: WorkoutSetState,
+    effortMetric: String,
     onWeightChange: (String) -> Unit,
     onRepsChange: (String) -> Unit,
-    onRirChange: (String) -> Unit,
+    onRpeChange: (String) -> Unit,
     onTypeChange: (com.example.kaizenfrontend.feature.workouts.domain.model.SetType) -> Unit,
     onToggleComplete: () -> Unit
 ) {
@@ -688,9 +700,9 @@ internal fun WorkoutSetRow(
 
         // RIR input
         SetInputField(
-            value = if (isRirDisabled) "0" else set.rir,
-            onValueChange = onRirChange,
-            suffix = "RIR",
+            value = if (isRirDisabled) "0" else set.rpe,
+            onValueChange = onRpeChange,
+            suffix = effortMetric,
             placeholder = "—",
             enabled = !isRirDisabled,
             modifier = Modifier.weight(1f)
