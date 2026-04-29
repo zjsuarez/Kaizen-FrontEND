@@ -31,7 +31,7 @@ class SaveWorkoutUseCase(
                             isPR = false, // PR is calculated/handled in backend or requires extra logic
                             reps = set.reps?.toIntOrNull(),
                             rpe = set.rir?.toIntOrNull(), // Backend expects RPE, mapping RIR roughly if we want or just sending as is. It's stored in rpe.
-                            type = "NORMAL" // default type
+                            type = set.type.name
                         )
                     )
                 }

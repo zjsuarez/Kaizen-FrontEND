@@ -270,9 +270,10 @@ fun ZenModeScreen(
                     items(exercise.sets) { set ->
                         WorkoutSetRow(
                             set = set,
-                            onWeightChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, it, null, null) },
-                            onRepsChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, it, null) },
-                            onRirChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, null, it) },
+                            onWeightChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, it, null, null, null) },
+                            onRepsChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, it, null, null) },
+                            onRirChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, null, it, null) },
+                            onTypeChange = { ActiveWorkoutManager.updateSetData(exercise.id, set.id, null, null, null, it) },
                             onToggleComplete = { ActiveWorkoutManager.toggleSetCompletion(exercise.id, set.id) }
                         )
                     }
