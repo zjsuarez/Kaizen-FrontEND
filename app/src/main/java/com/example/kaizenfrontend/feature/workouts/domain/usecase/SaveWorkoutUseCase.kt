@@ -22,6 +22,10 @@ class SaveWorkoutUseCase(
                 // Only send completed sets or everything? Usually we send completed sets or all sets but with data.
                 // We'll send sets that have at least weight or reps.
                 if (set.isCompleted || (!set.weight.isNullOrBlank() || !set.reps.isNullOrBlank())) {
+                    val isZeroRirType = set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.FAILURE ||
+                                        set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.DROP_SET ||
+                                        set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.MYO_REP
+
                     sets.add(
                         WorkoutSetRequest(
                             customExerciseId = if (exercise.isCustom) exercise.id else null,
@@ -30,7 +34,7 @@ class SaveWorkoutUseCase(
                             weightKg = set.weight?.toDoubleOrNull(),
                             isPR = false, // PR is calculated/handled in backend or requires extra logic
                             reps = set.reps?.toIntOrNull(),
-                            rpe = set.rir?.toIntOrNull(), // Backend expects RPE, mapping RIR roughly if we want or just sending as is. It's stored in rpe.
+                            rpe = if (isZeroRirType) 0 else set.rir?.toIntOrNull(), // Backend expects RPE, mapping RIR roughly if we want or just sending as is. It's stored in rpe.
                             type = set.type.name
                         )
                     )

@@ -635,7 +635,6 @@ internal fun WorkoutSetRow(
                     com.example.kaizenfrontend.feature.workouts.domain.model.SetType.NORMAL -> "${set.setNumber}"
                     com.example.kaizenfrontend.feature.workouts.domain.model.SetType.WARMUP -> "W"
                     com.example.kaizenfrontend.feature.workouts.domain.model.SetType.DROP_SET -> "D"
-                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.SUPER_SET -> "S"
                     com.example.kaizenfrontend.feature.workouts.domain.model.SetType.FAILURE -> "F"
                     com.example.kaizenfrontend.feature.workouts.domain.model.SetType.MYO_REP -> "M"
                 }
@@ -683,12 +682,17 @@ internal fun WorkoutSetRow(
             modifier = Modifier.weight(1f)
         )
 
+        val isRirDisabled = set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.FAILURE ||
+                            set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.MYO_REP ||
+                            set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.DROP_SET
+
         // RIR input
         SetInputField(
-            value = set.rir,
+            value = if (isRirDisabled) "0" else set.rir,
             onValueChange = onRirChange,
             suffix = "RIR",
             placeholder = "—",
+            enabled = !isRirDisabled,
             modifier = Modifier.weight(1f)
         )
 
@@ -728,12 +732,13 @@ internal fun SetInputField(
     onValueChange: (String) -> Unit,
     suffix: String,
     placeholder: String,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .height(36.dp)
-            .background(ShadowGrey, RoundedCornerShape(8.dp))
+            .background(if (enabled) ShadowGrey else LightGrey.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -743,10 +748,11 @@ internal fun SetInputField(
             modifier = Modifier.fillMaxWidth()
         ) {
             BasicTextField(
-                value = value,
+                value = if (enabled) value else "-",
                 onValueChange = onValueChange,
+                enabled = enabled,
                 textStyle = TextStyle(
-                    color = PureWhite,
+                    color = if (enabled) PureWhite else LightGrey.copy(alpha = 0.5f),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.End
