@@ -47,9 +47,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
@@ -461,14 +463,14 @@ fun WizardStep2Schedule(
 
             PlanIntervalType.FREQUENCY -> {
                 Text(
-                    text = "Choose rest days between workouts for this routine.",
+                    text = stringResource(id = R.string.workouts_choose_rest_days_help),
                     color = LightGrey,
                     fontSize = 12.sp
                 )
                 BasicCounterSelector(
-                    title = "Rest days",
+                    title = stringResource(id = R.string.workouts_rest_days),
                     value = restDaysBetweenWorkouts,
-                    suffix = "days",
+                    suffix = stringResource(id = R.string.workouts_days),
                     onChange = onRestDaysChange
                 )
 
@@ -536,18 +538,21 @@ private fun RoutineSchedulePreviewCard(
 
 @Composable
 private fun FrequencyRoutineAssignments(existingRoutines: List<Routine>) {
-    AssignmentSectionCard(title = "Existing routine frequencies") {
+    AssignmentSectionCard(title = stringResource(id = R.string.workouts_existing_routine_frequencies)) {
         if (existingRoutines.isEmpty()) {
-            AssignmentRow(label = "Plan", value = "No routines yet")
+            AssignmentRow(
+                label = stringResource(id = R.string.workouts_plan_label),
+                value = stringResource(id = R.string.workouts_no_routines_yet)
+            )
             return@AssignmentSectionCard
         }
 
         existingRoutines.forEach { routine ->
             val restDays = parseRestDaysFromSchedulingValue(routine.schedulingValue)
             val frequencyLabel = if (restDays != null) {
-                "Every ${restDays + 1} day(s) (${restDays} rest day(s))"
+                stringResource(id = R.string.workouts_frequency_every_n_days_with_rest, restDays + 1, restDays)
             } else {
-                "Frequency not available"
+                stringResource(id = R.string.workouts_frequency_not_available)
             }
 
             AssignmentRow(
@@ -920,7 +925,7 @@ fun BasicCounterSelector(
             IconButton(onClick = { onChange((value - 1).coerceAtLeast(1)) }) {
                 Icon(
                     imageVector = Icons.Default.Remove,
-                    contentDescription = "Decrease",
+                    contentDescription = stringResource(id = R.string.workouts_decrease_cd),
                     tint = LightGrey
                 )
             }
@@ -928,7 +933,7 @@ fun BasicCounterSelector(
             IconButton(onClick = { onChange(value + 1) }) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Increase",
+                    contentDescription = stringResource(id = R.string.workouts_increase_cd),
                     tint = CrayolaBlue
                 )
             }
@@ -1046,13 +1051,13 @@ fun HorizontalScrollHint(isVisible: Boolean) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Swipe for more",
+            text = stringResource(id = R.string.workouts_swipe_for_more),
             color = LightGrey,
             fontSize = 11.sp
         )
         Icon(
             imageVector = Icons.Default.KeyboardArrowRight,
-            contentDescription = "More days to the right",
+            contentDescription = stringResource(id = R.string.workouts_more_days_right_cd),
             tint = LightGrey
         )
     }

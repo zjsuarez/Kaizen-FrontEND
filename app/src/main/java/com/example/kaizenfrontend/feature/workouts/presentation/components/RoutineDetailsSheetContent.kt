@@ -46,11 +46,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
@@ -264,7 +266,7 @@ private fun RoutineDetailsHeader(
             EditableTextWithPencil(
                 value = title,
                 onValueChange = onTitleChange,
-                placeholder = "Routine title",
+                placeholder = stringResource(id = R.string.workouts_routine_title_placeholder),
                 textStyle = TextStyle(
                     color = PureWhite,
                     fontSize = 24.sp,
@@ -292,7 +294,7 @@ private fun RoutineDetailsHeader(
                     contentColor = PureWhite
                 )
             ) {
-                Text(text = "Done", fontWeight = FontWeight.SemiBold)
+                Text(text = stringResource(id = R.string.workouts_done), fontWeight = FontWeight.SemiBold)
             }
         } else {
             Row(
@@ -302,7 +304,7 @@ private fun RoutineDetailsHeader(
                 IconButton(onClick = onEditClick) {
                     Icon(
                         imageVector = Icons.Filled.Edit,
-                        contentDescription = "Edit routine",
+                        contentDescription = stringResource(id = R.string.workouts_edit_routine_cd),
                         tint = PureWhite
                     )
                 }
@@ -316,7 +318,7 @@ private fun RoutineDetailsHeader(
                     )
                 ) {
                     Text(
-                        text = "Start",
+                        text = stringResource(id = R.string.workouts_start),
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -340,7 +342,7 @@ private fun EditableTextWithPencil(
     ) {
         Icon(
             imageVector = Icons.Filled.Edit,
-            contentDescription = "Editable field",
+            contentDescription = stringResource(id = R.string.workouts_editable_field_cd),
             tint = LightGrey
         )
 
@@ -377,7 +379,7 @@ private fun AddExerciseButton(onClick: () -> Unit) {
         )
     ) {
         Text(
-            text = "+ Add Exercise",
+            text = stringResource(id = R.string.workouts_add_exercise_button),
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(vertical = 6.dp)
         )
@@ -395,12 +397,16 @@ private fun RoutineDetailsSummary(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "$exerciseCount exercises",
+            text = if (exerciseCount == 1) {
+                stringResource(id = R.string.workouts_exercise_count_one)
+            } else {
+                stringResource(id = R.string.workouts_exercise_count_other, exerciseCount)
+            },
             color = LightGrey,
             fontSize = 14.sp
         )
         Text(
-            text = "$totalSets sets",
+            text = stringResource(id = R.string.workouts_sets_count, totalSets),
             color = LightGrey,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium
@@ -462,7 +468,7 @@ private fun RoutineExerciseCard(
                         IconButton(onClick = onRemoveClick) {
                             Icon(
                                 imageVector = Icons.Filled.Close,
-                                contentDescription = "Remove exercise",
+                                contentDescription = stringResource(id = R.string.workouts_remove_exercise_cd),
                                 tint = LightGrey
                             )
                         }
@@ -491,7 +497,7 @@ private fun RoutineExerciseCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.DragHandle,
-                                contentDescription = "Reorder exercise",
+                                contentDescription = stringResource(id = R.string.workouts_reorder_exercise_cd),
                                 tint = LightGrey
                             )
                         }
@@ -501,7 +507,7 @@ private fun RoutineExerciseCard(
                         IconButton(onClick = { showMenu = true }) {
                             Icon(
                                 imageVector = Icons.Filled.MoreVert,
-                                contentDescription = "Exercise options",
+                                contentDescription = stringResource(id = R.string.workouts_exercise_options_cd),
                                 tint = LightGrey
                             )
                         }
@@ -514,7 +520,7 @@ private fun RoutineExerciseCard(
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        text = "History",
+                                        text = stringResource(id = R.string.workouts_history),
                                         color = PureWhite,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -538,9 +544,9 @@ private fun RoutineExerciseCard(
 
             Text(
                 text = if (exercise.targetReps > 0) {
-                    "${exercise.targetSets} sets x ${exercise.targetReps} reps"
+                    stringResource(id = R.string.workouts_sets_x_reps, exercise.targetSets, exercise.targetReps)
                 } else {
-                    "${exercise.targetSets} sets"
+                    stringResource(id = R.string.workouts_sets_count, exercise.targetSets)
                 },
                 color = LightGrey,
                 fontSize = 13.sp
@@ -559,7 +565,7 @@ private fun RoutineDescription(
         EditableTextWithPencil(
             value = description,
             onValueChange = onDescriptionChange,
-            placeholder = "Routine description",
+            placeholder = stringResource(id = R.string.workouts_routine_description_placeholder),
             textStyle = TextStyle(
                 color = Color(0xFFD4D4D8),
                 fontSize = 14.sp,
@@ -603,27 +609,41 @@ private fun RoutineDetailsScheduleEditor(
                 com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType.CYCLE -> {
                     if (cycleMode == com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode.WEEKLY) {
                         val days = state.selectedWeekDays.sortedBy { it.value }
-                        if (days.isEmpty()) "Not scheduled" else "Every " + days.joinToString(", ") { it.name.take(3) }
+                        if (days.isEmpty()) {
+                            stringResource(id = R.string.workouts_not_scheduled)
+                        } else {
+                            stringResource(
+                                id = R.string.workouts_schedule_every_days,
+                                days.joinToString(", ") { it.name.take(3) }
+                            )
+                        }
                     } else {
                         val days = state.selectedCycleDays.sorted()
-                        if (days.isEmpty()) "Not scheduled" else "Cycle days: " + days.joinToString(", ")
+                        if (days.isEmpty()) {
+                            stringResource(id = R.string.workouts_not_scheduled)
+                        } else {
+                            stringResource(
+                                id = R.string.workouts_schedule_cycle_days,
+                                days.joinToString(", ")
+                            )
+                        }
                     }
                 }
                 com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType.FREQUENCY -> {
-                    "Every ${state.restDaysBetweenWorkouts} day(s)"
+                    stringResource(id = R.string.workouts_schedule_every_n_days, state.restDaysBetweenWorkouts)
                 }
-                else -> "Not scheduled"
+                else -> stringResource(id = R.string.workouts_not_scheduled)
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.DateRange,
-                    contentDescription = "Schedule",
+                    contentDescription = stringResource(id = R.string.workouts_schedule_cd),
                     tint = CrayolaBlue,
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text = "Schedule: $scheduleText",
+                    text = stringResource(id = R.string.workouts_schedule_label, scheduleText),
                     color = LightGrey,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(start = 8.dp)
@@ -632,7 +652,7 @@ private fun RoutineDetailsScheduleEditor(
         } else {
             // Edit Mode
             Text(
-                text = "Edit Schedule",
+                text = stringResource(id = R.string.workouts_edit_schedule),
                 color = PureWhite,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
@@ -659,9 +679,9 @@ private fun RoutineDetailsScheduleEditor(
                 }
                 com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType.FREQUENCY -> {
                     BasicCounterSelector(
-                        title = "Rest days",
+                        title = stringResource(id = R.string.workouts_rest_days),
                         value = state.restDaysBetweenWorkouts,
-                        suffix = "days",
+                        suffix = stringResource(id = R.string.workouts_days),
                         onChange = onRestDaysChange
                     )
                 }

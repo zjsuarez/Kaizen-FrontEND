@@ -34,14 +34,17 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
 import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
@@ -94,15 +97,34 @@ fun WorkoutsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(text = "Workouts", color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Bold)
+                // EL FIX 1: Añadimos Modifier.weight(1f) a esta Column
+                // Esto hace que el título ocupe el espacio disponible, empujando
+                // a los botones a la derecha, pero SIN aplastarlos. Si el título
+                // es muy largo, se cortará el título, protegiendo los botones.
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
-                        text = "Your exercise library",
+                        text = stringResource(id = R.string.workouts_title),
+                        color = Color.White,
+                        fontSize = 38.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1, // Protegemos el título de saltos raros
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = stringResource(id = R.string.workouts_subtitle_library),
                         color = LightGrey,
                         fontSize = 14.sp,
-                        modifier = Modifier.padding(top = 4.dp)
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp, end = 8.dp) // Un poco de aire por la derecha
                     )
                 }
+
+                // Mantenemos este Spacer pequeño por seguridad
+                Spacer(modifier = Modifier.width(8.dp))
+
                 if (!isEditMode) {
                     FloatingActionButton(
                         onClick = { isEditMode = true },
@@ -110,10 +132,12 @@ fun WorkoutsScreen(
                         contentColor = Color.White,
                         modifier = Modifier.size(48.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Enter edit mode")
+                        Icon(imageVector = Icons.Default.Edit, contentDescription = stringResource(id = R.string.workouts_enter_edit_mode_cd))
                     }
                 } else {
+                    // EL FIX 2: wrapContentWidth() para garantizar que los botones miden lo que necesitan
                     Row(
+                        modifier = Modifier.wrapContentWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -124,7 +148,7 @@ fun WorkoutsScreen(
                                 contentColor = Color.White,
                                 modifier = Modifier.size(48.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Menu")
+                                Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(id = R.string.workouts_add_menu_cd))
                             }
 
                             DropdownMenu(
@@ -132,7 +156,7 @@ fun WorkoutsScreen(
                                 onDismissRequest = { showFabMenu = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Create Plan") },
+                                    text = { Text(stringResource(id = R.string.workouts_create_plan)) },
                                     onClick = {
                                         showFabMenu = false
                                         showCreatePlanDialog = true
@@ -140,7 +164,7 @@ fun WorkoutsScreen(
                                 )
                                 if ((uiState as? WorkoutsUiState.Success)?.plans?.isNotEmpty() == true) {
                                     DropdownMenuItem(
-                                        text = { Text("Create Routine") },
+                                        text = { Text(stringResource(id = R.string.workouts_create_routine)) },
                                         onClick = {
                                             showFabMenu = false
                                             showCreateRoutineWizard = true
@@ -150,13 +174,15 @@ fun WorkoutsScreen(
                             }
                         }
 
+                        // EL FIX 3: Ajustamos el padding del Button para asegurar que el contenido respire
                         Button(
                             onClick = {
                                 isEditMode = false
                                 showFabMenu = false
                             },
                             shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ShadowGrey)
+                            colors = ButtonDefaults.buttonColors(containerColor = ShadowGrey),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) // Explicit padding
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Done,
@@ -165,7 +191,14 @@ fun WorkoutsScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Done", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                stringResource(id = R.string.workouts_done),
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                softWrap = false // Esto es correcto para botones, pero necesita espacio.
+                            )
                         }
                     }
                 }
@@ -181,7 +214,7 @@ fun WorkoutsScreen(
                 }
                 is WorkoutsUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "Error: ${state.message}", color = Color.Red)
+                        Text(text = stringResource(id = R.string.workouts_error_prefix, state.message), color = Color.Red)
                     }
                 }
                 is WorkoutsUiState.Success -> {
@@ -297,7 +330,7 @@ fun WorkoutsScreen(
                                         if (routines.isEmpty()) {
                                             item(key = "empty_${plan.id}") {
                                                 Text(
-                                                    text = "No routines in this plan yet. Tap + and select Create Routine.",
+                                                    text = stringResource(id = R.string.workouts_no_routines_in_plan_hint),
                                                     color = LightGrey,
                                                     fontSize = 13.sp,
                                                     modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 16.dp)
@@ -524,7 +557,7 @@ private fun RoutineOnboardingHint(isEditMode: Boolean) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "NEXT STEP",
+            text = stringResource(id = R.string.workouts_next_step),
             color = LightGrey.copy(alpha = 0.72f),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
@@ -554,7 +587,7 @@ private fun RoutineOnboardingHint(isEditMode: Boolean) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "You already have a plan. Add your first routine now.",
+                    text = stringResource(id = R.string.workouts_first_routine_prompt),
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
@@ -562,9 +595,9 @@ private fun RoutineOnboardingHint(isEditMode: Boolean) {
                 )
                 Text(
                     text = if (isEditMode) {
-                        "Tap +, then Create Routine."
+                        stringResource(id = R.string.workouts_hint_tap_plus_create_routine)
                     } else {
-                        "Tap Edit -> + -> Create Routine."
+                        stringResource(id = R.string.workouts_hint_tap_edit_plus_create_routine)
                     },
                     color = LightGrey,
                     fontSize = 12.sp,
@@ -611,7 +644,7 @@ private fun FocusPlanOverviewCard(
 ) {
     val intervalLabel = plan.interval?.takeIf { it.isNotBlank() }?.let {
         PlanIntervalConfig.fromBackend(it, plan.cycleLength).toDisplayLabel()
-    } ?: "Cycle (Weekly)"
+    } ?: stringResource(id = R.string.workouts_cycle_weekly)
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -648,7 +681,11 @@ private fun FocusPlanOverviewCard(
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
             ) {
                 Text(
-                    text = if (routineCount == 1) "1 routine" else "$routineCount routines",
+                    text = if (routineCount == 1) {
+                        stringResource(id = R.string.workouts_routine_count_one)
+                    } else {
+                        stringResource(id = R.string.workouts_routine_count_other, routineCount)
+                    },
                     color = LightGrey,
                     fontSize = 11.sp,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
@@ -672,9 +709,9 @@ private fun FocusNoRoutineState(
     ) {
         Text(
             text = if (isFirstRoutineJourney) {
-                "You already created a plan. Now create your first routine."
+                stringResource(id = R.string.workouts_focus_no_routine_first_journey)
             } else {
-                "This plan has no routines yet."
+                stringResource(id = R.string.workouts_focus_no_routine)
             },
             color = LightGrey,
             fontSize = 13.sp,
@@ -682,7 +719,7 @@ private fun FocusNoRoutineState(
         )
         TextButton(onClick = onCreateRoutineClick) {
             Text(
-                text = "Create routine",
+                text = stringResource(id = R.string.workouts_create_routine),
                 color = CrayolaBlue,
                 fontWeight = FontWeight.SemiBold
             )
@@ -710,11 +747,13 @@ private fun ConfirmDeleteDialog(
 ) {
     val (title, message) = when (target) {
         is DeleteTarget.Plan -> {
-            "Delete Plan" to "Are you sure you want to delete ${target.planName}?"
+            stringResource(id = R.string.workouts_delete_plan_title) to
+                stringResource(id = R.string.workouts_delete_plan_message, target.planName)
         }
 
         is DeleteTarget.Routine -> {
-            "Delete Routine" to "Are you sure you want to delete ${target.routineName}?"
+            stringResource(id = R.string.workouts_delete_routine_title) to
+                stringResource(id = R.string.workouts_delete_routine_message, target.routineName)
         }
     }
 
@@ -736,12 +775,12 @@ private fun ConfirmDeleteDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Cancel", color = LightGrey)
+                Text(text = stringResource(id = R.string.settings_cancel), color = LightGrey)
             }
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(text = "Delete", color = SubtleRed, fontWeight = FontWeight.Bold)
+                Text(text = stringResource(id = R.string.workouts_delete), color = SubtleRed, fontWeight = FontWeight.Bold)
             }
         }
     )
@@ -806,7 +845,7 @@ private fun PlanHeaderItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(text = plan.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 if (plan.isActive) {
-                    Text(text = " - Active", color = CrayolaBlue, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text(text = stringResource(id = R.string.workouts_active_suffix), color = CrayolaBlue, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
             if (plan.description.isNotBlank()) {
@@ -825,7 +864,7 @@ private fun PlanHeaderItem(
             IconButton(onClick = onDeleteClick) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete plan",
+                    contentDescription = stringResource(id = R.string.workouts_delete_plan_cd),
                     tint = SubtleRed
                 )
             }
@@ -834,7 +873,7 @@ private fun PlanHeaderItem(
                 onMoveDown = onMoveDownClick,
                 iconTint = LightGrey,
                 threshold = 36.dp,
-                contentDescription = "Reorder plan",
+                contentDescription = stringResource(id = R.string.workouts_reorder_plan_cd),
                 onDragOffsetChange = { offset ->
                     dragVisualOffset = offset.coerceIn(-maxVisualOffsetPx, maxVisualOffsetPx)
                 },
@@ -944,7 +983,7 @@ private fun RoutineCard(
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete workout",
+                        contentDescription = stringResource(id = R.string.workouts_delete_routine_cd),
                         tint = SubtleRed
                     )
                 }
@@ -953,7 +992,7 @@ private fun RoutineCard(
                     onMoveDown = onMoveDownClick,
                     iconTint = LightGrey,
                     threshold = 36.dp,
-                    contentDescription = "Reorder workout",
+                    contentDescription = stringResource(id = R.string.workouts_reorder_routine_cd),
                     onDragOffsetChange = { offset ->
                         dragVisualOffset = offset.coerceIn(-maxVisualOffsetPx, maxVisualOffsetPx)
                     },
