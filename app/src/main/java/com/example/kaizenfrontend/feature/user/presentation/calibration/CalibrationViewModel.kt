@@ -40,7 +40,8 @@ class CalibrationViewModel(context: Context) : ViewModel() {
             val request = UserUpdateRequest(
                 unitSystem = unitSystemVal,
                 effortMeasurement = selectedEffort,
-                weightKg = weightKgValue
+                weightKg = weightKgValue,
+                primaryGoal = "General Fitness"
             )
 
             val result = updateUserUseCase(request)

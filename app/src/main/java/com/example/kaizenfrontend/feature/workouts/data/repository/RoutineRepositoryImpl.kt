@@ -21,16 +21,21 @@ class RoutineRepositoryImpl(
     private val exerciseRepository: ExerciseRepository
 ) : RoutineRepository {
 
-    // Lazily cached builtin exercise catalog for resolving keys to display names
-    private var builtinCatalog: Map<String, Exercise>? = null
+    // Cached exercise catalog (mock defaults + user custom) for resolving keys to display names
+    private var exerciseCatalog: Map<String, Exercise>? = null
 
-    private suspend fun getBuiltinCatalog(): Map<String, Exercise> {
-        builtinCatalog?.let { return it }
+    private suspend fun getExerciseCatalog(): Map<String, Exercise> {
+        exerciseCatalog?.let { return it }
         val catalog = exerciseRepository.getExercises()
             .getOrDefault(emptyList())
             .associateBy { it.id }
-        builtinCatalog = catalog
+        exerciseCatalog = catalog
         return catalog
+    }
+
+    /** Invalidate the cached catalog so the next toDomain() call picks up new exercises. */
+    private fun invalidateCatalog() {
+        exerciseCatalog = null
     }
 
     override suspend fun createRoutine(
@@ -55,13 +60,17 @@ class RoutineRepositoryImpl(
                     ?: return@withContext Result.failure(Exception("Response body is null"))
 
                 if (routineExercises.isEmpty()) {
+                    invalidateCatalog()
                     Result.success(createdDto.toDomain())
                 } else {
                     val exercisesRequest = routineExercises.map { routineEx ->
+                        val customExerciseId = routineEx.exercise.id.takeIf { routineEx.exercise.isCustom }
+                        val builtinExerciseKey = routineEx.exercise.id.takeUnless { routineEx.exercise.isCustom }
+
                         RoutineExerciseRequest(
                             targetSets = routineEx.targetSets,
-                            builtinExerciseKey = routineEx.exercise.id,
-                            customExerciseId = null
+                            builtinExerciseKey = builtinExerciseKey,
+                            customExerciseId = customExerciseId
                         )
                     }
 
@@ -74,6 +83,7 @@ class RoutineRepositoryImpl(
                     if (replaceResponse.isSuccessful) {
                         val updatedDto = replaceResponse.body()
                             ?: return@withContext Result.failure(Exception("Updated routine response body is null"))
+                        invalidateCatalog()
                         Result.success(updatedDto.toDomain())
                     } else {
                         Result.failure(Exception("Routine created but failed to save exercises: ${replaceResponse.code()}"))
@@ -129,16 +139,20 @@ class RoutineRepositoryImpl(
             val bearerToken = "Bearer $token"
 
             val exerciseRequests = exercises.map { re ->
+                val customExerciseId = re.exercise.id.takeIf { re.exercise.isCustom }
+                val builtinExerciseKey = re.exercise.id.takeUnless { re.exercise.isCustom }
+
                 RoutineExerciseRequest(
                     targetSets = re.targetSets,
-                    customExerciseId = null,
-                    builtinExerciseKey = re.exercise.id
+                    customExerciseId = customExerciseId,
+                    builtinExerciseKey = builtinExerciseKey
                 )
             }
 
             val response = api.replaceRoutineExercises(bearerToken, routineId, exerciseRequests)
             if (response.isSuccessful) {
                 response.body()?.let {
+                    invalidateCatalog()
                     Result.success(it.toDomain())
                 } ?: Result.failure(Exception("Empty body"))
             } else {
@@ -157,6 +171,7 @@ class RoutineRepositoryImpl(
 
             val response = api.getUserRoutines(bearerToken, planId)
             if (response.isSuccessful) {
+                invalidateCatalog()
                 val routines = response.body()?.map { dto -> dto.toDomain() } ?: emptyList()
                 Result.success(routines)
             } else {
@@ -185,7 +200,7 @@ class RoutineRepositoryImpl(
     }
 
     private suspend fun RoutineResponse.toDomain(): Routine {
-        val catalog = getBuiltinCatalog()
+        val catalog = getExerciseCatalog()
 
         return Routine(
             id = id,
@@ -201,15 +216,12 @@ class RoutineRepositoryImpl(
                 .mapIndexed { index, exerciseDto ->
                     val resolvedOrderIndex = exerciseDto.orderIndex ?: index
 
-                    // Resolve exercise identity from builtin key or custom id
                     val builtinKey = exerciseDto.builtinExerciseKey
                     val customId = exerciseDto.customExerciseId
 
+                    // Look up exercise in the catalog (mock defaults + user custom exercises)
                     val catalogExercise = builtinKey?.let { catalog[it] }
-
-                    val exerciseName = catalogExercise?.name
-                        ?: builtinKey
-                        ?: "Custom Exercise"
+                        ?: customId?.let { catalog[it] }
 
                     val exerciseId = builtinKey
                         ?: customId
@@ -219,7 +231,7 @@ class RoutineRepositoryImpl(
                     RoutineExercise(
                         exercise = Exercise(
                             id = exerciseId,
-                            name = exerciseName,
+                            name = catalogExercise?.name ?: "Unknown Exercise",
                             muscleTarget = catalogExercise?.muscleTarget ?: MuscleTarget.CORE,
                             equipmentType = catalogExercise?.equipmentType ?: EquipmentType.BODYWEIGHT,
                             gifUrl = catalogExercise?.gifUrl,

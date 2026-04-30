@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 /**
  * Manages persistent session data (auth token, calibration flag, and cached user preferences)
@@ -14,7 +17,32 @@ class SessionManager @Inject constructor(@ApplicationContext context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    fun saveToken(token: String) = prefs.edit().putString(TOKEN_KEY, token).apply()
+    /**
+     * Saves the JWT token synchronously (commit, not apply) so that any
+     * subsequent getToken() call — even on a freshly created SessionManager
+     * wrapping the same prefs file — returns the new value immediately.
+     */
+    fun saveToken(token: String) {
+        prefs.edit().putString(TOKEN_KEY, token).commit()
+    }
+
+    suspend fun saveTokenAndAwait(token: String) {
+        withContext(Dispatchers.IO) {
+            prefs.edit().putString(TOKEN_KEY, token).commit()
+        }
+        val persisted = awaitTokenPersistence(token)
+        if (!persisted) {
+            throw IllegalStateException("Token persistence verification failed")
+        }
+    }
+
+    suspend fun awaitTokenPersistence(expectedToken: String, maxAttempts: Int = 5): Boolean {
+        repeat(maxAttempts) {
+            if (getToken() == expectedToken) return true
+            delay(20)
+        }
+        return false
+    }
 
     fun getToken(): String? = prefs.getString(TOKEN_KEY, null)
 
@@ -38,6 +66,7 @@ class SessionManager @Inject constructor(@ApplicationContext context: Context) {
             .remove(PREFS_UNIT)
             .remove(PREFS_EFFORT)
             .remove(PREFS_REST)
+            .remove(PENDING_GOOGLE_WELCOME_KEY)
             .apply()
     }
 
@@ -65,6 +94,17 @@ class SessionManager @Inject constructor(@ApplicationContext context: Context) {
     fun getUserEffortMetric(): String? = prefs.getString(PREFS_EFFORT, null)
     fun getUserDefaultRest(): String? = prefs.getString(PREFS_REST, null)
 
+    fun setShouldShowGoogleWelcomePrompt(shouldShow: Boolean) {
+        prefs.edit().putBoolean(PENDING_GOOGLE_WELCOME_KEY, shouldShow).apply()
+    }
+
+    fun shouldShowGoogleWelcomePrompt(): Boolean =
+        prefs.getBoolean(PENDING_GOOGLE_WELCOME_KEY, false)
+
+    fun clearGoogleWelcomePrompt() {
+        prefs.edit().remove(PENDING_GOOGLE_WELCOME_KEY).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "kaizen_prefs"
         private const val TOKEN_KEY = "auth_token"
@@ -73,5 +113,6 @@ class SessionManager @Inject constructor(@ApplicationContext context: Context) {
         private const val PREFS_UNIT = "prefs_unit"
         private const val PREFS_EFFORT = "prefs_effort"
         private const val PREFS_REST = "prefs_rest"
+        private const val PENDING_GOOGLE_WELCOME_KEY = "pending_google_welcome"
     }
 }

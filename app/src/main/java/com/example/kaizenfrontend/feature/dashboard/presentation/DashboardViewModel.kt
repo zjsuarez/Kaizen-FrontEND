@@ -8,9 +8,11 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.feature.dashboard.data.local.DashboardPreferences
 import com.example.kaizenfrontend.feature.dashboard.data.repository.DashboardRepository
 import com.example.kaizenfrontend.feature.dashboard.worker.DashboardSyncWorker
+import com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -24,6 +26,12 @@ import kotlinx.coroutines.launch
 import com.example.kaizenfrontend.feature.workouts.domain.usecase.SaveWorkoutUseCase
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
 
+sealed class WorkoutSaveStatus {
+    data object Idle : WorkoutSaveStatus()
+    data object Saving : WorkoutSaveStatus()
+    data object Success : WorkoutSaveStatus()
+    data class Error(val message: String) : WorkoutSaveStatus()
+}
 
 @HiltViewModel
 class DashboardViewModel
@@ -38,6 +46,9 @@ constructor(
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    private val _workoutSaveStatus = MutableStateFlow<WorkoutSaveStatus>(WorkoutSaveStatus.Idle)
+    val workoutSaveStatus: StateFlow<WorkoutSaveStatus> = _workoutSaveStatus.asStateFlow()
+
     private val _weightHistory =
             MutableStateFlow<
                     List<
@@ -49,6 +60,12 @@ constructor(
                     List<
                             com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>> =
             _weightHistory.asStateFlow()
+
+        private val _showGoogleWelcomePrompt = MutableStateFlow(false)
+        val showGoogleWelcomePrompt: StateFlow<Boolean> = _showGoogleWelcomePrompt.asStateFlow()
+
+        private val sessionManager by lazy { SessionManager(appContext) }
+        private val userRepository by lazy { UserRepositoryImpl(sessionManager) }
 
     val widgetOrder: StateFlow<List<String>> =
             dashboardPreferences.widgetOrder.stateIn(
@@ -125,6 +142,27 @@ constructor(
         }
         refreshDashboardData()
         fetchWeightHistory()
+        evaluateGoogleWelcomePrompt()
+    }
+
+    private fun evaluateGoogleWelcomePrompt() {
+        viewModelScope.launch {
+            if (!sessionManager.shouldShowGoogleWelcomePrompt()) {
+                _showGoogleWelcomePrompt.value = false
+                return@launch
+            }
+
+            userRepository.getCurrentUser().onSuccess { user ->
+                _showGoogleWelcomePrompt.value = user.authProvider.equals("GOOGLE", ignoreCase = true)
+            }.onFailure {
+                _showGoogleWelcomePrompt.value = false
+            }
+        }
+    }
+
+    fun dismissGoogleWelcomePrompt() {
+        sessionManager.clearGoogleWelcomePrompt()
+        _showGoogleWelcomePrompt.value = false
     }
 
     private fun fetchWeightHistory() {
@@ -183,15 +221,24 @@ constructor(
         viewModelScope.launch { dashboardPreferences.saveWidgetOrder(newOrderedList) }
     }
     fun saveWorkout(state: ActiveWorkoutState) {
+        _workoutSaveStatus.value = WorkoutSaveStatus.Saving
         viewModelScope.launch {
-            val result = saveWorkoutUseCase(state)
+            val unitSystem = sessionManager.getUserUnitSystem() ?: "METRIC"
+            val result = saveWorkoutUseCase(state, unitSystem)
             if (result.isSuccess) {
                 android.util.Log.d("KAIZEN", "Workout saved successfully! Updating dashboard...")
+                _workoutSaveStatus.value = WorkoutSaveStatus.Success
                 refreshDashboardData()
             } else {
-                android.util.Log.e("KAIZEN", "Failed to save workout: ${result.exceptionOrNull()?.message}")
+                val errorMsg = result.exceptionOrNull()?.message ?: "Unknown error"
+                android.util.Log.e("KAIZEN", "Failed to save workout: $errorMsg")
+                _workoutSaveStatus.value = WorkoutSaveStatus.Error(errorMsg)
             }
         }
+    }
+
+    fun resetWorkoutSaveStatus() {
+        _workoutSaveStatus.value = WorkoutSaveStatus.Idle
     }
 
     companion object {

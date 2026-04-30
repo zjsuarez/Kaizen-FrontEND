@@ -51,11 +51,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ActiveWorkoutBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.WorkoutSummaryBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ZenModeScreen
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -177,9 +179,10 @@ fun DashboardScreen(
     val widgetOrder by viewModel.widgetOrder.collectAsState()
     val weightHistory by viewModel.weightHistory.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
+    val showGoogleWelcomeSheet by viewModel.showGoogleWelcomePrompt.collectAsState()
+    val sessionManager = remember { SessionManager(context) }
     val userName = remember {
-        SessionManager(context)
-            .getUserEmail()
+        sessionManager.getUserEmail()
             ?.substringBefore("@")
             ?.trim()
             ?.takeIf { it.isNotBlank() }
@@ -193,9 +196,13 @@ fun DashboardScreen(
     var showAddWidgetSheet by remember { mutableStateOf(false) }
     var showActiveWorkoutSheet by remember { mutableStateOf(false) }
     var zenModeInitialPage by remember { mutableStateOf<Int?>(null) }
+    var finishedWorkoutSnapshot by remember {
+        mutableStateOf<com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState?>(null)
+    }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val addWidgetSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val googleWelcomeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var activeBottomSheet by remember { mutableStateOf<DashboardBottomSheetType?>(null) }
 
     Scaffold(
@@ -414,6 +421,27 @@ fun DashboardScreen(
         )
     }
 
+    if (showGoogleWelcomeSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                viewModel.dismissGoogleWelcomePrompt()
+            },
+            sheetState = googleWelcomeSheetState,
+            containerColor = Onyx,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = LightGrey) }
+        ) {
+            GoogleWelcomeBottomSheet(
+                onSetPasswordClick = {
+                    viewModel.dismissGoogleWelcomePrompt()
+                    selectedTab = 3 // Open Profile/Settings for password setup.
+                },
+                onNotNowClick = {
+                    viewModel.dismissGoogleWelcomePrompt()
+                }
+            )
+        }
+    }
+
     // ── Active Workout "Tunnel Mode" bottom sheet ─────────
     if (showActiveWorkoutSheet) {
         ActiveWorkoutBottomSheet(
@@ -421,6 +449,7 @@ fun DashboardScreen(
             onFinish = {
                 val snapshot = com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.finishWorkout()
                 snapshot?.let {
+                    finishedWorkoutSnapshot = it
                     viewModel.saveWorkout(it)
                 }
                 showActiveWorkoutSheet = false
@@ -429,6 +458,24 @@ fun DashboardScreen(
             onAddExercise = { /* TODO: open exercise catalog — Task 4+ */ },
             onNavigateToZenMode = { page ->
                 zenModeInitialPage = page
+            }
+        )
+    }
+
+    // ── Workout Summary Sheet (post-finish) ─────────
+    finishedWorkoutSnapshot?.let { snapshot ->
+        val unitSystem = remember { sessionManager.getUserUnitSystem() ?: "METRIC" }
+        val weightUnit = if (unitSystem == "IMPERIAL") "lbs" else "kg"
+        WorkoutSummaryBottomSheet(
+            workoutSnapshot = snapshot,
+            saveStatusFlow = viewModel.workoutSaveStatus,
+            weightUnit = weightUnit,
+            onDismiss = {
+                finishedWorkoutSnapshot = null
+                viewModel.resetWorkoutSaveStatus()
+            },
+            onRetry = {
+                viewModel.saveWorkout(snapshot)
             }
         )
     }
@@ -1154,6 +1201,72 @@ fun PrDetailsSheet(exerciseName: String) {
                 Text("Hace 3 meses", color = LightGrey, fontSize = 12.sp)
             }
         }
+    }
+}
+
+@Composable
+private fun GoogleWelcomeBottomSheet(
+    onSetPasswordClick: () -> Unit,
+    onNotNowClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .background(CrayolaBlue.copy(alpha = 0.18f), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = com.example.kaizenfrontend.R.drawable.ic_google),
+                contentDescription = "Google",
+                tint = Color.Unspecified,
+                modifier = Modifier.size(26.dp)
+            )
+        }
+
+        Text(
+            text = "Welcome to Kaizen",
+            color = PureWhite,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            text = "You signed up with Google. Do you want to set a local password for dual access?",
+            color = LightGrey,
+            fontSize = 14.sp,
+            lineHeight = 20.sp
+        )
+
+        Button(
+            onClick = onSetPasswordClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue)
+        ) {
+            Text("Set Password", color = Onyx, fontWeight = FontWeight.SemiBold)
+        }
+
+        OutlinedButton(
+            onClick = onNotNowClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = LightGrey),
+            border = androidx.compose.foundation.BorderStroke(1.dp, LightGrey.copy(alpha = 0.35f))
+        ) {
+            Text("Not Now", color = LightGrey, fontWeight = FontWeight.Medium)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
     }
 }
 

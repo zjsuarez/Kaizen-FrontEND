@@ -21,6 +21,7 @@ data class SettingsUiState(
     val defaultRest: String = "90 s",
     val savedUnit: String = "METRIC",
     val savedEffort: String = "RPE",
+    val authProvider: String? = null,
     val isLoading: Boolean = false,
     val isSavingPrefs: Boolean = false,
     val errorMessage: String? = null
@@ -39,11 +40,10 @@ class SettingsViewModel(context: Context) : ViewModel() {
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
-        loadUser()
+        seedFromCache()
     }
 
-    private fun loadUser() {
-        // Seed from local cache first for instant display
+    private fun seedFromCache() {
         val cachedEmail = sessionManager.getUserEmail() ?: ""
         val cachedUnit = sessionManager.getUserUnitSystem() ?: "METRIC"
         val cachedEffort = sessionManager.getUserEffortMetric() ?: "RPE"
@@ -58,8 +58,9 @@ class SettingsViewModel(context: Context) : ViewModel() {
                 defaultRest = cachedRest
             )
         }
+    }
 
-        // Then fetch fresh from API
+    fun refreshUserProfile() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val result = getCurrentUserUseCase()
@@ -74,6 +75,7 @@ class SettingsViewModel(context: Context) : ViewModel() {
                         effortMetric = user.effortMeasurement,
                         savedEffort = user.effortMeasurement,
                         defaultRest = rest,
+                        authProvider = user.authProvider,
                         isLoading = false
                     )
                 }
@@ -102,6 +104,7 @@ class SettingsViewModel(context: Context) : ViewModel() {
                 _uiState.update {
                     it.copy(savedUnit = it.unitSystem, savedEffort = it.effortMetric, isSavingPrefs = false)
                 }
+                refreshUserProfile()
             }
             result.onFailure { _uiState.update { it.copy(isSavingPrefs = false) } }
         }
@@ -120,6 +123,7 @@ class SettingsViewModel(context: Context) : ViewModel() {
             val state = _uiState.value
             updateUserUseCase(request).onSuccess {
                 sessionManager.saveUserPreferences(state.email, state.unitSystem, state.effortMetric, state.defaultRest)
+                refreshUserProfile()
             }
         }
     }
