@@ -51,12 +51,15 @@ fun BodyWeightTrendWidget(
     modelProducer: ChartEntryModelProducer,
     modifier: Modifier = Modifier
 ) {
+    val resolvedSubtitle = uiState.subtitle.resolveOrNull()
+    val resolvedMessage = uiState.message.resolve()
+
     KaizenChartWidget(
         title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_body_weight_trend_title),
-        subtitle = uiState.subtitle,
+        subtitle = resolvedSubtitle,
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
-        emptyMessage = uiState.message,
+        emptyMessage = resolvedMessage,
         modifier = modifier
     ) {
         TrendLineChart(
@@ -83,12 +86,15 @@ fun Estimated1RmWidget(
 
     val fallbackExerciseName = stringResource(id = com.example.kaizenfrontend.R.string.statistics_select_exercise)
 
+    val resolvedSubtitle = uiState.subtitle.resolveOrNull()
+    val resolvedMessage = uiState.message.resolve()
+
     KaizenChartWidget(
         title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_estimated_1rm_title),
-        subtitle = uiState.subtitle,
+        subtitle = resolvedSubtitle,
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
-        emptyMessage = uiState.message,
+        emptyMessage = resolvedMessage,
         headerContent = {
             ExerciseDropdown(
                 exercises = exercises,

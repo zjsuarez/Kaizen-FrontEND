@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.clickable
@@ -24,6 +25,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -51,11 +55,24 @@ import com.example.kaizenfrontend.feature.statistics.presentation.components.PrP
 fun StatisticsScreen(
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsState()
     val bodyWeightProducer = viewModel.bodyWeightModelProducer
     val oneRmProducer = viewModel.estimated1RmModelProducer
     val volumeProducer = viewModel.volumeBarModelProducer
     val fatigueProducer = viewModel.fatigueModelProducer
+
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshStatistics()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -252,7 +269,7 @@ private fun TimeRangeSelector(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = range.label,
+                    text = stringResource(id = range.labelResId),
                     color = if (isSelected) CrayolaBlue else LightGrey,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold

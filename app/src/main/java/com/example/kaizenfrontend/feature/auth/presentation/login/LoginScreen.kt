@@ -1,5 +1,6 @@
 package com.example.kaizenfrontend.feature.auth.presentation.login
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +30,7 @@ import com.example.kaizenfrontend.core.ui.components.GoogleSignInButton
 @Composable
 fun LoginScreen(
     onBackClick: () -> Unit = {},
+    onSystemBack: () -> Unit = {},
     onLoginClick: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -37,6 +39,8 @@ fun LoginScreen(
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    BackHandler(onBack = onSystemBack)
 
     // Navigate on success
     LaunchedEffect(uiState) {

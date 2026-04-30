@@ -68,7 +68,7 @@
     <string name="auth_app_name_splash">KAIZEN</string>
 
     <!-- Dashboard Widgets -->
-    <string name="dashboard_title">Entrenaments</string>
+    <string name="dashboard_title">Dashboard</string>
     <string name="dashboard_hello">Hola, %1$s</string>
     <string name="dashboard_edit_mode_reorder_hint">Mantingues premut i arrossega per reordenar</string>
     <string name="dashboard_edit_mode_enter">Entrar en mode edició</string>
@@ -78,10 +78,11 @@
     <string name="dashboard_nav_workouts">Entrenaments</string>
     <string name="dashboard_nav_statistics">Estadístiques</string>
     <string name="dashboard_nav_settings">Configuració</string>
+    <string name="dashboard_error_backend_connection">No s\'ha pogut connectar amb el backend.</string>
     
     <string name="dashboard_next_workout">PRÒXIM ENTRENAMENT</string>
     <string name="dashboard_no_workout_scheduled">Sense entreno programat</string>
-    <string name="dashboard_start_workout">COMENÇAR ENTRENO</string>
+    <string name="dashboard_start_workout">COMENÇAR ENTRENAMENT</string>
 
     <string name="dashboard_recent_prs">RPs RECENTS</string>
     <string name="dashboard_no_recent_prs">Sense RPs recents encara.\nÉs hora d\'aixecar pes.</string>
@@ -146,6 +147,12 @@
     <string name="statistics_discipline_habits">Disciplina i Hàbits</string>
 
     <string name="statistics_trend">Tendència</string>
+    <string name="statistics_time_range_1m">1M</string>
+    <string name="statistics_time_range_3m">3M</string>
+    <string name="statistics_time_range_6m">6M</string>
+    <string name="statistics_time_range_1y">1A</string>
+    <string name="statistics_time_range_all">TOT</string>
+    <string name="statistics_date_range">%1$s a %2$s</string>
     <string name="statistics_body_weight_trend_title">Tendència de Pes Corporal</string>
     <string name="statistics_estimated_1rm_title">1RM Estimat</string>
     <string name="statistics_select_exercise">Selecciona exercici</string>

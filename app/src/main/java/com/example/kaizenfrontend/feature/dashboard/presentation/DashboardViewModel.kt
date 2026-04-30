@@ -8,6 +8,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.dashboard.data.local.DashboardPreferences
@@ -189,12 +190,19 @@ constructor(
                                 if (_uiState.value !is DashboardUiState.Success) {
                                     _uiState.value =
                                             DashboardUiState.Error(
-                                                    error.message ?: "Failed to connect to backend."
+                                                    message = error.message,
+                                                    messageResId = R.string.dashboard_error_backend_connection
                                             )
                                 }
                             }
                     )
         }
+    }
+
+    fun onScreenFocused() {
+        refreshDashboardData()
+        fetchWeightHistory()
+        evaluateGoogleWelcomePrompt()
     }
 
     fun logBodyWeight(weight: Double) {

@@ -75,7 +75,7 @@ fun VolumeTrendWidget(
         subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_weekly_volume_subtitle),
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
-        emptyMessage = uiState.message,
+        emptyMessage = uiState.message.resolve(),
         modifier = modifier
     ) {
         VolumeBarChart(
@@ -147,7 +147,7 @@ fun RepRangeWidget(
         subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_rep_range_distribution_subtitle),
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
-        emptyMessage = uiState.message,
+        emptyMessage = uiState.message.resolve(),
         modifier = modifier
     ) {
         RepRangeContent(segments = uiState.segments)
@@ -209,7 +209,7 @@ private fun RepRangeRow(segment: RepRangeSegment) {
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
-            text = segment.label,
+            text = stringResource(id = segment.labelResId),
             color = LightGrey,
             fontSize = 13.sp,
             modifier = Modifier.weight(1f)
@@ -235,7 +235,7 @@ fun MuscleFrequencyWidget(
         subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_muscle_frequency_subtitle),
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
-        emptyMessage = uiState.message,
+        emptyMessage = uiState.message.resolve(),
         modifier = modifier
     ) {
         MuscleFrequencyContent(muscles = uiState.muscles)

@@ -42,7 +42,7 @@ fun FatigueCorrelationWidget(
         subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_fatigue_correlation_subtitle),
         isEmpty = uiState.isEmpty,
         isLoading = uiState.isLoading,
-        emptyMessage = uiState.message,
+        emptyMessage = uiState.message.resolve(),
         modifier = modifier
     ) {
         val bottomAxisFormatter = remember(uiState.dates) {
@@ -85,7 +85,7 @@ fun SessionEfficiencyWidget(
         subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_session_efficiency_subtitle),
         isEmpty = uiState.isEmpty,
         isLoading = uiState.isLoading,
-        emptyMessage = uiState.message,
+        emptyMessage = uiState.message.resolve(),
         modifier = modifier
     ) {
         if (uiState.points.isEmpty()) return@KaizenChartWidget
@@ -169,7 +169,7 @@ fun RestTimeDensityWidget(
         subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_rest_time_density_subtitle),
         isEmpty = uiState.isEmpty,
         isLoading = uiState.isLoading,
-        emptyMessage = uiState.message,
+        emptyMessage = uiState.message.resolve(),
         modifier = modifier
     ) {
         val maxPct = uiState.buckets.maxOfOrNull { it.percentage }?.coerceAtLeast(1f) ?: 100f

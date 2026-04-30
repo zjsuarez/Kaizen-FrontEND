@@ -70,8 +70,8 @@
     <string name="auth_app_name_splash">KAIZEN</string>
 
     <!-- Dashboard Widgets -->
-    <string name="dashboard_title">Workouts</string>
-    <string name="dashboard_hello">Hola, %1$s</string>
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_hello">Hello, %1$s</string>
     <string name="dashboard_edit_mode_reorder_hint">Hold and drag to reorder</string>
     <string name="dashboard_edit_mode_enter">Enter edit mode</string>
     <string name="dashboard_edit_mode_done">Done</string>
@@ -80,6 +80,7 @@
     <string name="dashboard_nav_workouts">Workouts</string>
     <string name="dashboard_nav_statistics">Statistics</string>
     <string name="dashboard_nav_settings">Settings</string>
+    <string name="dashboard_error_backend_connection">Failed to connect to backend.</string>
     
     <string name="dashboard_next_workout">NEXT WORKOUT</string>
     <string name="dashboard_no_workout_scheduled">No workout scheduled</string>
@@ -148,6 +149,12 @@
     <string name="statistics_discipline_habits">Discipline &amp; Habits</string>
 
     <string name="statistics_trend">Trend</string>
+    <string name="statistics_time_range_1m">1M</string>
+    <string name="statistics_time_range_3m">3M</string>
+    <string name="statistics_time_range_6m">6M</string>
+    <string name="statistics_time_range_1y">1Y</string>
+    <string name="statistics_time_range_all">ALL</string>
+    <string name="statistics_date_range">%1$s to %2$s</string>
     <string name="statistics_body_weight_trend_title">Body Weight Trend</string>
     <string name="statistics_estimated_1rm_title">Estimated 1RM</string>
     <string name="statistics_select_exercise">Select exercise</string>

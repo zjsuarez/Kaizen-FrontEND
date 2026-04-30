@@ -1,5 +1,6 @@
 package com.example.kaizenfrontend.feature.auth.presentation.signup
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +30,8 @@ import com.example.kaizenfrontend.core.ui.components.GoogleSignInButton
 @Composable
 fun SignUpScreen(
     onBackClick: () -> Unit = {},
+    onSystemBack: () -> Unit = {},
+    onLoginClick: () -> Unit = {},
     onSignUpClick: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -38,6 +41,8 @@ fun SignUpScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    BackHandler(onBack = onSystemBack)
 
     LaunchedEffect(uiState) {
         if (uiState is SignUpUiState.Success) {
@@ -108,7 +113,7 @@ fun SignUpScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        TextButton(onClick = onBackClick) {
+        TextButton(onClick = onLoginClick) {
             Text(
                 text = stringResource(id = R.string.auth_already_have_account),
                 color = Color.LightGray,

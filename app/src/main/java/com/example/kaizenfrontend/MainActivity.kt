@@ -1,5 +1,6 @@
 package com.example.kaizenfrontend
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
 fun KaizenNavHost() {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val activity = context as? Activity
     val sessionManager = remember { SessionManager(context) }
     var restoredRoute by rememberSaveable { mutableStateOf<String?>(null) }
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -80,13 +82,37 @@ fun KaizenNavHost() {
         }
         composable("start") {
             StartScreen(
-                onGetStartedClick = { navController.navigate("signup") },
-                onLoginClick = { navController.navigate("login") }
+                onGetStartedClick = {
+                    navController.navigate("signup") {
+                        launchSingleTop = true
+                    }
+                },
+                onLoginClick = {
+                    navController.navigate("login") {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
         composable("signup") {
             SignUpScreen(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    navController.navigate("start") {
+                        popUpTo("start") { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
+                onSystemBack = {
+                    if (!navController.popBackStack()) {
+                        activity?.finish()
+                    }
+                },
+                onLoginClick = {
+                    navController.navigate("login") {
+                        popUpTo("signup") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
                 onSignUpClick = { needsCalibration ->
                     if (needsCalibration) {
                         navController.navigate("calibration") {
@@ -102,7 +128,17 @@ fun KaizenNavHost() {
         }
         composable("login") {
             LoginScreen(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    navController.navigate("start") {
+                        popUpTo("start") { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
+                onSystemBack = {
+                    if (!navController.popBackStack()) {
+                        activity?.finish()
+                    }
+                },
                 onLoginClick = { needsCalibration ->
                     if (needsCalibration) {
                         navController.navigate("calibration") {

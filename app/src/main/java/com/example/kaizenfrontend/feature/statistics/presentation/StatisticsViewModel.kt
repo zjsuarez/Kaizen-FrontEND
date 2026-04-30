@@ -1,9 +1,9 @@
 package com.example.kaizenfrontend.feature.statistics.presentation
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.annotation.StringRes
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.feature.statistics.data.repository.StatisticsRepository
 import com.example.kaizenfrontend.feature.statistics.data.repository.TrendPoint
 import com.example.kaizenfrontend.feature.statistics.data.repository.WeeklyVolumePoint
@@ -14,7 +14,6 @@ import com.example.kaizenfrontend.feature.workouts.domain.repository.WorkoutRepo
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
 import com.patrykandpatrick.vico.core.entry.FloatEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Job
@@ -26,12 +25,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
-enum class TimeRange(val label: String) {
-    ONE_MONTH("1M"),
-    THREE_MONTHS("3M"),
-    SIX_MONTHS("6M"),
-    ONE_YEAR("1Y"),
-    LIFETIME("ALL")
+data class UiTextSpec(
+    @StringRes val resId: Int? = null,
+    val args: List<String> = emptyList(),
+    val raw: String? = null
+)
+
+enum class TimeRange(@StringRes val labelResId: Int) {
+    ONE_MONTH(R.string.statistics_time_range_1m),
+    THREE_MONTHS(R.string.statistics_time_range_3m),
+    SIX_MONTHS(R.string.statistics_time_range_6m),
+    ONE_YEAR(R.string.statistics_time_range_1y),
+    LIFETIME(R.string.statistics_time_range_all)
 }
 
 data class StatisticsUiState(
@@ -41,16 +46,14 @@ data class StatisticsUiState(
     val bodyWeightChart: TrendChartUiState = TrendChartUiState(
         isLoading = true,
         isEmpty = true,
-        message = "",
-        subtitle = null,
-        valueSuffix = ""
+        message = UiTextSpec(),
+        subtitle = null
     ),
     val estimated1RmChart: TrendChartUiState = TrendChartUiState(
         isLoading = false,
         isEmpty = true,
-        message = "",
-        subtitle = "",
-        valueSuffix = " kg"
+        message = UiTextSpec(),
+        subtitle = null
     ),
     // Hypertrophy & Overload
     val volumeTrend: VolumeTrendUiState = VolumeTrendUiState(),
@@ -64,12 +67,12 @@ data class StatisticsUiState(
     val activityHeatmap: HeatmapUiState = HeatmapUiState(
         isLoading = true,
         isEmpty = true,
-        message = ""
+        message = UiTextSpec()
     ),
     val prHeatmap: HeatmapUiState = HeatmapUiState(
         isLoading = true,
         isEmpty = true,
-        message = ""
+        message = UiTextSpec()
     ),
     val prPeakTime: PrPeakTimeUiState = PrPeakTimeUiState()
 )
@@ -77,9 +80,8 @@ data class StatisticsUiState(
 data class TrendChartUiState(
     val isLoading: Boolean,
     val isEmpty: Boolean,
-    val message: String,
-    val subtitle: String?,
-    val valueSuffix: String,
+    val message: UiTextSpec,
+    val subtitle: UiTextSpec?,
     val minY: Float = 0f,
     val maxY: Float = 0f,
     val xLabels: List<String> = emptyList()
@@ -95,12 +97,12 @@ data class ExerciseOptionUiState(
 data class VolumeTrendUiState(
     val isLoading: Boolean = true,
     val isEmpty: Boolean = true,
-    val message: String = "",
+    val message: UiTextSpec = UiTextSpec(),
     val weekLabels: List<String> = emptyList()
 )
 
 data class RepRangeSegment(
-    val label: String,
+    @StringRes val labelResId: Int,
     val percentage: Float,
     val color: androidx.compose.ui.graphics.Color
 )
@@ -108,7 +110,7 @@ data class RepRangeSegment(
 data class RepRangeUiState(
     val isLoading: Boolean = true,
     val isEmpty: Boolean = true,
-    val message: String = "",
+    val message: UiTextSpec = UiTextSpec(),
     val segments: List<RepRangeSegment> = emptyList()
 )
 
@@ -121,7 +123,7 @@ data class MuscleFrequencyUiItem(
 data class MuscleFrequencyUiState(
     val isLoading: Boolean = true,
     val isEmpty: Boolean = true,
-    val message: String = "",
+    val message: UiTextSpec = UiTextSpec(),
     val muscles: List<MuscleFrequencyUiItem> = emptyList()
 )
 
@@ -130,7 +132,7 @@ data class MuscleFrequencyUiState(
 data class FatigueUiState(
     val isLoading: Boolean = true,
     val isEmpty: Boolean = true,
-    val message: String = "",
+    val message: UiTextSpec = UiTextSpec(),
     val dates: List<String> = emptyList(),
     val maxVolume: Float = 0f
 )
@@ -143,7 +145,7 @@ data class EfficiencyPointUi(
 data class EfficiencyUiState(
     val isLoading: Boolean = true,
     val isEmpty: Boolean = true,
-    val message: String = "",
+    val message: UiTextSpec = UiTextSpec(),
     val points: List<EfficiencyPointUi> = emptyList()
 )
 
@@ -155,14 +157,14 @@ data class RestBucketUi(
 data class RestTimeUiState(
     val isLoading: Boolean = true,
     val isEmpty: Boolean = true,
-    val message: String = "",
+    val message: UiTextSpec = UiTextSpec(),
     val buckets: List<RestBucketUi> = emptyList()
 )
 
 data class HeatmapUiState(
     val isLoading: Boolean,
     val isEmpty: Boolean,
-    val message: String,
+    val message: UiTextSpec,
     val dayValues: Map<LocalDate, Int> = emptyMap(),
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null,
@@ -178,7 +180,7 @@ data class PrPeakTimePointUi(
 data class PrPeakTimeUiState(
     val isLoading: Boolean = true,
     val isEmpty: Boolean = true,
-    val message: String = "",
+    val message: UiTextSpec = UiTextSpec(),
     val points: List<PrPeakTimePointUi> = emptyList(),
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null
@@ -187,8 +189,7 @@ data class PrPeakTimeUiState(
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
     private val repository: StatisticsRepository,
-    private val workoutRepository: WorkoutRepository,
-    @ApplicationContext private val appContext: Context
+    private val workoutRepository: WorkoutRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(StatisticsUiState())
     val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
@@ -216,7 +217,17 @@ class StatisticsViewModel @Inject constructor(
 
     private val dateLabelFormatter = DateTimeFormatter.ofPattern("dd/MM")
 
-    private fun tr(@StringRes id: Int, vararg args: Any): String = appContext.getString(id, *args)
+    private fun uiText(@StringRes resId: Int, vararg args: String): UiTextSpec =
+        UiTextSpec(resId = resId, args = args.toList())
+
+    private fun uiErrorOrDefault(rawMessage: String?, @StringRes fallbackResId: Int): UiTextSpec {
+        val trimmed = rawMessage?.trim()
+        return if (trimmed.isNullOrEmpty()) {
+            uiText(fallbackResId)
+        } else {
+            UiTextSpec(raw = trimmed)
+        }
+    }
 
     init {
         loadExerciseOptions()
@@ -234,9 +245,9 @@ class StatisticsViewModel @Inject constructor(
                     isLoading = exerciseId != null,
                     isEmpty = true,
                     message = if (exerciseId == null) {
-                        tr(com.example.kaizenfrontend.R.string.statistics_no_exercise_selected_1rm)
+                        uiText(R.string.statistics_no_exercise_selected_1rm)
                     } else {
-                        tr(com.example.kaizenfrontend.R.string.statistics_loading_trend)
+                        uiText(R.string.statistics_loading_trend)
                     }
                 )
             )
@@ -259,34 +270,34 @@ class StatisticsViewModel @Inject constructor(
                     bodyWeightChart = it.bodyWeightChart.copy(
                         isLoading = true,
                         isEmpty = true,
-                        message = tr(com.example.kaizenfrontend.R.string.statistics_loading_trend)
+                        message = uiText(R.string.statistics_loading_trend)
                     ),
                     estimated1RmChart = it.estimated1RmChart.copy(
                         isLoading = it.selectedExerciseId != null,
                         isEmpty = true,
                         message = if (it.selectedExerciseId == null) {
-                            tr(com.example.kaizenfrontend.R.string.statistics_no_exercise_selected_1rm)
+                            uiText(R.string.statistics_no_exercise_selected_1rm)
                         } else {
-                            tr(com.example.kaizenfrontend.R.string.statistics_loading_trend)
+                            uiText(R.string.statistics_loading_trend)
                         }
                     ),
-                    volumeTrend = it.volumeTrend.copy(isLoading = true, isEmpty = true, message = tr(com.example.kaizenfrontend.R.string.statistics_loading_volume)),
-                    repRange = it.repRange.copy(isLoading = true, isEmpty = true, message = tr(com.example.kaizenfrontend.R.string.statistics_loading_rep_ranges)),
-                    muscleFrequency = it.muscleFrequency.copy(isLoading = true, isEmpty = true, message = tr(com.example.kaizenfrontend.R.string.statistics_loading_muscle_data)),
+                    volumeTrend = it.volumeTrend.copy(isLoading = true, isEmpty = true, message = uiText(R.string.statistics_loading_volume)),
+                    repRange = it.repRange.copy(isLoading = true, isEmpty = true, message = uiText(R.string.statistics_loading_rep_ranges)),
+                    muscleFrequency = it.muscleFrequency.copy(isLoading = true, isEmpty = true, message = uiText(R.string.statistics_loading_muscle_data)),
                     activityHeatmap = it.activityHeatmap.copy(
                         isLoading = true,
                         isEmpty = true,
-                        message = tr(com.example.kaizenfrontend.R.string.statistics_loading_activity_heatmap)
+                        message = uiText(R.string.statistics_loading_activity_heatmap)
                     ),
                     prHeatmap = it.prHeatmap.copy(
                         isLoading = true,
                         isEmpty = true,
-                        message = tr(com.example.kaizenfrontend.R.string.statistics_loading_pr_heatmap)
+                        message = uiText(R.string.statistics_loading_pr_heatmap)
                     ),
                     prPeakTime = it.prPeakTime.copy(
                         isLoading = true,
                         isEmpty = true,
-                        message = tr(com.example.kaizenfrontend.R.string.statistics_loading_pr_peak_time)
+                        message = uiText(R.string.statistics_loading_pr_peak_time)
                     )
                 )
             }
@@ -337,10 +348,11 @@ class StatisticsViewModel @Inject constructor(
                         bodyWeightChart = it.bodyWeightChart.copy(
                             isLoading = false,
                             isEmpty = true,
-                            message = bodyWeightResult.exceptionOrNull()?.message
-                                ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_bodyweight_trend),
-                            subtitle = null,
-                            valueSuffix = ""
+                            message = uiErrorOrDefault(
+                                rawMessage = bodyWeightResult.exceptionOrNull()?.message,
+                                fallbackResId = R.string.statistics_error_load_bodyweight_trend
+                            ),
+                            subtitle = null
                         )
                     )
                 }
@@ -352,11 +364,13 @@ class StatisticsViewModel @Inject constructor(
                         estimated1RmChart = it.estimated1RmChart.copy(
                             isLoading = false,
                             isEmpty = true,
-                            message = oneRmResult?.exceptionOrNull()?.message
-                                ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_1rm_trend),
-                            subtitle = oneRepMaxExerciseName?.let { name -> tr(com.example.kaizenfrontend.R.string.statistics_exercise_subtitle, name) }
-                                ?: tr(com.example.kaizenfrontend.R.string.statistics_strength_estimate),
-                            valueSuffix = " kg"
+                            message = uiErrorOrDefault(
+                                rawMessage = oneRmResult?.exceptionOrNull()?.message,
+                                fallbackResId = R.string.statistics_error_load_1rm_trend
+                            ),
+                            subtitle = oneRepMaxExerciseName?.let { name ->
+                                uiText(R.string.statistics_exercise_subtitle, name)
+                            } ?: uiText(R.string.statistics_strength_estimate)
                         )
                     )
                 }
@@ -373,7 +387,10 @@ class StatisticsViewModel @Inject constructor(
                             volumeTrend = s.volumeTrend.copy(
                                 isLoading = false,
                                 isEmpty = true,
-                                message = volumeResult.exceptionOrNull()?.message ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_volume_trend)
+                                message = uiErrorOrDefault(
+                                    rawMessage = volumeResult.exceptionOrNull()?.message,
+                                    fallbackResId = R.string.statistics_error_load_volume_trend
+                                )
                             )
                         )
                     }
@@ -383,9 +400,9 @@ class StatisticsViewModel @Inject constructor(
             repRangeResult
                 .onSuccess { dist ->
                     val segments = listOf(
-                        RepRangeSegment(tr(com.example.kaizenfrontend.R.string.statistics_rep_range_strength), dist.strengthPct.toFloat(), com.example.kaizenfrontend.core.ui.theme.SubtleRed),
-                        RepRangeSegment(tr(com.example.kaizenfrontend.R.string.statistics_rep_range_hypertrophy), dist.hypertrophyPct.toFloat(), com.example.kaizenfrontend.core.ui.theme.CrayolaBlue),
-                        RepRangeSegment(tr(com.example.kaizenfrontend.R.string.statistics_rep_range_endurance), dist.endurancePct.toFloat(), com.example.kaizenfrontend.core.ui.theme.MalachiteGreen)
+                        RepRangeSegment(R.string.statistics_rep_range_strength, dist.strengthPct.toFloat(), com.example.kaizenfrontend.core.ui.theme.SubtleRed),
+                        RepRangeSegment(R.string.statistics_rep_range_hypertrophy, dist.hypertrophyPct.toFloat(), com.example.kaizenfrontend.core.ui.theme.CrayolaBlue),
+                        RepRangeSegment(R.string.statistics_rep_range_endurance, dist.endurancePct.toFloat(), com.example.kaizenfrontend.core.ui.theme.MalachiteGreen)
                     )
                     val hasData = segments.any { it.percentage > 0f }
                     _uiState.update { s ->
@@ -393,7 +410,7 @@ class StatisticsViewModel @Inject constructor(
                             repRange = RepRangeUiState(
                                 isLoading = false,
                                 isEmpty = !hasData,
-                                message = if (hasData) "" else tr(com.example.kaizenfrontend.R.string.statistics_no_session_data_yet),
+                                message = if (hasData) UiTextSpec() else uiText(R.string.statistics_no_session_data_yet),
                                 segments = segments
                             )
                         )
@@ -405,7 +422,10 @@ class StatisticsViewModel @Inject constructor(
                             repRange = RepRangeUiState(
                                 isLoading = false,
                                 isEmpty = true,
-                                message = repRangeResult.exceptionOrNull()?.message ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_rep_ranges)
+                                message = uiErrorOrDefault(
+                                    rawMessage = repRangeResult.exceptionOrNull()?.message,
+                                    fallbackResId = R.string.statistics_error_load_rep_ranges
+                                )
                             )
                         )
                     }
@@ -422,7 +442,7 @@ class StatisticsViewModel @Inject constructor(
                             muscleFrequency = MuscleFrequencyUiState(
                                 isLoading = false,
                                 isEmpty = items.isEmpty(),
-                                message = if (items.isEmpty()) tr(com.example.kaizenfrontend.R.string.statistics_no_muscle_data_yet) else "",
+                                message = if (items.isEmpty()) uiText(R.string.statistics_no_muscle_data_yet) else UiTextSpec(),
                                 muscles = items
                             )
                         )
@@ -434,7 +454,10 @@ class StatisticsViewModel @Inject constructor(
                             muscleFrequency = MuscleFrequencyUiState(
                                 isLoading = false,
                                 isEmpty = true,
-                                message = muscleFreqResult.exceptionOrNull()?.message ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_muscle_data)
+                                message = uiErrorOrDefault(
+                                    rawMessage = muscleFreqResult.exceptionOrNull()?.message,
+                                    fallbackResId = R.string.statistics_error_load_muscle_data
+                                )
                             )
                         )
                     }
@@ -451,7 +474,10 @@ class StatisticsViewModel @Inject constructor(
                             fatigue = FatigueUiState(
                                 isLoading = false,
                                 isEmpty = true,
-                                message = fatigueResult.exceptionOrNull()?.message ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_fatigue_data)
+                                message = uiErrorOrDefault(
+                                    rawMessage = fatigueResult.exceptionOrNull()?.message,
+                                    fallbackResId = R.string.statistics_error_load_fatigue_data
+                                )
                             )
                         )
                     }
@@ -468,7 +494,10 @@ class StatisticsViewModel @Inject constructor(
                             efficiency = EfficiencyUiState(
                                 isLoading = false,
                                 isEmpty = true,
-                                message = efficiencyResult.exceptionOrNull()?.message ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_efficiency_data)
+                                message = uiErrorOrDefault(
+                                    rawMessage = efficiencyResult.exceptionOrNull()?.message,
+                                    fallbackResId = R.string.statistics_error_load_efficiency_data
+                                )
                             )
                         )
                     }
@@ -485,7 +514,7 @@ class StatisticsViewModel @Inject constructor(
                             restTime = RestTimeUiState(
                                 isLoading = false,
                                 isEmpty = buckets.isEmpty(),
-                                message = if (buckets.isEmpty()) tr(com.example.kaizenfrontend.R.string.statistics_no_rest_data_found) else "",
+                                message = if (buckets.isEmpty()) uiText(R.string.statistics_no_rest_data_found) else UiTextSpec(),
                                 buckets = buckets
                             )
                         )
@@ -497,7 +526,10 @@ class StatisticsViewModel @Inject constructor(
                             restTime = RestTimeUiState(
                                 isLoading = false,
                                 isEmpty = true,
-                                message = densityResult.exceptionOrNull()?.message ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_density_data)
+                                message = uiErrorOrDefault(
+                                    rawMessage = densityResult.exceptionOrNull()?.message,
+                                    fallbackResId = R.string.statistics_error_load_density_data
+                                )
                             )
                         )
                     }
@@ -516,8 +548,10 @@ class StatisticsViewModel @Inject constructor(
                             activityHeatmap = s.activityHeatmap.copy(
                                 isLoading = false,
                                 isEmpty = true,
-                                message = activityHeatmapResult.exceptionOrNull()?.message
-                                    ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_activity_heatmap)
+                                message = uiErrorOrDefault(
+                                    rawMessage = activityHeatmapResult.exceptionOrNull()?.message,
+                                    fallbackResId = R.string.statistics_error_load_activity_heatmap
+                                )
                             )
                         )
                     }
@@ -535,8 +569,10 @@ class StatisticsViewModel @Inject constructor(
                             prHeatmap = s.prHeatmap.copy(
                                 isLoading = false,
                                 isEmpty = true,
-                                message = prHeatmapResult.exceptionOrNull()?.message
-                                    ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_pr_heatmap)
+                                message = uiErrorOrDefault(
+                                    rawMessage = prHeatmapResult.exceptionOrNull()?.message,
+                                    fallbackResId = R.string.statistics_error_load_pr_heatmap
+                                )
                             )
                         )
                     }
@@ -552,8 +588,10 @@ class StatisticsViewModel @Inject constructor(
                             prPeakTime = s.prPeakTime.copy(
                                 isLoading = false,
                                 isEmpty = true,
-                                message = prPeakTimeResult.exceptionOrNull()?.message
-                                    ?: tr(com.example.kaizenfrontend.R.string.statistics_error_load_pr_peak_time)
+                                message = uiErrorOrDefault(
+                                    rawMessage = prPeakTimeResult.exceptionOrNull()?.message,
+                                    fallbackResId = R.string.statistics_error_load_pr_peak_time
+                                )
                             )
                         )
                     }
@@ -595,7 +633,7 @@ class StatisticsViewModel @Inject constructor(
 
         val bodyWeightHasTrend = bodyWeightFiltered.size >= 2
         val oneRmHasTrend = oneRmFiltered.size >= 2
-        val notEnoughTrendMessage = tr(com.example.kaizenfrontend.R.string.statistics_not_enough_data_points)
+        val notEnoughTrendMessage = uiText(R.string.statistics_not_enough_data_points)
         val volumeHasData = volumeFiltered.isNotEmpty()
 
         if (bodyWeightHasTrend) {
@@ -681,9 +719,8 @@ class StatisticsViewModel @Inject constructor(
                 bodyWeightChart = it.bodyWeightChart.copy(
                     isLoading = false,
                     isEmpty = !bodyWeightHasTrend,
-                    message = if (bodyWeightHasTrend) "" else notEnoughTrendMessage,
-                    subtitle = tr(com.example.kaizenfrontend.R.string.statistics_unit_subtitle, bodyWeightUnit),
-                    valueSuffix = " $bodyWeightUnit",
+                    message = if (bodyWeightHasTrend) UiTextSpec() else notEnoughTrendMessage,
+                    subtitle = uiText(R.string.statistics_unit_subtitle, bodyWeightUnit),
                     minY = bodyWeightMinMax.first,
                     maxY = bodyWeightMinMax.second,
                     xLabels = bodyWeightLabels
@@ -692,13 +729,12 @@ class StatisticsViewModel @Inject constructor(
                     isLoading = false,
                     isEmpty = !oneRmHasTrend,
                     message = when {
-                        it.selectedExerciseId == null -> tr(com.example.kaizenfrontend.R.string.statistics_no_exercise_selected_1rm)
+                        it.selectedExerciseId == null -> uiText(R.string.statistics_no_exercise_selected_1rm)
                         !oneRmHasTrend -> notEnoughTrendMessage
-                        else -> ""
+                        else -> UiTextSpec()
                     },
-                    subtitle = oneRepMaxExerciseName?.let { name -> tr(com.example.kaizenfrontend.R.string.statistics_exercise_subtitle, name) }
-                        ?: tr(com.example.kaizenfrontend.R.string.statistics_strength_estimate),
-                    valueSuffix = " kg",
+                    subtitle = oneRepMaxExerciseName?.let { name -> uiText(R.string.statistics_exercise_subtitle, name) }
+                        ?: uiText(R.string.statistics_strength_estimate),
                     minY = oneRmMinMax.first,
                     maxY = oneRmMinMax.second,
                     xLabels = oneRmLabels
@@ -706,29 +742,29 @@ class StatisticsViewModel @Inject constructor(
                 volumeTrend = it.volumeTrend.copy(
                     isLoading = false,
                     isEmpty = !volumeHasData,
-                    message = if (volumeHasData) "" else tr(com.example.kaizenfrontend.R.string.statistics_no_volume_data_in_range),
+                    message = if (volumeHasData) UiTextSpec() else uiText(R.string.statistics_no_volume_data_in_range),
                     weekLabels = volumeLabels
                 ),
                 fatigue = it.fatigue.copy(
                     isLoading = false,
                     isEmpty = !fatigueHasData,
-                    message = if (fatigueHasData) "" else notEnoughTrendMessage,
+                    message = if (fatigueHasData) UiTextSpec() else notEnoughTrendMessage,
                     dates = fatigueLabels,
                     maxVolume = maxVolume
                 ),
                 efficiency = it.efficiency.copy(
                     isLoading = false,
                     isEmpty = !efficiencyHasData,
-                    message = if (efficiencyHasData) "" else tr(com.example.kaizenfrontend.R.string.statistics_no_efficiency_data_available),
+                    message = if (efficiencyHasData) UiTextSpec() else uiText(R.string.statistics_no_efficiency_data_available),
                     points = efficiencyRawData.map { p -> EfficiencyPointUi(p.durationMinutes, p.totalVolume.toFloat()) }
                 ),
                 activityHeatmap = it.activityHeatmap.copy(
                     isLoading = false,
                     isEmpty = activityHeatmapFiltered.isEmpty(),
                     message = if (activityHeatmapFiltered.isEmpty()) {
-                        tr(com.example.kaizenfrontend.R.string.statistics_no_workout_activity_in_range)
+                        uiText(R.string.statistics_no_workout_activity_in_range)
                     } else {
-                        ""
+                        UiTextSpec()
                     },
                     dayValues = activityHeatmapFiltered,
                     startDate = activityHeatmapStart,
@@ -740,9 +776,9 @@ class StatisticsViewModel @Inject constructor(
                     isLoading = false,
                     isEmpty = prHeatmapFiltered.isEmpty(),
                     message = if (prHeatmapFiltered.isEmpty()) {
-                        tr(com.example.kaizenfrontend.R.string.statistics_no_pr_activity_in_range)
+                        uiText(R.string.statistics_no_pr_activity_in_range)
                     } else {
-                        ""
+                        UiTextSpec()
                     },
                     dayValues = prHeatmapFiltered,
                     startDate = prHeatmapStart,
@@ -754,9 +790,9 @@ class StatisticsViewModel @Inject constructor(
                     isLoading = false,
                     isEmpty = prPeakTimeUiPoints.isEmpty(),
                     message = if (prPeakTimeUiPoints.isEmpty()) {
-                        tr(com.example.kaizenfrontend.R.string.statistics_no_pr_timing_events_in_range)
+                        uiText(R.string.statistics_no_pr_timing_events_in_range)
                     } else {
-                        ""
+                        UiTextSpec()
                     },
                     points = prPeakTimeUiPoints,
                     startDate = prPeakTimeStart,

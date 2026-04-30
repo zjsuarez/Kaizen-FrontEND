@@ -56,6 +56,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.ui.theme.*
@@ -177,6 +180,7 @@ fun DashboardScreen(
         onWorkoutClick: () -> Unit = {},
         onLogoutClick: () -> Unit = {}
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val widgetOrder by viewModel.widgetOrder.collectAsState()
@@ -204,6 +208,18 @@ fun DashboardScreen(
     val addWidgetSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val googleWelcomeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var activeBottomSheet by remember { mutableStateOf<DashboardBottomSheetType?>(null) }
+
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.onScreenFocused()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Scaffold(
             containerColor = Onyx,
@@ -333,6 +349,9 @@ fun DashboardScreen(
                                 // Normally this handles no-data gracefully
                             }
                             is DashboardUiState.Error -> {
+                                val errorMessage = state.message?.takeIf { it.isNotBlank() }
+                                    ?: state.messageResId?.let { stringResource(id = it) }
+                                    ?: stringResource(id = R.string.dashboard_error_backend_connection)
                                 Box(
                                         modifier =
                                                 Modifier.fillMaxWidth()
@@ -344,7 +363,7 @@ fun DashboardScreen(
                                                         .padding(16.dp),
                                         contentAlignment = Alignment.Center
                                 ) {
-                                    Text(text = state.message, color = Color.Red, fontSize = 14.sp)
+                                    Text(text = errorMessage, color = Color.Red, fontSize = 14.sp)
                                 }
                             }
                         }

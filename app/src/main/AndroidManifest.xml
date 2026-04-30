@@ -7,6 +7,7 @@
     <application
         android:name=".KaizenApp"
         android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true"
         android:usesCleartextTraffic="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -15,7 +16,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:localeConfig="@xml/locales_config"
-        android:theme="@style/Theme.KaizenFrontEnd">
+        android:theme="@style/Theme.KaizenFrontEnd"
+        tools:targetApi="33">
 
         <provider
             android:name="androidx.startup.InitializationProvider"
