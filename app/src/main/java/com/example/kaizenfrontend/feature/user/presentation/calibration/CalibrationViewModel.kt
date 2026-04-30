@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
+import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.user.data.remote.dto.UserUpdateRequest
 import com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl
 import com.example.kaizenfrontend.feature.user.domain.usecase.UpdateUserUseCase
@@ -22,7 +23,8 @@ sealed class CalibrationUiState {
 class CalibrationViewModel(context: Context) : ViewModel() {
 
     private val sessionManager = SessionManager(context)
-    private val updateUserUseCase = UpdateUserUseCase(UserRepositoryImpl(sessionManager))
+    private val userApiService = context.applicationContext.hiltServiceEntryPoint().userApiService()
+    private val updateUserUseCase = UpdateUserUseCase(UserRepositoryImpl(userApiService, sessionManager))
 
     private val _uiState = MutableStateFlow<CalibrationUiState>(CalibrationUiState.Idle)
     val uiState: StateFlow<CalibrationUiState> = _uiState.asStateFlow()

@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.ui.res.stringResource
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import com.example.kaizenfrontend.core.ui.theme.*
 
 @Composable
@@ -42,6 +45,18 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showRestDialog by remember { mutableStateOf(false) }
 
+    var showLanguageDialog by remember { mutableStateOf(false) }
+
+    if (showLanguageDialog) {
+        LanguageSelectionDialog(
+            onDismiss = { showLanguageDialog = false },
+            onLanguageSelected = { localeTag ->
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(localeTag))
+                showLanguageDialog = false
+            }
+        )
+    }
+
     if (showChangePasswordDialog) {
         ChangePasswordDialog(
             onDismiss = { showChangePasswordDialog = false },
@@ -57,20 +72,20 @@ fun SettingsScreen(
             onDismissRequest = { showLogoutDialog = false },
             containerColor = ShadowGrey,
             shape = RoundedCornerShape(16.dp),
-            title = { Text("Log Out", color = PureWhite, fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to log out?", color = LightGrey) },
+            title = { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_log_out), color = PureWhite, fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_log_out_message), color = LightGrey) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.logout()
                     showLogoutDialog = false
                     onLogoutClick()
                 }) {
-                    Text("Log Out", color = SubtleRed, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_log_out), color = SubtleRed, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancel", color = LightGrey)
+                    Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_cancel), color = LightGrey)
                 }
             }
         )
@@ -96,12 +111,9 @@ fun SettingsScreen(
             .padding(top = 48.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        Text(
-            text = "Settings",
-            color = PureWhite,
-            fontSize = 38.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Text(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_title), color = PureWhite, fontSize = 38.sp, fontWeight = FontWeight.Bold)
+
+        SettingsAppSection(onLanguageClick = { showLanguageDialog = true })
 
         SettingsAccountSection(
             email = uiState.email,
@@ -134,19 +146,21 @@ fun SettingsScreen(
 private fun ChangePasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    val passwordLengthError = stringResource(id = com.example.kaizenfrontend.R.string.error_password_length)
+    val passwordMismatchError = stringResource(id = com.example.kaizenfrontend.R.string.error_passwords_do_not_match)
     var error by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = ShadowGrey,
         shape = RoundedCornerShape(16.dp),
-        title = { Text(text = "Change Password", color = PureWhite, fontWeight = FontWeight.Bold) },
+        title = { Text(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_change_password), color = PureWhite, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it; error = null },
-                    label = { Text("New Password", color = LightGrey) },
+                    label = { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_new_password), color = LightGrey) },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
@@ -162,7 +176,7 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> U
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it; error = null },
-                    label = { Text("Confirm Password", color = LightGrey) },
+                    label = { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_confirm_password), color = LightGrey) },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
@@ -181,14 +195,14 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> U
         confirmButton = {
             TextButton(onClick = {
                 when {
-                    newPassword.length < 6 -> error = "Password must be at least 6 characters."
-                    newPassword != confirmPassword -> error = "Passwords do not match."
+                    newPassword.length < 6 -> error = passwordLengthError
+                    newPassword != confirmPassword -> error = passwordMismatchError
                     else -> onConfirm(newPassword)
                 }
-            }) { Text("Save", color = CrayolaBlue, fontWeight = FontWeight.SemiBold) }
+            }) { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_save), color = CrayolaBlue, fontWeight = FontWeight.SemiBold) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel", color = LightGrey) }
+            TextButton(onClick = onDismiss) { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_cancel), color = LightGrey) }
         }
     )
 }
@@ -196,20 +210,21 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> U
 @Composable
 private fun RestTimerDialog(currentSeconds: Int, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
     var input by remember { mutableStateOf(currentSeconds.toString()) }
+    val context = LocalContext.current
     var error by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = ShadowGrey,
         shape = RoundedCornerShape(16.dp),
-        title = { Text("Default Rest Timer", color = PureWhite, fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_default_rest_timer_title), color = PureWhite, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Set rest time in seconds", color = LightGrey, fontSize = 13.sp)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_set_rest_time), color = LightGrey, fontSize = 13.sp)
                 OutlinedTextField(
                     value = input,
                     onValueChange = { input = it; error = null },
-                    label = { Text("Seconds", color = LightGrey) },
+                    label = { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_seconds), color = LightGrey) },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
@@ -231,14 +246,14 @@ private fun RestTimerDialog(currentSeconds: Int, onDismiss: () -> Unit, onConfir
             TextButton(onClick = {
                 val seconds = input.toIntOrNull()
                 when {
-                    seconds == null || seconds <= 0 -> error = "Enter a valid number of seconds."
-                    seconds > 600 -> error = "Maximum rest is 600 seconds."
+                    seconds == null || seconds <= 0 -> error = context.getString(com.example.kaizenfrontend.R.string.error_valid_seconds)
+                    seconds > 600 -> error = context.getString(com.example.kaizenfrontend.R.string.error_max_rest)
                     else -> onConfirm(seconds)
                 }
-            }) { Text("Save", color = CrayolaBlue, fontWeight = FontWeight.SemiBold) }
+            }) { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_save), color = CrayolaBlue, fontWeight = FontWeight.SemiBold) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel", color = LightGrey) }
+            TextButton(onClick = onDismiss) { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_cancel), color = LightGrey) }
         }
     )
 }
@@ -251,9 +266,9 @@ private fun SettingsAccountSection(
     onLogoutClick: () -> Unit,
     onDeleteAccountClick: () -> Unit
 ) {
-    SettingsSectionCard(label = "ACCOUNT") {
+    SettingsSectionCard(label = stringResource(id = com.example.kaizenfrontend.R.string.settings_account_section)) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-            Text(text = "Email", color = LightGrey, fontSize = 12.sp)
+            Text(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_email_label), color = LightGrey, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = email, color = PureWhite, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
@@ -264,14 +279,14 @@ private fun SettingsAccountSection(
                     AuthProviderBadge(
                         showGoogle = true,
                         showLock = false,
-                        label = "Linked via Google"
+                        label = stringResource(id = com.example.kaizenfrontend.R.string.settings_linked_via_google)
                     )
                 }
                 "BOTH" -> {
                     AuthProviderBadge(
                         showGoogle = true,
                         showLock = true,
-                        label = "Google & Local Password"
+                        label = stringResource(id = com.example.kaizenfrontend.R.string.settings_google_and_local)
                     )
                 }
                 // LOCAL or null → no badge needed
@@ -280,12 +295,12 @@ private fun SettingsAccountSection(
         }
         SettingsDivider()
         // Password action: GOOGLE-only accounts must CREATE a password; all others CHANGE it.
-        val passwordText = if (authProvider == "GOOGLE") "Create Local Password" else "Change Password"
+        val passwordText = if (authProvider == "GOOGLE") stringResource(id = com.example.kaizenfrontend.R.string.settings_create_local_password) else stringResource(id = com.example.kaizenfrontend.R.string.settings_change_password)
         SettingsTextButton(text = passwordText, textColor = PureWhite, onClick = onChangePasswordClick)
         SettingsDivider()
-        SettingsTextButton(text = "Log Out", textColor = SubtleRed, onClick = onLogoutClick)
+        SettingsTextButton(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_log_out), textColor = SubtleRed, onClick = onLogoutClick)
         SettingsDivider()
-        SettingsTextButton(text = "Delete Account", textColor = SubtleRed, onClick = onDeleteAccountClick)
+        SettingsTextButton(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_delete_account), textColor = SubtleRed, onClick = onDeleteAccountClick)
     }
 }
 
@@ -305,7 +320,7 @@ private fun AuthProviderBadge(
         if (showGoogle) {
             Icon(
                 painter = androidx.compose.ui.res.painterResource(id = com.example.kaizenfrontend.R.drawable.ic_google),
-                contentDescription = "Google",
+                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.settings_google_content_description),
                 tint = Color.Unspecified,
                 modifier = Modifier.size(13.dp)
             )
@@ -313,7 +328,7 @@ private fun AuthProviderBadge(
         if (showLock) {
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = "Local password",
+                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.settings_local_password_content_description),
                 tint = CrayolaBlue,
                 modifier = Modifier.size(12.dp)
             )
@@ -324,6 +339,39 @@ private fun AuthProviderBadge(
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold
         )
+    }
+}
+
+@Composable
+private fun SettingsAppSection(onLanguageClick: () -> Unit) {
+    SettingsSectionCard(label = stringResource(id = com.example.kaizenfrontend.R.string.settings_app_section)) {
+        PreferenceRow(label = stringResource(id = com.example.kaizenfrontend.R.string.settings_language)) {
+            val languageCode = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+            val (languageName, flagResId) = when {
+                languageCode.startsWith("es") -> stringResource(id = com.example.kaizenfrontend.R.string.language_spanish) to com.example.kaizenfrontend.R.drawable.ic_flag_es
+                languageCode.startsWith("ca") -> stringResource(id = com.example.kaizenfrontend.R.string.language_catalan) to com.example.kaizenfrontend.R.drawable.ic_flag_ca
+                else -> stringResource(id = com.example.kaizenfrontend.R.string.language_english) to com.example.kaizenfrontend.R.drawable.ic_flag_en
+            }
+            
+            Row(
+                modifier = Modifier
+                    .border(1.dp, CrayolaBlue, RoundedCornerShape(10.dp))
+                    .clickable { onLanguageClick() }
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = flagResId),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = languageName,
+                    color = CrayolaBlue, fontSize = 14.sp, fontWeight = FontWeight.Medium
+                )
+            }
+        }
     }
 }
 
@@ -339,25 +387,44 @@ private fun SettingsPreferencesSection(
     isSaving: Boolean,
     onSaveClick: () -> Unit
 ) {
-    SettingsSectionCard(label = "TRAINING PREFERENCES") {
-        PreferenceRow(label = "Unit System") {
-            val unitDisplay = if (unitSystem == "IMPERIAL") "LB" else "KG"
+    val unitKg = stringResource(id = com.example.kaizenfrontend.R.string.settings_unit_kg)
+    val unitLb = stringResource(id = com.example.kaizenfrontend.R.string.settings_unit_lb)
+    val effortRir = stringResource(id = com.example.kaizenfrontend.R.string.settings_effort_rir)
+    val effortRpe = stringResource(id = com.example.kaizenfrontend.R.string.settings_effort_rpe)
+    val effortNone = stringResource(id = com.example.kaizenfrontend.R.string.settings_effort_none)
+
+    SettingsSectionCard(label = stringResource(id = com.example.kaizenfrontend.R.string.settings_training_preferences_section)) {
+        PreferenceRow(label = stringResource(id = com.example.kaizenfrontend.R.string.settings_unit_system)) {
+            val unitDisplay = if (unitSystem == "IMPERIAL") unitLb else unitKg
             SegmentedToggle(
-                options = listOf("KG", "LB"),
+                options = listOf(unitKg, unitLb),
                 selected = unitDisplay,
-                onSelect = { onUnitToggle(if (it == "LB") "IMPERIAL" else "METRIC") }
+                onSelect = { onUnitToggle(if (it == unitLb) "IMPERIAL" else "METRIC") }
             )
         }
         SettingsDivider()
-        PreferenceRow(label = "Effort Metric") {
+        PreferenceRow(label = stringResource(id = com.example.kaizenfrontend.R.string.settings_effort_metric)) {
+            val effortDisplay = when (effortMetric) {
+                "RIR" -> effortRir
+                "RPE" -> effortRpe
+                else -> effortNone
+            }
             SegmentedToggle(
-                options = listOf("RIR", "RPE", "NONE"),
-                selected = effortMetric,
-                onSelect = onEffortToggle
+                options = listOf(effortRir, effortRpe, effortNone),
+                selected = effortDisplay,
+                onSelect = {
+                    onEffortToggle(
+                        when (it) {
+                            effortRir -> "RIR"
+                            effortRpe -> "RPE"
+                            else -> "NONE"
+                        }
+                    )
+                }
             )
         }
         SettingsDivider()
-        PreferenceRow(label = "Default Rest") {
+        PreferenceRow(label = stringResource(id = com.example.kaizenfrontend.R.string.settings_default_rest)) {
             Box(
                 modifier = Modifier
                     .border(1.dp, CrayolaBlue, RoundedCornerShape(10.dp))
@@ -379,7 +446,7 @@ private fun SettingsPreferencesSection(
                 if (isSaving) {
                     CircularProgressIndicator(color = CrayolaBlue, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
-                    Text(text = "Save Preferences", color = CrayolaBlue, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_save_preferences), color = CrayolaBlue, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -388,10 +455,10 @@ private fun SettingsPreferencesSection(
 
 @Composable
 private fun SettingsDataPrivacySection(onExportClick: () -> Unit, onManageApiClick: () -> Unit) {
-    SettingsSectionCard(label = "DATA & PRIVACY") {
-        SettingsTextButton(text = "Export Workout History (CSV)", textColor = PureWhite, onClick = onExportClick)
+    SettingsSectionCard(label = stringResource(id = com.example.kaizenfrontend.R.string.settings_data_privacy_section)) {
+        SettingsTextButton(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_export_workout_history), textColor = PureWhite, onClick = onExportClick)
         SettingsDivider()
-        SettingsTextButton(text = "Manage API Permissions", textColor = PureWhite, onClick = onManageApiClick)
+        SettingsTextButton(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_manage_api_permissions), textColor = PureWhite, onClick = onManageApiClick)
     }
 }
 
@@ -461,6 +528,8 @@ private fun SegmentedToggle(options: List<String>, selected: String, onSelect: (
                     text = option,
                     color = if (isSelected) PureWhite else LightGrey,
                     fontSize = 13.sp,
+                    maxLines = 1,
+                    softWrap = false,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                 )
             }
@@ -478,3 +547,37 @@ private fun SettingsDivider() {
 fun SettingsScreenPreview() {
     MaterialTheme { SettingsScreen() }
 }
+
+
+
+
+
+@Composable
+private fun LanguageSelectionDialog(onDismiss: () -> Unit, onLanguageSelected: (String) -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = ShadowGrey,
+        shape = RoundedCornerShape(16.dp),
+        title = { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_language), color = PureWhite, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SettingsTextButton(text = stringResource(id = com.example.kaizenfrontend.R.string.language_english), textColor = PureWhite, onClick = { onLanguageSelected("en") })
+                SettingsDivider()
+                SettingsTextButton(text = stringResource(id = com.example.kaizenfrontend.R.string.language_spanish), textColor = PureWhite, onClick = { onLanguageSelected("es") })
+                SettingsDivider()
+                SettingsTextButton(text = stringResource(id = com.example.kaizenfrontend.R.string.language_catalan), textColor = PureWhite, onClick = { onLanguageSelected("ca") })
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_cancel), color = LightGrey) }
+        }
+    )
+}
+
+
+
+
+
+
+

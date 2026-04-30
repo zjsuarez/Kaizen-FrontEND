@@ -8,18 +8,11 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import retrofit2.Retrofit
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object WorkoutModule {
-
-    @Provides
-    @Singleton
-    fun provideWorkoutApiService(retrofit: Retrofit): WorkoutApiService {
-        return retrofit.create(WorkoutApiService::class.java)
-    }
 
     @Provides
     @Singleton

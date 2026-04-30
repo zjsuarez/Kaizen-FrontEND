@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kaizen</string>
+
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_account_section">CUENTA</string>
+    <string name="settings_email_label">Correo</string>
+    <string name="settings_linked_via_google">Vinculado con Google</string>
+    <string name="settings_google_and_local">Google y Contraseña Local</string>
+    <string name="settings_change_password">Cambiar Contraseña</string>
+    <string name="settings_create_local_password">Crear Contraseña Local</string>
+    <string name="settings_log_out">Cerrar Sesión</string>
+    <string name="settings_delete_account">Eliminar Cuenta</string>
+    <string name="settings_log_out_message">¿Estás seguro de que deseas cerrar sesión?</string>
+    <string name="settings_cancel">Cancelar</string>
+    <string name="settings_save">Guardar</string>
+    <string name="settings_new_password">Nueva Contraseña</string>
+    <string name="settings_confirm_password">Confirmar Contraseña</string>
+    
+    <string name="settings_app_section">AJUSTES DE LA APLICACIÓN</string>
+    <string name="settings_training_preferences_section">PREFERENCIAS DE ENTRENAMIENTO</string>
+    <string name="settings_language">Idioma</string>
+    <string name="language_picker_content_description">Seleccionar idioma</string>
+    <string name="language_english">English</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_catalan">Català</string>
+    <string name="settings_unit_system">Sistema de Unidades</string>
+    <string name="settings_unit_kg">KG</string>
+    <string name="settings_unit_lb">LB</string>
+    <string name="settings_effort_metric">Métrica de Esfuerzo</string>
+    <string name="settings_effort_rir">RIR</string>
+    <string name="settings_effort_rpe">RPE</string>
+    <string name="settings_effort_none">NINGUNO</string>
+    <string name="settings_default_rest">Descanso Predeterminado</string>
+    <string name="settings_save_preferences">Guardar Preferencias</string>
+    <string name="settings_google_content_description">Google</string>
+    <string name="settings_local_password_content_description">Contraseña local</string>
+    
+    <string name="settings_data_privacy_section">DATOS Y PRIVACIDAD</string>
+    <string name="settings_export_workout_history">Exportar Historial (CSV)</string>
+    <string name="settings_manage_api_permissions">Gestionar Permisos de API</string>
+    
+    <string name="settings_default_rest_timer_title">Temporizador de Descanso</string>
+    <string name="settings_set_rest_time">Configura el tiempo en segundos</string>
+    <string name="settings_seconds">Segundos</string>
+    
+    <string name="error_password_length">La contraseña debe tener al menos 6 caracteres.</string>
+    <string name="error_passwords_do_not_match">Las contraseñas no coinciden.</string>
+    <string name="error_valid_seconds">Introduce un número válido de segundos.</string>
+    <string name="error_max_rest">El descanso máximo son 600 segundos.</string>
+
+    <!-- Auth -->
+    <string name="auth_start_subtitle">Tu rastreador de fuerza personal</string>
+    <string name="auth_get_started">EMPEZAR</string>
+    <string name="auth_log_in">INICIAR SESIÓN</string>
+    <string name="auth_welcome_back">Bienvenido\nde vuelta</string>
+    <string name="auth_email_hint">Correo electrónico</string>
+    <string name="auth_password_hint">Contraseña</string>
+    <string name="auth_confirm_password_hint">Confirmar contraseña</string>
+    <string name="auth_or">o</string>
+    <string name="auth_lets_get_started">Vamos a\nempezar</string>
+    <string name="auth_already_have_account">¿Ya tienes cuenta? Iniciar Sesión</string>
+    <string name="auth_sign_up">REGISTRARSE</string>
+    <string name="auth_sign_up_google">REGISTRARSE CON GOOGLE</string>
+    <string name="auth_continue_with_google">CONTINUAR CON GOOGLE</string>
+    <string name="auth_google_logo_content_description">Logo de Google</string>
+    <string name="auth_back">Atrás</string>
+    <string name="auth_app_name_splash">KAIZEN</string>
+
+    <!-- Dashboard Widgets -->
+    <string name="dashboard_title">Entrenamientos</string>
+    <string name="dashboard_hello">Hola, %1$s</string>
+    <string name="dashboard_edit_mode_reorder_hint">Mantén pulsado y arrastra para reordenar</string>
+    <string name="dashboard_edit_mode_enter">Entrar en modo edición</string>
+    <string name="dashboard_edit_mode_done">Hecho</string>
+    <string name="dashboard_add_widget">Añadir widget</string>
+    <string name="dashboard_nav_dashboard">Panel</string>
+    <string name="dashboard_nav_workouts">Entrenos</string>
+    <string name="dashboard_nav_statistics">Estadísticas</string>
+    <string name="dashboard_nav_settings">Ajustes</string>
+    
+    <string name="dashboard_next_workout">PRÓXIMO ENTRENO</string>
+    <string name="dashboard_no_workout_scheduled">Sin entreno programado</string>
+    <string name="dashboard_start_workout">EMPEZAR ENTRENO</string>
+
+    <string name="dashboard_recent_prs">RPs RECIENTES</string>
+    <string name="dashboard_no_recent_prs">Sin RPs recientes todavía.\nEs hora de levantar pesado.</string>
+
+    <string name="dashboard_recovery">RECUPERACIÓN</string>
+    <string name="dashboard_recovered">Recuperado</string>
+    <string name="dashboard_recovering">Recuperando</string>
+    <string name="dashboard_no_data">Sin Datos</string>
+    <string name="dashboard_hours">h</string>
+
+    <string name="dashboard_last_session">ÚLTIMA SESIÓN</string>
+
+    <string name="dashboard_body_weight">PESO CORPORAL</string>
+
+    <string name="dashboard_streak">RACHA</string>
+    <string name="dashboard_days">Días</string>
+    <string name="dashboard_new_record">¡Nuevo Récord!</string>
+    <string name="dashboard_record">Récord: %1$d</string>
+
+    <string name="dashboard_avg_time">TIEMPO MEDIO</string>
+    <string name="dashboard_min">min</string>
+    <string name="dashboard_trend_up">+%1$d min</string>
+    <string name="dashboard_trend_down">%1$d min</string>
+
+    <!-- Statistics -->
+    <string name="statistics_title">Laboratorio</string>
+    <string name="statistics_strength_health">Fuerza y Salud</string>
+    <string name="statistics_hypertrophy_overload">Hipertrofia y Sobrecarga</string>
+    <string name="statistics_efficiency_fatigue">Eficiencia y Fatiga</string>
+    <!-- Widgets Sheet -->
+    <string name="widget_add_title">Añadir Widget</string>
+    <string name="widget_add_subtitle">Selecciona un widget para añadir a tu panel</string>
+    <string name="widget_all_added">¡Todos los widgets ya están en tu panel! 🎉</string>
+    <string name="widget_add_btn_desc">Añadir %1$$s</string>
+
+    <string name="widget_next_workout_title">Próximo entrenamiento</string>
+    <string name="widget_next_workout_desc">Muestra tu próxima rutina planeada con un botón de inicio rápido.</string>
+    
+    <string name="widget_calendar_title">Calendario de entrenamiento</string>
+    <string name="widget_calendar_desc">Calendario mensual destacando tus días de entrenamiento.</string>
+    
+    <string name="widget_recent_prs_title">Récords recientes</string>
+    <string name="widget_recent_prs_desc">Tus 3 récords personales más recientes.</string>
+    
+    <string name="widget_weight_trend_title">Tendencia de peso</string>
+    <string name="widget_weight_trend_desc">Gráfico de peso corporal y variación semanal.</string>
+    
+    <string name="widget_recovery_time_title">Tiempo de recuperación</string>
+    <string name="widget_recovery_time_desc">Horas desde tu última sesión completada.</string>
+    
+    <string name="widget_last_session_title">Última sesión</string>
+    <string name="widget_last_session_desc">Vistazo rápido a tu entrenamiento más reciente.</string>
+    
+    <string name="widget_streak_title">Racha de entrenamiento</string>
+    <string name="widget_streak_desc">Entrenamientos consecutivos dentro de la regla de 96 horas.</string>
+    
+    <string name="widget_avg_time_title">Tiempo medio de sesión</string>
+    <string name="widget_avg_time_desc">Duración promedio en todas tus sesiones.</string>
+    
+    <string name="widget_highlighted_1rm_title">1RM destacado</string>
+    <string name="widget_highlighted_1rm_desc">Repetición máxima estimada para tu levantamiento principal.</string>
+    <string name="statistics_discipline_habits">Disciplina y Hábitos</string>
+
+    <string name="statistics_trend">Tendencia</string>
+    <string name="statistics_body_weight_trend_title">Tendencia de Peso Corporal</string>
+    <string name="statistics_estimated_1rm_title">1RM Estimado</string>
+    <string name="statistics_select_exercise">Seleccionar ejercicio</string>
+    <string name="statistics_exercise_label">Ejercicio</string>
+    <string name="statistics_none">Ninguno</string>
+    <string name="statistics_weekly_volume_title">Volumen Semanal</string>
+    <string name="statistics_weekly_volume_subtitle">Tonelaje total levantado por semana (kg)</string>
+    <string name="statistics_rep_range_distribution_title">Distribución de Rangos de Repeticiones</string>
+    <string name="statistics_rep_range_distribution_subtitle">Cómo entrenas: Fuerza · Hipertrofia · Resistencia</string>
+    <string name="statistics_muscle_frequency_title">Frecuencia Muscular</string>
+    <string name="statistics_muscle_frequency_subtitle">Impactos semanales por grupo muscular</string>
+    <string name="statistics_fatigue_correlation_title">Correlación de Fatiga</string>
+    <string name="statistics_fatigue_correlation_subtitle">Volumen (Azul) vs RPE Promedio (Rojo)</string>
+    <string name="statistics_session_efficiency_title">Eficiencia de Sesión</string>
+    <string name="statistics_session_efficiency_subtitle">Duración del Entreno vs Volumen Total</string>
+    <string name="statistics_rest_time_density_title">Densidad de Tiempo de Descanso</string>
+    <string name="statistics_rest_time_density_subtitle">Distribución de impactos por intervalos de recuperación</string>
+    <string name="statistics_activity_consistency_title">Consistencia de Actividad</string>
+    <string name="statistics_activity_consistency_subtitle">Mapa de rachas de días de entrenamiento estilo GitHub</string>
+    <string name="statistics_pr_frequency_title">Frecuencia de PR</string>
+    <string name="statistics_pr_frequency_subtitle">Días en los que se lograron récords personales</string>
+    <string name="statistics_pr_peak_time_title">Hora Pico de PR</string>
+    <string name="statistics_pr_peak_time_subtitle">Cuándo en el día suelen ocurrir tus PRs</string>
+    <string name="statistics_day_mon_short">L</string>
+    <string name="statistics_day_tue_short">M</string>
+    <string name="statistics_day_wed_short">X</string>
+    <string name="statistics_day_thu_short">J</string>
+    <string name="statistics_day_fri_short">V</string>
+    <string name="statistics_day_sat_short">S</string>
+    <string name="statistics_day_sun_short">D</string>
+    <string name="statistics_push">Empuje</string>
+    <string name="statistics_pull">Tirón</string>
+    <string name="statistics_legs">Piernas</string>
+    <string name="statistics_less">Menos</string>
+    <string name="statistics_more">Más</string>
+    <string name="statistics_date">Fecha</string>
+    <string name="statistics_previous_month">Mes anterior</string>
+    <string name="statistics_next_month">Mes siguiente</string>
+
+    <string name="statistics_no_exercise_selected_1rm">No hay ejercicio seleccionado para la tendencia de 1RM.</string>
+    <string name="statistics_loading_trend">Cargando tendencia...</string>
+    <string name="statistics_loading_volume">Cargando volumen...</string>
+    <string name="statistics_loading_rep_ranges">Cargando rangos de repeticiones...</string>
+    <string name="statistics_loading_muscle_data">Cargando datos musculares...</string>
+    <string name="statistics_loading_activity_heatmap">Cargando mapa de actividad...</string>
+    <string name="statistics_loading_pr_heatmap">Cargando mapa de PR...</string>
+    <string name="statistics_loading_pr_peak_time">Cargando datos de hora pico de PR...</string>
+    <string name="statistics_error_load_bodyweight_trend">No se pudo cargar la tendencia de peso corporal.</string>
+    <string name="statistics_error_load_1rm_trend">No se pudo cargar la tendencia de 1RM.</string>
+    <string name="statistics_exercise_subtitle">Ejercicio: %1$s</string>
+    <string name="statistics_strength_estimate">Estimación de fuerza</string>
+    <string name="statistics_error_load_volume_trend">No se pudo cargar la tendencia de volumen.</string>
+    <string name="statistics_error_load_rep_ranges">No se pudieron cargar los rangos de repeticiones.</string>
+    <string name="statistics_error_load_muscle_data">No se pudieron cargar los datos musculares.</string>
+    <string name="statistics_error_load_fatigue_data">No se pudieron cargar los datos de fatiga.</string>
+    <string name="statistics_error_load_efficiency_data">No se pudieron cargar los datos de eficiencia.</string>
+    <string name="statistics_error_load_density_data">No se pudieron cargar los datos de densidad.</string>
+    <string name="statistics_error_load_activity_heatmap">No se pudo cargar el mapa de actividad.</string>
+    <string name="statistics_error_load_pr_heatmap">No se pudo cargar el mapa de PR.</string>
+    <string name="statistics_error_load_pr_peak_time">No se pudieron cargar los datos de hora pico de PR.</string>
+    <string name="statistics_not_enough_data_points">No hay suficientes puntos de datos en este rango para establecer una tendencia.</string>
+    <string name="statistics_unit_subtitle">Unidad: %1$s</string>
+    <string name="statistics_rep_range_strength">Fuerza</string>
+    <string name="statistics_rep_range_hypertrophy">Hipertrofia</string>
+    <string name="statistics_rep_range_endurance">Resistencia</string>
+    <string name="statistics_no_session_data_yet">Aún no hay datos de sesiones.</string>
+    <string name="statistics_no_muscle_data_yet">Aún no hay datos musculares.</string>
+    <string name="statistics_no_rest_data_found">No se encontraron datos de descanso.</string>
+    <string name="statistics_no_volume_data_in_range">No hay datos de volumen en este rango.</string>
+    <string name="statistics_no_efficiency_data_available">No hay datos de eficiencia disponibles.</string>
+    <string name="statistics_no_workout_activity_in_range">No hay actividad de entrenamiento en este rango.</string>
+    <string name="statistics_no_pr_activity_in_range">No hay actividad de PR en este rango.</string>
+    <string name="statistics_no_pr_timing_events_in_range">No hay eventos de horario de PR en este rango.</string>
+
+    <string name="auth_error_fill_all_fields">Completa todos los campos</string>
+    <string name="auth_error_login_failed">Error al iniciar sesión</string>
+    <string name="auth_error_google_account_only">Esta cuenta usa Google Sign-In. Usa el botón de Google o Restablecer contraseña para crear una clave local.</string>
+    <string name="auth_error_wrong_password">Contraseña incorrecta</string>
+    <string name="auth_error_google_login_failed">Error de inicio de sesión con Google</string>
+    <string name="auth_error_unexpected_credential_type">Tipo de credencial inesperado</string>
+    <string name="auth_error_google_sign_in_failed">Error de Google Sign-In</string>
+    <string name="auth_error_passwords_do_not_match">Las contraseñas no coinciden</string>
+    <string name="auth_error_registration_failed">Error de registro</string>
+
+    <string name="dashboard_weight_trend_up_week">+%1$.1f kg esta semana</string>
+    <string name="dashboard_weight_trend_down_week">%1$.1f kg esta semana</string>
+    <string name="dashboard_free_label">Libre</string>
+    <string name="dashboard_never_label">Nunca</string>
+    <string name="dashboard_overview_label">Resumen</string>
+    <string name="dashboard_reorder_content_description">Reordenar</string>
+    <string name="dashboard_remove_widget_content_description">Eliminar widget</string>
+    <string name="dashboard_save_log">Guardar registro</string>
+    <string name="dashboard_recovery_battery_content_description">Batería</string>
+    <string name="dashboard_recovery_remaining_hours">48h restantes</string>
+    <string name="dashboard_recovery_description">Basado en tu alto volumen en el Día de Piernas de ayer, tu sistema nervioso central necesita descanso.</string>
+    <string name="dashboard_legs_high_fatigue">Piernas (Fatiga alta)</string>
+    <string name="dashboard_chest_fresh">Pecho (Fresco)</string>
+    <string name="dashboard_google_welcome_title">Bienvenido a Kaizen</string>
+    <string name="dashboard_google_welcome_message">Te registraste con Google. ¿Quieres establecer una contraseña local para acceso dual?</string>
+    <string name="dashboard_set_password">Establecer contraseña</string>
+    <string name="dashboard_not_now">Ahora no</string>
+    <string name="dashboard_empty_content_description">Panel vacío</string>
+    <string name="dashboard_empty_state_message">Tu Kaizen Hub está vacío.
+Añade métricas para empezar a seguir tu progreso.</string>
+    <string name="dashboard_metric_history_title">Historial de %1$s</string>
+    <string name="dashboard_metric_current_value">Actual: %1$s</string>
+    <string name="dashboard_metric_history_hint">Los gráficos estarán disponibles en Analytics Lab.</string>
+    <string name="dashboard_pull_day_title">Día de Tirón</string>
+    <string name="dashboard_workout_item_1">1. Peso muerto (4x8)</string>
+    <string name="dashboard_workout_item_2">2. Dominadas (3x10)</string>
+    <string name="dashboard_workout_item_3">3. Remo (3x12)</string>
+    <string name="dashboard_upcoming_plan">Próximas rutinas de tu plan: Jueves (Piernas), Viernes (Descanso)</string>
+    <string name="dashboard_start_workout_cta">Comenzar entrenamiento</string>
+    <string name="dashboard_no_records">No hay registros</string>
+    <string name="dashboard_weight_log_entry">%1$s: %2$.1f kg</string>
+    <string name="dashboard_new_weight_label">Nuevo peso (kg)</string>
+    <string name="dashboard_summary_ticket">Ticket de Resumen: %1$s</string>
+    <string name="dashboard_session_date_example">12 Abr</string>
+    <string name="dashboard_duration">Duración</string>
+    <string name="dashboard_session_duration_example">75 min</string>
+    <string name="dashboard_volume">Volumen</string>
+    <string name="dashboard_session_volume_example">6,400 kg</string>
+    <string name="dashboard_main_exercises">Ejercicios principales:</string>
+    <string name="dashboard_main_exercises_list">• Sentadilla libre
+• Prensa de piernas
+• Extensiones</string>
+    <string name="dashboard_highlight_achievement">🏆 Logro destacado: Nuevo PR en dominadas</string>
+    <string name="dashboard_training_detail_1">• Sentadilla: 100kg x 8, 100kg x 7</string>
+    <string name="dashboard_training_detail_2">• Prensa: 200kg x 10, 200kg x 10</string>
+    <string name="dashboard_rest_day_title">Día de descanso</string>
+    <string name="dashboard_rest_day_recommendation">Recomendación: Camina 10.000 pasos hoy para recuperación activa.</string>
+    <string name="dashboard_history_title">Historial: %1$s</string>
+    <string name="dashboard_pr_entry_1">105 kg x 1</string>
+    <string name="dashboard_pr_entry_2">102.5 kg x 2</string>
+    <string name="dashboard_pr_entry_3">100 kg x 3</string>
+    <string name="dashboard_two_weeks_ago">Hace 2 semanas</string>
+    <string name="dashboard_one_month_ago">Hace 1 mes</string>
+    <string name="dashboard_three_months_ago">Hace 3 meses</string>
+    <string name="dashboard_full_body">Cuerpo completo</string>
+</resources>

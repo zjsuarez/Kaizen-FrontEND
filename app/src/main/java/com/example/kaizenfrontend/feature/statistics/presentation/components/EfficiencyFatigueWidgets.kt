@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,8 +38,8 @@ fun FatigueCorrelationWidget(
     modifier: Modifier = Modifier
 ) {
     KaizenChartWidget(
-        title = "Fatigue Correlation",
-        subtitle = "Volume (Blue) vs Average RPE (Red)",
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_fatigue_correlation_title),
+        subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_fatigue_correlation_subtitle),
         isEmpty = uiState.isEmpty,
         isLoading = uiState.isLoading,
         emptyMessage = uiState.message,
@@ -80,8 +81,8 @@ fun SessionEfficiencyWidget(
     modifier: Modifier = Modifier
 ) {
     KaizenChartWidget(
-        title = "Session Efficiency",
-        subtitle = "Workout Duration vs Total Volume",
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_session_efficiency_title),
+        subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_session_efficiency_subtitle),
         isEmpty = uiState.isEmpty,
         isLoading = uiState.isLoading,
         emptyMessage = uiState.message,
@@ -164,8 +165,8 @@ fun RestTimeDensityWidget(
     modifier: Modifier = Modifier
 ) {
     KaizenChartWidget(
-        title = "Rest Time Density",
-        subtitle = "Hit count distribution across recovery intervals",
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_rest_time_density_title),
+        subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_rest_time_density_subtitle),
         isEmpty = uiState.isEmpty,
         isLoading = uiState.isLoading,
         emptyMessage = uiState.message,

@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -15,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.Onyx
+import com.example.kaizenfrontend.R
 
 @Composable
 fun StartScreen(
@@ -29,51 +31,62 @@ fun StartScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "KAIZEN",
-            color = Color.White,
-            fontSize = 48.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 8.sp
-        )
+        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            Box(modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp)) {
+                com.example.kaizenfrontend.core.ui.components.PreLoginLanguagePicker()
+            }
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = stringResource(id = R.string.auth_app_name_splash),
+                    color = Color.White,
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 8.sp
+                )
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Your personal strength tracker",
-            color = Color(0xFFAAAAAA),
-            fontSize = 16.sp,
-            textAlign = TextAlign.Center
-        )
+                Text(
+                    text = stringResource(id = R.string.auth_start_subtitle),
+                    color = Color(0xFFAAAAAA),
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center
+                )
 
-        Spacer(modifier = Modifier.height(64.dp))
+                Spacer(modifier = Modifier.height(64.dp))
 
-        Button(
-            onClick = onGetStartedClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = CrayolaBlue,
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(28.dp)
-        ) {
-            Text(text = "GET STARTED", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        }
+                Button(
+                    onClick = onGetStartedClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = CrayolaBlue,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text(text = stringResource(id = R.string.auth_get_started), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedButton(
-            onClick = onLoginClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
-            shape = RoundedCornerShape(28.dp)
-        ) {
-            Text(text = "LOG IN", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                OutlinedButton(
+                    onClick = onLoginClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text(text = stringResource(id = R.string.auth_log_in), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            }
         }
     }
 }

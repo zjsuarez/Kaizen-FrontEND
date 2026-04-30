@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,13 +50,13 @@ fun Modifier.StreakWidget(streakDays: Int?, recordStreak: Int = 12) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                         imageVector = Icons.Default.LocalFireDepartment,
-                        contentDescription = "Streak",
+                        contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_streak),
                         tint = iconTint,
                         modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                        text = "STREAK",
+                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_streak),
                         color = LightGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -75,7 +76,7 @@ fun Modifier.StreakWidget(streakDays: Int?, recordStreak: Int = 12) {
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                            text = "Days",
+                            text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_days),
                             color = LightGrey,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal,
@@ -86,7 +87,11 @@ fun Modifier.StreakWidget(streakDays: Int?, recordStreak: Int = 12) {
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                val recordText = if (isNewRecord) "New Record!" else "Record: $recordStreak"
+                val recordText = if (isNewRecord) {
+                    stringResource(id = com.example.kaizenfrontend.R.string.dashboard_new_record)
+                } else {
+                    stringResource(id = com.example.kaizenfrontend.R.string.dashboard_record, recordStreak)
+                }
                 val recordWeight = if (isNewRecord) FontWeight.Bold else FontWeight.Normal
                 Text(
                         text = recordText,
@@ -110,13 +115,13 @@ fun AvgTimeWidget(minutes: Int?, trendDiffMinutes: Int = 0, modifier: Modifier =
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                         imageVector = Icons.Default.Timer,
-                        contentDescription = "Average Time",
+                        contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_avg_time),
                         tint = CrayolaBlue,
                         modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                        text = "AVG TIME",
+                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_avg_time),
                         color = LightGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -136,7 +141,7 @@ fun AvgTimeWidget(minutes: Int?, trendDiffMinutes: Int = 0, modifier: Modifier =
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                            text = "min",
+                            text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_min),
                             color = LightGrey,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Normal,
@@ -153,12 +158,16 @@ fun AvgTimeWidget(minutes: Int?, trendDiffMinutes: Int = 0, modifier: Modifier =
                     val trendIcon =
                             if (isUp) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown
                     val trendText =
-                            if (isUp) "+${trendDiffMinutes} min" else "${trendDiffMinutes} min"
+                            if (isUp) {
+                                stringResource(id = com.example.kaizenfrontend.R.string.dashboard_trend_up, trendDiffMinutes)
+                            } else {
+                                stringResource(id = com.example.kaizenfrontend.R.string.dashboard_trend_down, trendDiffMinutes)
+                            }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                                 imageVector = trendIcon,
-                                contentDescription = "Trend",
+                                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.statistics_trend),
                                 tint = trendColor,
                                 modifier = Modifier.size(16.dp)
                         )
@@ -195,13 +204,13 @@ fun OneRmWidget(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                         imageVector = Icons.Default.FitnessCenter,
-                        contentDescription = "1RM",
+                        contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.statistics_estimated_1rm_title),
                         tint = iconTint,
                         modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                        text = "1RM",
+                        text = stringResource(id = com.example.kaizenfrontend.R.string.statistics_estimated_1rm_title),
                         color = LightGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -228,7 +237,7 @@ fun OneRmWidget(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                            text = "kg",
+                            text = stringResource(id = com.example.kaizenfrontend.R.string.settings_unit_kg),
                             color = LightGrey,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Normal

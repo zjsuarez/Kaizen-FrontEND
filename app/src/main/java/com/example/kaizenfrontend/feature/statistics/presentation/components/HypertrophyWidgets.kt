@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -70,8 +71,8 @@ fun VolumeTrendWidget(
     modifier: Modifier = Modifier
 ) {
     KaizenChartWidget(
-        title = "Weekly Volume",
-        subtitle = "Total tonnage lifted per week (kg)",
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_weekly_volume_title),
+        subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_weekly_volume_subtitle),
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
         emptyMessage = uiState.message,
@@ -142,8 +143,8 @@ fun RepRangeWidget(
     modifier: Modifier = Modifier
 ) {
     KaizenChartWidget(
-        title = "Rep Range Distribution",
-        subtitle = "How you train: Strength · Hypertrophy · Endurance",
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_rep_range_distribution_title),
+        subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_rep_range_distribution_subtitle),
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
         emptyMessage = uiState.message,
@@ -230,8 +231,8 @@ fun MuscleFrequencyWidget(
     modifier: Modifier = Modifier
 ) {
     KaizenChartWidget(
-        title = "Muscle Frequency",
-        subtitle = "Weekly hits per muscle group",
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_muscle_frequency_title),
+        subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_muscle_frequency_subtitle),
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
         emptyMessage = uiState.message,

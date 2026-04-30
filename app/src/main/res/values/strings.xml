@@ -1,3 +1,290 @@
 <resources>
     <string name="app_name">KaizenFrontEnd</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_account_section">ACCOUNT</string>
+    <string name="settings_email_label">Email</string>
+    <string name="settings_linked_via_google">Linked via Google</string>
+    <string name="settings_google_and_local">Google &amp; Local Password</string>
+    <string name="settings_change_password">Change Password</string>
+    <string name="settings_create_local_password">Create Local Password</string>
+    <string name="settings_log_out">Log Out</string>
+    <string name="settings_delete_account">Delete Account</string>
+    <string name="settings_log_out_message">Are you sure you want to log out?</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_new_password">New Password</string>
+    <string name="settings_confirm_password">Confirm Password</string>
+    
+    <string name="settings_app_section">APP SETTINGS</string>
+    <string name="settings_training_preferences_section">TRAINING PREFERENCES</string>
+    <string name="settings_language">Language</string>
+    <string name="language_picker_content_description">Select language</string>
+    <string name="language_english">English</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_catalan">Català</string>
+    <string name="settings_unit_system">Unit System</string>
+    <string name="settings_unit_kg">KG</string>
+    <string name="settings_unit_lb">LB</string>
+    <string name="settings_effort_metric">Effort Metric</string>
+    <string name="settings_effort_rir">RIR</string>
+    <string name="settings_effort_rpe">RPE</string>
+    <string name="settings_effort_none">NONE</string>
+    <string name="settings_default_rest">Default Rest</string>
+    <string name="settings_save_preferences">Save Preferences</string>
+    <string name="settings_google_content_description">Google</string>
+    <string name="settings_local_password_content_description">Local password</string>
+    
+    <string name="settings_data_privacy_section">DATA &amp; PRIVACY</string>
+    <string name="settings_export_workout_history">Export Workout History (CSV)</string>
+    <string name="settings_manage_api_permissions">Manage API Permissions</string>
+    
+    <!-- Rest Dialog -->
+    <string name="settings_default_rest_timer_title">Default Rest Timer</string>
+    <string name="settings_set_rest_time">Set rest time in seconds</string>
+    <string name="settings_seconds">Seconds</string>
+    
+    <!-- Errors -->
+    <string name="error_password_length">Password must be at least 6 characters.</string>
+    <string name="error_passwords_do_not_match">Passwords do not match.</string>
+    <string name="error_valid_seconds">Enter a valid number of seconds.</string>
+    <string name="error_max_rest">Maximum rest is 600 seconds.</string>
+
+    <!-- Auth -->
+    <string name="auth_start_subtitle">Your personal strength tracker</string>
+    <string name="auth_get_started">GET STARTED</string>
+    <string name="auth_log_in">LOG IN</string>
+    <string name="auth_welcome_back">Welcome\nback</string>
+    <string name="auth_email_hint">Email</string>
+    <string name="auth_password_hint">Password</string>
+    <string name="auth_confirm_password_hint">Confirm password</string>
+    <string name="auth_or">or</string>
+    <string name="auth_lets_get_started">Let\'s Get\nStarted</string>
+    <string name="auth_already_have_account">Already have an account? Log In</string>
+    <string name="auth_sign_up">SIGN UP</string>
+    <string name="auth_sign_up_google">SIGN UP WITH GOOGLE</string>
+    <string name="auth_continue_with_google">CONTINUE WITH GOOGLE</string>
+    <string name="auth_google_logo_content_description">Google logo</string>
+    <string name="auth_back">Back</string>
+    <string name="auth_app_name_splash">KAIZEN</string>
+
+    <!-- Dashboard Widgets -->
+    <string name="dashboard_title">Workouts</string>
+    <string name="dashboard_hello">Hola, %1$s</string>
+    <string name="dashboard_edit_mode_reorder_hint">Hold and drag to reorder</string>
+    <string name="dashboard_edit_mode_enter">Enter edit mode</string>
+    <string name="dashboard_edit_mode_done">Done</string>
+    <string name="dashboard_add_widget">Add widget</string>
+    <string name="dashboard_nav_dashboard">Dashboard</string>
+    <string name="dashboard_nav_workouts">Workouts</string>
+    <string name="dashboard_nav_statistics">Statistics</string>
+    <string name="dashboard_nav_settings">Settings</string>
+    
+    <string name="dashboard_next_workout">NEXT WORKOUT</string>
+    <string name="dashboard_no_workout_scheduled">No workout scheduled</string>
+    <string name="dashboard_start_workout">START WORKOUT</string>
+    
+    <string name="dashboard_recent_prs">RECENT PRs</string>
+    <string name="dashboard_no_recent_prs">No recent PRs yet.\nTime to lift heavy.</string>
+    
+    <string name="dashboard_recovery">RECOVERY</string>
+    <string name="dashboard_recovered">Recovered</string>
+    <string name="dashboard_recovering">Recovering</string>
+    <string name="dashboard_no_data">No Data</string>
+    <string name="dashboard_hours">h</string>
+    
+    <string name="dashboard_last_session">LAST SESSION</string>
+    
+    <string name="dashboard_body_weight">BODY WEIGHT</string>
+    
+    <string name="dashboard_streak">STREAK</string>
+    <string name="dashboard_days">Days</string>
+    <string name="dashboard_new_record">New Record!</string>
+    <string name="dashboard_record">Record: %1$d</string>
+    
+    <string name="dashboard_avg_time">AVG TIME</string>
+    <string name="dashboard_min">min</string>
+    <string name="dashboard_trend_up">+%1$d min</string>
+    <string name="dashboard_trend_down">%1$d min</string>
+
+    <!-- Statistics -->
+    <string name="statistics_title">Analytics Lab</string>
+    <string name="statistics_strength_health">Strength &amp; Health</string>
+    <string name="statistics_hypertrophy_overload">Hypertrophy &amp; Overload</string>
+    <string name="statistics_efficiency_fatigue">Efficiency &amp; Fatigue</string>
+    <!-- Widgets Sheet -->
+    <string name="widget_add_title">Add Widget</string>
+    <string name="widget_add_subtitle">Select a widget to add to your dashboard</string>
+    <string name="widget_all_added">All widgets are already on your dashboard! 🎉</string>
+    <string name="widget_add_btn_desc">Add %1$s</string>
+
+    <string name="widget_next_workout_title">Next Workout</string>
+    <string name="widget_next_workout_desc">Shows your next planned routine with a quick-start button.</string>
+    
+    <string name="widget_calendar_title">Training Calendar</string>
+    <string name="widget_calendar_desc">Monthly dot calendar highlighting your training days.</string>
+    
+    <string name="widget_recent_prs_title">Recent PRs</string>
+    <string name="widget_recent_prs_desc">Your top 3 most recent personal records.</string>
+    
+    <string name="widget_weight_trend_title">Weight Trend</string>
+    <string name="widget_weight_trend_desc">Bodyweight sparkline and weekly delta.</string>
+    
+    <string name="widget_recovery_time_title">Recovery Time</string>
+    <string name="widget_recovery_time_desc">Hours since your last completed session.</string>
+    
+    <string name="widget_last_session_title">Last Session</string>
+    <string name="widget_last_session_desc">Quick look at your most recent workout.</string>
+    
+    <string name="widget_streak_title">Workout Streak</string>
+    <string name="widget_streak_desc">Consecutive workouts within the 96-hour rule.</string>
+    
+    <string name="widget_avg_time_title">Avg Session Time</string>
+    <string name="widget_avg_time_desc">Average duration across all your sessions.</string>
+    
+    <string name="widget_highlighted_1rm_title">Highlighted 1RM</string>
+    <string name="widget_highlighted_1rm_desc">Estimated one-rep max for your top lift.</string>
+    <string name="statistics_discipline_habits">Discipline &amp; Habits</string>
+
+    <string name="statistics_trend">Trend</string>
+    <string name="statistics_body_weight_trend_title">Body Weight Trend</string>
+    <string name="statistics_estimated_1rm_title">Estimated 1RM</string>
+    <string name="statistics_select_exercise">Select exercise</string>
+    <string name="statistics_exercise_label">Exercise</string>
+    <string name="statistics_none">None</string>
+    <string name="statistics_weekly_volume_title">Weekly Volume</string>
+    <string name="statistics_weekly_volume_subtitle">Total tonnage lifted per week (kg)</string>
+    <string name="statistics_rep_range_distribution_title">Rep Range Distribution</string>
+    <string name="statistics_rep_range_distribution_subtitle">How you train: Strength · Hypertrophy · Endurance</string>
+    <string name="statistics_muscle_frequency_title">Muscle Frequency</string>
+    <string name="statistics_muscle_frequency_subtitle">Weekly hits per muscle group</string>
+    <string name="statistics_fatigue_correlation_title">Fatigue Correlation</string>
+    <string name="statistics_fatigue_correlation_subtitle">Volume (Blue) vs Average RPE (Red)</string>
+    <string name="statistics_session_efficiency_title">Session Efficiency</string>
+    <string name="statistics_session_efficiency_subtitle">Workout Duration vs Total Volume</string>
+    <string name="statistics_rest_time_density_title">Rest Time Density</string>
+    <string name="statistics_rest_time_density_subtitle">Hit count distribution across recovery intervals</string>
+    <string name="statistics_activity_consistency_title">Activity Consistency</string>
+    <string name="statistics_activity_consistency_subtitle">GitHub-style streak map of workout days</string>
+    <string name="statistics_pr_frequency_title">PR Frequency</string>
+    <string name="statistics_pr_frequency_subtitle">Days where personal records were achieved</string>
+    <string name="statistics_pr_peak_time_title">PR Peak Time</string>
+    <string name="statistics_pr_peak_time_subtitle">When in the day your PRs usually happen</string>
+    <string name="statistics_day_mon_short">M</string>
+    <string name="statistics_day_tue_short">T</string>
+    <string name="statistics_day_wed_short">W</string>
+    <string name="statistics_day_thu_short">T</string>
+    <string name="statistics_day_fri_short">F</string>
+    <string name="statistics_day_sat_short">S</string>
+    <string name="statistics_day_sun_short">S</string>
+    <string name="statistics_push">Push</string>
+    <string name="statistics_pull">Pull</string>
+    <string name="statistics_legs">Legs</string>
+    <string name="statistics_less">Less</string>
+    <string name="statistics_more">More</string>
+    <string name="statistics_date">Date</string>
+    <string name="statistics_previous_month">Previous month</string>
+    <string name="statistics_next_month">Next month</string>
+
+    <string name="statistics_no_exercise_selected_1rm">No exercise selected for 1RM trend.</string>
+    <string name="statistics_loading_trend">Loading trend...</string>
+    <string name="statistics_loading_volume">Loading volume...</string>
+    <string name="statistics_loading_rep_ranges">Loading rep ranges...</string>
+    <string name="statistics_loading_muscle_data">Loading muscle data...</string>
+    <string name="statistics_loading_activity_heatmap">Loading activity heatmap...</string>
+    <string name="statistics_loading_pr_heatmap">Loading PR heatmap...</string>
+    <string name="statistics_loading_pr_peak_time">Loading PR peak-time data...</string>
+    <string name="statistics_error_load_bodyweight_trend">Unable to load body-weight trend.</string>
+    <string name="statistics_error_load_1rm_trend">Unable to load 1RM trend.</string>
+    <string name="statistics_exercise_subtitle">Exercise: %1$s</string>
+    <string name="statistics_strength_estimate">Strength estimate</string>
+    <string name="statistics_error_load_volume_trend">Unable to load volume trend.</string>
+    <string name="statistics_error_load_rep_ranges">Unable to load rep ranges.</string>
+    <string name="statistics_error_load_muscle_data">Unable to load muscle data.</string>
+    <string name="statistics_error_load_fatigue_data">Unable to load fatigue data.</string>
+    <string name="statistics_error_load_efficiency_data">Unable to load efficiency data.</string>
+    <string name="statistics_error_load_density_data">Unable to load density data.</string>
+    <string name="statistics_error_load_activity_heatmap">Unable to load activity heatmap.</string>
+    <string name="statistics_error_load_pr_heatmap">Unable to load PR heatmap.</string>
+    <string name="statistics_error_load_pr_peak_time">Unable to load PR peak-time data.</string>
+    <string name="statistics_not_enough_data_points">Not enough data points in this range to establish a trend.</string>
+    <string name="statistics_unit_subtitle">Unit: %1$s</string>
+    <string name="statistics_rep_range_strength">Strength</string>
+    <string name="statistics_rep_range_hypertrophy">Hypertrophy</string>
+    <string name="statistics_rep_range_endurance">Endurance</string>
+    <string name="statistics_no_session_data_yet">No session data yet.</string>
+    <string name="statistics_no_muscle_data_yet">No muscle data yet.</string>
+    <string name="statistics_no_rest_data_found">No rest data found.</string>
+    <string name="statistics_no_volume_data_in_range">No volume data in this range.</string>
+    <string name="statistics_no_efficiency_data_available">No efficiency data available.</string>
+    <string name="statistics_no_workout_activity_in_range">No workout activity in this range.</string>
+    <string name="statistics_no_pr_activity_in_range">No PR activity in this range.</string>
+    <string name="statistics_no_pr_timing_events_in_range">No PR timing events in this range.</string>
+
+    <string name="auth_error_fill_all_fields">Please fill in all fields</string>
+    <string name="auth_error_login_failed">Login failed</string>
+    <string name="auth_error_google_account_only">This account uses Google Sign-In. Please use the Google button or Reset Password to create a local key.</string>
+    <string name="auth_error_wrong_password">Wrong password</string>
+    <string name="auth_error_google_login_failed">Google Login failed</string>
+    <string name="auth_error_unexpected_credential_type">Unexpected credential type</string>
+    <string name="auth_error_google_sign_in_failed">Google Sign-In failed</string>
+    <string name="auth_error_passwords_do_not_match">Passwords don\'t match</string>
+    <string name="auth_error_registration_failed">Registration failed</string>
+
+    <string name="dashboard_weight_trend_up_week">+%1$.1f kg this week</string>
+    <string name="dashboard_weight_trend_down_week">%1$.1f kg this week</string>
+    <string name="dashboard_free_label">Free</string>
+    <string name="dashboard_never_label">Never</string>
+    <string name="dashboard_overview_label">Overview</string>
+    <string name="dashboard_reorder_content_description">Reorder</string>
+    <string name="dashboard_remove_widget_content_description">Remove widget</string>
+    <string name="dashboard_save_log">Save Log</string>
+    <string name="dashboard_recovery_battery_content_description">Battery</string>
+    <string name="dashboard_recovery_remaining_hours">48h Remaining</string>
+    <string name="dashboard_recovery_description">Based on your high volume on Leg Day yesterday, your central nervous system needs rest.</string>
+    <string name="dashboard_legs_high_fatigue">Legs (High Fatigue)</string>
+    <string name="dashboard_chest_fresh">Chest (Fresh)</string>
+    <string name="dashboard_google_welcome_title">Welcome to Kaizen</string>
+    <string name="dashboard_google_welcome_message">You signed up with Google. Do you want to set a local password for dual access?</string>
+    <string name="dashboard_set_password">Set Password</string>
+    <string name="dashboard_not_now">Not Now</string>
+    <string name="dashboard_empty_content_description">Empty Dashboard</string>
+    <string name="dashboard_empty_state_message">Your Kaizen Hub is empty.
+Add metrics to start tracking your progress.</string>
+    <string name="dashboard_metric_history_title">%1$s History</string>
+    <string name="dashboard_metric_current_value">Current: %1$s</string>
+    <string name="dashboard_metric_history_hint">Charts will be available in the Analytics Lab.</string>
+    <string name="dashboard_pull_day_title">Pull Day</string>
+    <string name="dashboard_workout_item_1">1. Deadlift (4x8)</string>
+    <string name="dashboard_workout_item_2">2. Pull-ups (3x10)</string>
+    <string name="dashboard_workout_item_3">3. Row (3x12)</string>
+    <string name="dashboard_upcoming_plan">Upcoming routines in your plan: Thursday (Legs), Friday (Rest)</string>
+    <string name="dashboard_start_workout_cta">Start Workout</string>
+    <string name="dashboard_no_records">No records</string>
+    <string name="dashboard_weight_log_entry">%1$s: %2$.1f kg</string>
+    <string name="dashboard_new_weight_label">New weight (kg)</string>
+    <string name="dashboard_summary_ticket">Summary Ticket: %1$s</string>
+    <string name="dashboard_session_date_example">12 Apr</string>
+    <string name="dashboard_duration">Duration</string>
+    <string name="dashboard_session_duration_example">75 min</string>
+    <string name="dashboard_volume">Volume</string>
+    <string name="dashboard_session_volume_example">6,400 kg</string>
+    <string name="dashboard_main_exercises">Main Exercises:</string>
+    <string name="dashboard_main_exercises_list">• Back Squat
+• Leg Press
+• Leg Extensions</string>
+    <string name="dashboard_highlight_achievement">🏆 Highlight achievement: New Pull-up PR</string>
+    <string name="dashboard_training_detail_1">• Squat: 100kg x 8, 100kg x 7</string>
+    <string name="dashboard_training_detail_2">• Press: 200kg x 10, 200kg x 10</string>
+    <string name="dashboard_rest_day_title">Rest Day</string>
+    <string name="dashboard_rest_day_recommendation">Recommendation: Walk 10,000 steps today for active recovery.</string>
+    <string name="dashboard_history_title">History: %1$s</string>
+    <string name="dashboard_pr_entry_1">105 kg x 1</string>
+    <string name="dashboard_pr_entry_2">102.5 kg x 2</string>
+    <string name="dashboard_pr_entry_3">100 kg x 3</string>
+    <string name="dashboard_two_weeks_ago">2 weeks ago</string>
+    <string name="dashboard_one_month_ago">1 month ago</string>
+    <string name="dashboard_three_months_ago">3 months ago</string>
+    <string name="dashboard_full_body">Full Body</string>
 </resources>
