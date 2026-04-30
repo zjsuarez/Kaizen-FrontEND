@@ -5,6 +5,7 @@ import com.example.kaizenfrontend.core.network.RetrofitClient
 import com.example.kaizenfrontend.feature.auth.data.remote.dto.LoginRequest
 import com.example.kaizenfrontend.feature.auth.data.remote.dto.RegisterRequest
 import com.example.kaizenfrontend.feature.auth.domain.repository.AuthRepository
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthInputValidator
 
 class AuthRepositoryImpl(
     private val sessionManager: SessionManager
@@ -16,8 +17,9 @@ class AuthRepositoryImpl(
         rawToken.trim().removePrefix("Bearer ").removePrefix("bearer ")
 
     override suspend fun login(email: String, password: String): Result<String> {
+        val normalizedEmail = AuthInputValidator.normalizeEmail(email)
         return try {
-            val response = api.loginUser(LoginRequest(email, password))
+            val response = api.loginUser(LoginRequest(normalizedEmail, password))
             if (response.isSuccessful && response.body() != null) {
                 val token = normalizeToken(response.body()!!.token)
                 sessionManager.saveTokenAndAwait(token)
@@ -31,13 +33,14 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun register(email: String, password: String): Result<String> {
+        val normalizedEmail = AuthInputValidator.normalizeEmail(email)
         return try {
-            val username = "Kaizenuser-" + email.replace("@", "-").replace(".", "-")
-            val registerResponse = api.registerUser(RegisterRequest(username, email, password))
+            val username = "Kaizenuser-" + normalizedEmail.replace("@", "-").replace(".", "-")
+            val registerResponse = api.registerUser(RegisterRequest(username, normalizedEmail, password))
 
             if (registerResponse.isSuccessful) {
                 // Auto-login after successful registration
-                login(email, password)
+                login(normalizedEmail, password)
             } else {
                 Result.failure(Exception(registerResponse.errorBody()?.string() ?: "Registration failed"))
             }

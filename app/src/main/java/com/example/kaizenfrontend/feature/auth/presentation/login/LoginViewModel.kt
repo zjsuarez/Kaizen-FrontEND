@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.feature.auth.data.repository.AuthRepositoryImpl
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthInputValidator
 import com.example.kaizenfrontend.feature.auth.domain.usecase.LoginUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,13 +38,21 @@ class LoginViewModel(context: Context) : ViewModel() {
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     fun login(email: String, password: String) {
-        if (email.isBlank() || password.isBlank()) {
-            _uiState.value = LoginUiState.Error("Please fill in all fields")
+        val normalizedEmail = AuthInputValidator.normalizeEmail(email)
+
+        AuthInputValidator.validateEmail(normalizedEmail)?.let { errorMessage ->
+            _uiState.value = LoginUiState.Error(errorMessage)
             return
         }
+
+        AuthInputValidator.validatePassword(password)?.let { errorMessage ->
+            _uiState.value = LoginUiState.Error(errorMessage)
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            val result = loginUseCase(email, password)
+            val result = loginUseCase(normalizedEmail, password)
             if (result.isSuccess) {
                 // Token is returned directly from the repository — no SessionManager read needed.
                 val token = result.getOrThrow()

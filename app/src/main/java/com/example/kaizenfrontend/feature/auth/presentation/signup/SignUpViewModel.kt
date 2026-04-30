@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.feature.auth.data.repository.AuthRepositoryImpl
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthInputValidator
 import com.example.kaizenfrontend.feature.auth.domain.usecase.RegisterUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,11 +31,19 @@ class SignUpViewModel(context: Context) : ViewModel() {
     val uiState: StateFlow<SignUpUiState> = _uiState.asStateFlow()
 
     fun register(email: String, password: String, confirmPassword: String) {
+        val normalizedEmail = AuthInputValidator.normalizeEmail(email)
+
+        AuthInputValidator.validateEmail(normalizedEmail)?.let { errorMessage ->
+            _uiState.value = SignUpUiState.Error(errorMessage)
+            return
+        }
+
+        AuthInputValidator.validatePassword(password)?.let { errorMessage ->
+            _uiState.value = SignUpUiState.Error(errorMessage)
+            return
+        }
+
         when {
-            email.isBlank() || password.isBlank() -> {
-                _uiState.value = SignUpUiState.Error("Please fill in all fields")
-                return
-            }
             password != confirmPassword -> {
                 _uiState.value = SignUpUiState.Error("Passwords don't match")
                 return
@@ -42,7 +51,7 @@ class SignUpViewModel(context: Context) : ViewModel() {
         }
         viewModelScope.launch {
             _uiState.value = SignUpUiState.Loading
-            val result = registerUseCase(email, password)
+            val result = registerUseCase(normalizedEmail, password)
             if (result.isSuccess) {
                 val token = result.getOrThrow()
                 sessionManager.awaitTokenPersistence(token)

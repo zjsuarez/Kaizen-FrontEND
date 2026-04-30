@@ -23,6 +23,7 @@ import com.example.kaizenfrontend.core.ui.theme.DarkBackground
 import com.example.kaizenfrontend.core.ui.theme.InputFieldColor
 import com.example.kaizenfrontend.core.ui.theme.LightGrayText
 import com.example.kaizenfrontend.core.ui.components.GoogleSignInButton
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthInputValidator
 
 @Composable
 fun LoginScreen(
@@ -73,7 +74,11 @@ fun LoginScreen(
 
         CustomTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = {
+                email = AuthInputValidator
+                    .normalizeEmail(it)
+                    .take(AuthInputValidator.MAX_EMAIL_LENGTH)
+            },
             hint = "Email",
             leadingIcon = Icons.Outlined.Email,
             modifier = Modifier.fillMaxWidth()
@@ -83,7 +88,9 @@ fun LoginScreen(
 
         CustomTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it.take(AuthInputValidator.MAX_PASSWORD_LENGTH)
+            },
             hint = "Password",
             leadingIcon = Icons.Outlined.Lock,
             isPassword = true,
