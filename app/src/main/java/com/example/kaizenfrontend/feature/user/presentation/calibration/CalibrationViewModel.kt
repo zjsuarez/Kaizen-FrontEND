@@ -21,6 +21,10 @@ sealed class CalibrationUiState {
 
 class CalibrationViewModel(context: Context) : ViewModel() {
 
+    companion object {
+        private const val MAX_WEIGHT_DIGITS = 3
+    }
+
     private val sessionManager = SessionManager(context)
     private val updateUserUseCase = UpdateUserUseCase(UserRepositoryImpl(sessionManager))
 
@@ -28,11 +32,21 @@ class CalibrationViewModel(context: Context) : ViewModel() {
     val uiState: StateFlow<CalibrationUiState> = _uiState.asStateFlow()
 
     fun submitCalibration(selectedUnit: String, bodyWeight: String, selectedEffort: String) {
+        val sanitizedWeight = bodyWeight.filter(Char::isDigit).take(MAX_WEIGHT_DIGITS)
+        if (sanitizedWeight.isBlank()) {
+            _uiState.value = CalibrationUiState.Error("Body weight is required")
+            return
+        }
+        if (sanitizedWeight.length > MAX_WEIGHT_DIGITS) {
+            _uiState.value = CalibrationUiState.Error("Body weight must be less than 4 digits")
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = CalibrationUiState.Loading
 
             val unitSystemVal = if (selectedUnit == "KG") "METRIC" else "IMPERIAL"
-            val parsedWeight = bodyWeight.toDoubleOrNull()
+            val parsedWeight = sanitizedWeight.toDoubleOrNull()
             val weightKgValue = parsedWeight?.let {
                 if (selectedUnit == "LB") it * 0.453592 else it
             }

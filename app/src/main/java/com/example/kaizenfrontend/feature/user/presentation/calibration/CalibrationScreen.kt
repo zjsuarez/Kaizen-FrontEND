@@ -77,7 +77,11 @@ fun CalibrationScreen(onStartClick: () -> Unit = {}) {
             CalibrationSectionLabel(text = "CURRENT BODY WEIGHT")
             WeightInputField(
                 value = bodyWeight,
-                onValueChange = { bodyWeight = it },
+                onValueChange = {
+                    bodyWeight = it
+                        .filter(Char::isDigit)
+                        .take(3)
+                },
                 unit = selectedUnit
             )
 
@@ -204,12 +208,12 @@ private fun WeightInputField(
                 fontSize = 18.sp,
                 textAlign = TextAlign.Center
             ),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             cursorBrush = SolidColor(CrayolaBlue),
             decorationBox = { innerTextField ->
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     if (value.isEmpty()) {
-                        Text(text = "0.0", color = TextGray, fontSize = 18.sp)
+                        Text(text = "0", color = TextGray, fontSize = 18.sp)
                     }
                     innerTextField()
                 }
