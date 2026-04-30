@@ -30,12 +30,15 @@ import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,6 +50,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -96,6 +102,12 @@ fun ActiveWorkoutBottomSheet(
     onAddExercise: () -> Unit,
     onNavigateToZenMode: (initialPage: Int) -> Unit = {}
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val sessionManager = androidx.compose.runtime.remember { com.example.kaizenfrontend.core.data.local.SessionManager(context) }
+    val effortMetric = androidx.compose.runtime.remember { sessionManager.getUserEffortMetric() ?: "RPE" }
+    val unitSystem = androidx.compose.runtime.remember { sessionManager.getUserUnitSystem() ?: "METRIC" }
+    val weightUnit = if (unitSystem == "IMPERIAL") "lbs" else "kg"
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val workoutState by ActiveWorkoutManager.currentWorkout.collectAsState()
 
@@ -111,6 +123,8 @@ fun ActiveWorkoutBottomSheet(
     ) {
         ActiveWorkoutSheetContent(
             state = state,
+            effortMetric = effortMetric,
+            weightUnit = weightUnit,
             onFinish = onFinish,
             onAddExercise = onAddExercise,
             onPlayPauseRest = {
@@ -136,6 +150,8 @@ fun ActiveWorkoutBottomSheet(
 @Composable
 internal fun ActiveWorkoutSheetContent(
     state: ActiveWorkoutState,
+    effortMetric: String,
+    weightUnit: String,
     onFinish: () -> Unit,
     onAddExercise: () -> Unit,
     onPlayPauseRest: () -> Unit,
@@ -166,10 +182,12 @@ internal fun ActiveWorkoutSheetContent(
         // ── 2. Exercise list ─────────────────────────────────────────
         ExerciseList(
             exercises = state.exercises,
+            effortMetric = effortMetric,
+            weightUnit = weightUnit,
             onToggleExpansion = { ActiveWorkoutManager.toggleExerciseExpansion(it) },
             onAddSet = { ActiveWorkoutManager.addSet(it) },
-            onUpdateSetData = { exerciseId, setId, weight, reps, rir ->
-                ActiveWorkoutManager.updateSetData(exerciseId, setId, weight, reps, rir)
+            onUpdateSetData = { exerciseId, setId, weight, reps, rpe, type ->
+                ActiveWorkoutManager.updateSetData(exerciseId, setId, weight, reps, rpe, type)
             },
             onToggleSetCompletion = { exerciseId, setId ->
                 ActiveWorkoutManager.toggleSetCompletion(exerciseId, setId)
@@ -368,9 +386,11 @@ internal fun formatRestTimer(seconds: Long): String {
 @Composable
 private fun ExerciseList(
     exercises: List<ActiveExerciseState>,
+    effortMetric: String,
+    weightUnit: String,
     onToggleExpansion: (String) -> Unit,
     onAddSet: (String) -> Unit,
-    onUpdateSetData: (exerciseId: String, setId: String, weight: String?, reps: String?, rir: String?) -> Unit,
+    onUpdateSetData: (exerciseId: String, setId: String, weight: String?, reps: String?, rpe: String?, type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType?) -> Unit,
     onToggleSetCompletion: (exerciseId: String, setId: String) -> Unit,
     onNavigateToZenMode: (Int) -> Unit,
     modifier: Modifier = Modifier
@@ -385,10 +405,12 @@ private fun ExerciseList(
         ) { index, exercise ->
             ActiveExerciseRow(
                 exercise = exercise,
+                effortMetric = effortMetric,
+                weightUnit = weightUnit,
                 onToggleExpand = { onToggleExpansion(exercise.id) },
                 onAddSet = { onAddSet(exercise.id) },
-                onUpdateSetData = { setId, weight, reps, rir ->
-                    onUpdateSetData(exercise.id, setId, weight, reps, rir)
+                onUpdateSetData = { setId, weight, reps, rpe, type ->
+                    onUpdateSetData(exercise.id, setId, weight, reps, rpe, type)
                 },
                 onToggleSetCompletion = { setId ->
                     onToggleSetCompletion(exercise.id, setId)
@@ -415,9 +437,11 @@ private fun ExerciseList(
 @Composable
 private fun ActiveExerciseRow(
     exercise: ActiveExerciseState,
+    effortMetric: String,
+    weightUnit: String,
     onToggleExpand: () -> Unit,
     onAddSet: () -> Unit,
-    onUpdateSetData: (setId: String, weight: String?, reps: String?, rir: String?) -> Unit,
+    onUpdateSetData: (setId: String, weight: String?, reps: String?, rpe: String?, type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType?) -> Unit,
     onToggleSetCompletion: (setId: String) -> Unit,
     onZenModeClick: () -> Unit
 ) {
@@ -532,7 +556,7 @@ private fun ActiveExerciseRow(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "RIR",
+                        text = effortMetric,
                         color = LightGrey.copy(alpha = 0.5f),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -543,13 +567,15 @@ private fun ActiveExerciseRow(
                     Spacer(modifier = Modifier.width(36.dp))
                 }
 
-                // ── Set rows ─────────────────────────────────────
                 exercise.sets.forEach { set ->
                     WorkoutSetRow(
                         set = set,
-                        onWeightChange = { onUpdateSetData(set.id, it, null, null) },
-                        onRepsChange = { onUpdateSetData(set.id, null, it, null) },
-                        onRirChange = { onUpdateSetData(set.id, null, null, it) },
+                        effortMetric = effortMetric,
+                        weightUnit = weightUnit,
+                        onWeightChange = { onUpdateSetData(set.id, it, null, null, null) },
+                        onRepsChange = { onUpdateSetData(set.id, null, it, null, null) },
+                        onRpeChange = { onUpdateSetData(set.id, null, null, it, null) },
+                        onTypeChange = { onUpdateSetData(set.id, null, null, null, it) },
                         onToggleComplete = { onToggleSetCompletion(set.id) }
                     )
                 }
@@ -585,9 +611,12 @@ private fun ActiveExerciseRow(
 @Composable
 internal fun WorkoutSetRow(
     set: WorkoutSetState,
+    effortMetric: String,
+    weightUnit: String,
     onWeightChange: (String) -> Unit,
     onRepsChange: (String) -> Unit,
-    onRirChange: (String) -> Unit,
+    onRpeChange: (String) -> Unit,
+    onTypeChange: (com.example.kaizenfrontend.feature.workouts.domain.model.SetType) -> Unit,
     onToggleComplete: () -> Unit
 ) {
     // Animated alpha for completion fade
@@ -595,6 +624,8 @@ internal fun WorkoutSetRow(
         targetValue = if (set.isCompleted) 0.4f else 1f,
         label = "set_row_alpha"
     )
+
+    var dropdownExpanded by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -604,21 +635,62 @@ internal fun WorkoutSetRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Set number indicator
-        Text(
-            text = "${set.setNumber}",
-            color = LightGrey,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(22.dp),
-            textAlign = TextAlign.Center
-        )
+        // Set number indicator / type selector
+        Box(
+            modifier = Modifier
+                .width(42.dp)
+                .clickable { dropdownExpanded = true },
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Change Set Type",
+                    tint = LightGrey.copy(alpha = 0.5f),
+                    modifier = Modifier.size(16.dp)
+                )
+                
+                val typeIndicator = when(set.type) {
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.NORMAL -> "${set.setNumber}"
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.WARMUP -> "W"
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.DROP_SET -> "D"
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.FAILURE -> "F"
+                    com.example.kaizenfrontend.feature.workouts.domain.model.SetType.MYO_REP -> "M"
+                }
+                Text(
+                    text = typeIndicator,
+                    color = if (set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.NORMAL) LightGrey else CrayolaBlue,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(18.dp)
+                )
+            }
+            
+            DropdownMenu(
+                expanded = dropdownExpanded,
+                onDismissRequest = { dropdownExpanded = false }
+            ) {
+                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.values().forEach { type ->
+                    DropdownMenuItem(
+                        text = { Text(text = type.getDisplayName()) },
+                        onClick = {
+                            onTypeChange(type)
+                            dropdownExpanded = false
+                        }
+                    )
+                }
+            }
+        }
 
         // Weight input
         SetInputField(
             value = set.weight,
             onValueChange = onWeightChange,
-            suffix = "kg",
+            suffix = weightUnit,
             placeholder = "—",
             modifier = Modifier.weight(1f)
         )
@@ -632,12 +704,17 @@ internal fun WorkoutSetRow(
             modifier = Modifier.weight(1f)
         )
 
+        val isRirDisabled = set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.FAILURE ||
+                            set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.MYO_REP ||
+                            set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.DROP_SET
+
         // RIR input
         SetInputField(
-            value = set.rir,
-            onValueChange = onRirChange,
-            suffix = "RIR",
+            value = if (isRirDisabled) "0" else set.rpe,
+            onValueChange = onRpeChange,
+            suffix = effortMetric,
             placeholder = "—",
+            enabled = !isRirDisabled,
             modifier = Modifier.weight(1f)
         )
 
@@ -677,12 +754,13 @@ internal fun SetInputField(
     onValueChange: (String) -> Unit,
     suffix: String,
     placeholder: String,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .height(36.dp)
-            .background(ShadowGrey, RoundedCornerShape(8.dp))
+            .background(if (enabled) ShadowGrey else LightGrey.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -692,10 +770,11 @@ internal fun SetInputField(
             modifier = Modifier.fillMaxWidth()
         ) {
             BasicTextField(
-                value = value,
+                value = if (enabled) value else "-",
                 onValueChange = onValueChange,
+                enabled = enabled,
                 textStyle = TextStyle(
-                    color = PureWhite,
+                    color = if (enabled) PureWhite else LightGrey.copy(alpha = 0.5f),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.End

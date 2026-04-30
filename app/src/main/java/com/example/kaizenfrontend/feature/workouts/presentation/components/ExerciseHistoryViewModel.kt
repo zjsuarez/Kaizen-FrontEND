@@ -148,9 +148,7 @@ constructor(
 
         if (idMatch) return true
 
-        return !isCustomExercise &&
-            set.builtinExerciseKey.isNullOrBlank() &&
-            !set.exerciseName.isNullOrBlank() &&
+        return !set.exerciseName.isNullOrBlank() &&
             set.exerciseName.equals(exerciseName, ignoreCase = true)
     }
 
