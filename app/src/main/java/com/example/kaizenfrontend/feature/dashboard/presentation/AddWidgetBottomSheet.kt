@@ -12,6 +12,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,20 +26,20 @@ import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
 
 private data class WidgetInfo(
     val type: WidgetType,
-    val displayName: String,
-    val description: String
+    @StringRes val displayNameResId: Int,
+    @StringRes val descriptionResId: Int
 )
 
 private val allWidgetInfos = listOf(
-    WidgetInfo(WidgetType.NEXT_WORKOUT,  "Next Workout",    "Shows your next planned routine with a quick-start button."),
-    WidgetInfo(WidgetType.CALENDAR,      "Training Calendar","Monthly dot calendar highlighting your training days."),
-    WidgetInfo(WidgetType.RECENT_PRS,    "Recent PRs",      "Your top 3 most recent personal records."),
-    WidgetInfo(WidgetType.WEIGHT_TREND,  "Weight Trend",    "Bodyweight sparkline and weekly delta."),
-    WidgetInfo(WidgetType.RECOVERY_TIME, "Recovery Time",   "Hours since your last completed session."),
-    WidgetInfo(WidgetType.LAST_SESSION,  "Last Session",    "Quick look at your most recent workout."),
-    WidgetInfo(WidgetType.STREAK,        "Workout Streak",  "Consecutive workouts within the 96-hour rule."),
-    WidgetInfo(WidgetType.AVG_TIME,      "Avg Session Time","Average duration across all your sessions."),
-    WidgetInfo(WidgetType.ONE_RM,        "Highlighted 1RM", "Estimated one-rep max for your top lift."),
+    WidgetInfo(WidgetType.NEXT_WORKOUT, com.example.kaizenfrontend.R.string.widget_next_workout_title, com.example.kaizenfrontend.R.string.widget_next_workout_desc),
+    WidgetInfo(WidgetType.CALENDAR, com.example.kaizenfrontend.R.string.widget_calendar_title, com.example.kaizenfrontend.R.string.widget_calendar_desc),
+    WidgetInfo(WidgetType.RECENT_PRS, com.example.kaizenfrontend.R.string.widget_recent_prs_title, com.example.kaizenfrontend.R.string.widget_recent_prs_desc),
+    WidgetInfo(WidgetType.WEIGHT_TREND, com.example.kaizenfrontend.R.string.widget_weight_trend_title, com.example.kaizenfrontend.R.string.widget_weight_trend_desc),
+    WidgetInfo(WidgetType.RECOVERY_TIME, com.example.kaizenfrontend.R.string.widget_recovery_time_title, com.example.kaizenfrontend.R.string.widget_recovery_time_desc),
+    WidgetInfo(WidgetType.LAST_SESSION, com.example.kaizenfrontend.R.string.widget_last_session_title, com.example.kaizenfrontend.R.string.widget_last_session_desc),
+    WidgetInfo(WidgetType.STREAK, com.example.kaizenfrontend.R.string.widget_streak_title, com.example.kaizenfrontend.R.string.widget_streak_desc),
+    WidgetInfo(WidgetType.AVG_TIME, com.example.kaizenfrontend.R.string.widget_avg_time_title, com.example.kaizenfrontend.R.string.widget_avg_time_desc),
+    WidgetInfo(WidgetType.ONE_RM, com.example.kaizenfrontend.R.string.widget_highlighted_1rm_title, com.example.kaizenfrontend.R.string.widget_highlighted_1rm_desc),
 )
 
 // ──────────────────────────────────────────────────────────────
@@ -72,14 +74,14 @@ fun AddWidgetBottomSheet(
         ) {
             // Header
             Text(
-                text = "Add Widget",
+                text = stringResource(id = com.example.kaizenfrontend.R.string.widget_add_title),
                 color = PureWhite,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Select a widget to add to your dashboard",
+                text = stringResource(id = com.example.kaizenfrontend.R.string.widget_add_subtitle),
                 color = LightGrey,
                 fontSize = 14.sp
             )
@@ -95,7 +97,7 @@ fun AddWidgetBottomSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "All widgets are already on your dashboard! 🎉",
+                        text = stringResource(id = com.example.kaizenfrontend.R.string.widget_all_added),
                         color = LightGrey,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
@@ -143,14 +145,14 @@ private fun AddWidgetRow(
     ) {
         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
             Text(
-                text = info.displayName,
+                text = stringResource(id = info.displayNameResId),
                 color = PureWhite,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = info.description,
+                text = stringResource(id = info.descriptionResId),
                 color = LightGrey,
                 fontSize = 12.sp,
                 lineHeight = 16.sp
@@ -167,7 +169,7 @@ private fun AddWidgetRow(
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "Add ${info.displayName}",
+                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.widget_add_title),
                 modifier = Modifier.size(20.dp)
             )
         }

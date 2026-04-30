@@ -1,5 +1,6 @@
 package com.example.kaizenfrontend.feature.auth.presentation.signup
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,10 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.ui.components.CustomTextField
 import com.example.kaizenfrontend.core.ui.theme.DarkBackground
 import com.example.kaizenfrontend.core.ui.theme.InputFieldColor
@@ -27,6 +30,8 @@ import com.example.kaizenfrontend.core.ui.components.GoogleSignInButton
 @Composable
 fun SignUpScreen(
     onBackClick: () -> Unit = {},
+    onSystemBack: () -> Unit = {},
+    onLoginClick: () -> Unit = {},
     onSignUpClick: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -36,6 +41,8 @@ fun SignUpScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    BackHandler(onBack = onSystemBack)
 
     LaunchedEffect(uiState) {
         if (uiState is SignUpUiState.Success) {
@@ -57,24 +64,29 @@ fun SignUpScreen(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
+                contentDescription = stringResource(id = R.string.auth_back),
                 tint = Color.White
             )
         }
 
-        Text(
-            text = "Let's Get\nStarted",
-            color = Color.White,
-            fontSize = 36.sp,
-            fontWeight = FontWeight.Bold,
-            lineHeight = 50.sp,
-            modifier = Modifier.padding(bottom = 48.dp)
-        )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(id = R.string.auth_lets_get_started),
+                color = Color.White,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 50.sp,
+                modifier = Modifier.padding(bottom = 48.dp)
+            )
+            Box(modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp)) {
+                com.example.kaizenfrontend.core.ui.components.PreLoginLanguagePicker()
+            }
+        }
 
         CustomTextField(
             value = email,
             onValueChange = { email = it },
-            hint = "Email",
+            hint = stringResource(id = R.string.auth_email_hint),
             leadingIcon = Icons.Outlined.Email,
             modifier = Modifier.fillMaxWidth()
         )
@@ -84,7 +96,7 @@ fun SignUpScreen(
         CustomTextField(
             value = password,
             onValueChange = { password = it },
-            hint = "Password",
+            hint = stringResource(id = R.string.auth_password_hint),
             leadingIcon = Icons.Outlined.Lock,
             isPassword = true,
             modifier = Modifier.fillMaxWidth()
@@ -95,15 +107,15 @@ fun SignUpScreen(
         CustomTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            hint = "Confirm password",
+            hint = stringResource(id = R.string.auth_confirm_password_hint),
             leadingIcon = Icons.Outlined.Lock,
             isPassword = true,
             modifier = Modifier.fillMaxWidth()
         )
 
-        TextButton(onClick = onBackClick) {
+        TextButton(onClick = onLoginClick) {
             Text(
-                text = "Already have an account? Log In",
+                text = stringResource(id = R.string.auth_already_have_account),
                 color = Color.LightGray,
                 fontSize = 14.sp
             )
@@ -144,7 +156,7 @@ fun SignUpScreen(
             if (uiState is SignUpUiState.Loading) {
                 CircularProgressIndicator(color = Color.Black, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             } else {
-                Text(text = "SIGN UP", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(text = stringResource(id = R.string.auth_sign_up), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
 
@@ -155,7 +167,7 @@ fun SignUpScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             HorizontalDivider(modifier = Modifier.weight(1f), color = LightGrayText.copy(alpha = 0.5f))
-            Text(text = "or", color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 16.dp))
+            Text(text = stringResource(id = R.string.auth_or), color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 16.dp))
             HorizontalDivider(modifier = Modifier.weight(1f), color = LightGrayText.copy(alpha = 0.5f))
         }
 
@@ -164,7 +176,7 @@ fun SignUpScreen(
         GoogleSignInButton(
             onClick = { viewModel.signInWithGoogle(context) },
             isLoading = uiState is SignUpUiState.Loading,
-            text = "SIGN UP WITH GOOGLE"
+            text = stringResource(id = R.string.auth_sign_up_google)
         )
     }
 }

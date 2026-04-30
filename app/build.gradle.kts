@@ -15,6 +15,8 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        
+        androidResources { localeFilters += setOf("en", "es", "ca") }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -38,6 +40,7 @@ android {
 dependencies {
     // Android Core & Compose
     implementation(libs.androidx.core.ktx)
+    implementation("androidx.appcompat:appcompat:1.6.1")
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -91,3 +94,4 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.0")
 }
+

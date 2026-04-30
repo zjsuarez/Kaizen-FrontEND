@@ -1,16 +1,15 @@
 package com.example.kaizenfrontend.feature.auth.data.repository
 
 import com.example.kaizenfrontend.core.data.local.SessionManager
-import com.example.kaizenfrontend.core.network.RetrofitClient
+import com.example.kaizenfrontend.feature.auth.data.remote.AuthApiService
 import com.example.kaizenfrontend.feature.auth.data.remote.dto.LoginRequest
 import com.example.kaizenfrontend.feature.auth.data.remote.dto.RegisterRequest
 import com.example.kaizenfrontend.feature.auth.domain.repository.AuthRepository
 
 class AuthRepositoryImpl(
+    private val api: AuthApiService,
     private val sessionManager: SessionManager
 ) : AuthRepository {
-
-    private val api = RetrofitClient.authService
 
     private fun normalizeToken(rawToken: String): String =
         rawToken.trim().removePrefix("Bearer ").removePrefix("bearer ")

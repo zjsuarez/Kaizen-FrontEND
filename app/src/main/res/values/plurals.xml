@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="statistics_active_days_count">
+        <item quantity="one">%1$d active day</item>
+        <item quantity="other">%1$d active days</item>
+    </plurals>
+    <plurals name="statistics_pr_events_count">
+        <item quantity="one">%1$d PR event</item>
+        <item quantity="other">%1$d PR events</item>
+    </plurals>
+</resources>

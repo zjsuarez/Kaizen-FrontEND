@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
-import com.example.kaizenfrontend.core.network.RetrofitClient
+import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.workouts.data.repository.ExerciseRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.data.repository.PlanRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.data.repository.MockExerciseRepository
@@ -332,14 +332,15 @@ class WorkoutsViewModel(
 class WorkoutsViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(WorkoutsViewModel::class.java)) {
+            val serviceEntryPoint = context.applicationContext.hiltServiceEntryPoint()
             val sessionManager = SessionManager(context)
-            val planRepo = PlanRepositoryImpl(RetrofitClient.planService, sessionManager)
+            val planRepo = PlanRepositoryImpl(serviceEntryPoint.planApiService(), sessionManager)
             val exerciseRepo = ExerciseRepositoryImpl(
-                api = RetrofitClient.exerciseService,
+                api = serviceEntryPoint.exerciseApiService(),
                 sessionManager = sessionManager,
                 fallbackRepository = MockExerciseRepository()
             )
-            val routineRepo = RoutineRepositoryImpl(RetrofitClient.routineService, sessionManager, exerciseRepo)
+            val routineRepo = RoutineRepositoryImpl(serviceEntryPoint.routineApiService(), sessionManager, exerciseRepo)
             @Suppress("UNCHECKED_CAST")
             return WorkoutsViewModel(
                 GetPlansUseCase(planRepo),

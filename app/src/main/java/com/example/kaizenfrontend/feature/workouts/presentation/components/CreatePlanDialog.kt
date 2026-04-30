@@ -52,9 +52,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
@@ -143,7 +145,7 @@ fun CreatePlanBottomSheet(
                     ) {
                         Icon(
                             imageVector = if (currentStep > 1) Icons.Default.ArrowBack else Icons.Default.Close,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(id = R.string.auth_back),
                             tint = Color.White
                         )
                     }
@@ -154,7 +156,7 @@ fun CreatePlanBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Create plan",
+                        text = stringResource(id = R.string.workouts_create_plan),
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
@@ -198,7 +200,7 @@ fun CreatePlanBottomSheet(
                             enabled = canFinish
                         ) {
                             Text(
-                                text = "Finish",
+                                text = stringResource(id = R.string.workouts_finish),
                                 color = if (canFinish) CrayolaBlue else LightGrey,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
@@ -223,7 +225,7 @@ fun CreatePlanBottomSheet(
                     1 -> {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(
-                                text = "Name",
+                                text = stringResource(id = R.string.workouts_name),
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -241,14 +243,14 @@ fun CreatePlanBottomSheet(
 
                             if (showInlineErrors && name.isBlank()) {
                                 Text(
-                                    text = "Name is required",
+                                    text = stringResource(id = R.string.workouts_name_required),
                                     color = SubtleRed,
                                     fontSize = 12.sp
                                 )
                             }
 
                             Text(
-                                text = "Description",
+                                text = stringResource(id = R.string.workouts_description),
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -269,7 +271,7 @@ fun CreatePlanBottomSheet(
                     2 -> {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(
-                                text = "Starting date",
+                                text = stringResource(id = R.string.workouts_starting_date),
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -287,14 +289,14 @@ fun CreatePlanBottomSheet(
 
                             if (showInlineErrors && startingDate.isBlank()) {
                                 Text(
-                                    text = "Starting date is required",
+                                    text = stringResource(id = R.string.workouts_starting_date_required),
                                     color = SubtleRed,
                                     fontSize = 12.sp
                                 )
                             }
 
                             Text(
-                                text = "Plan schedule mode",
+                                text = stringResource(id = R.string.workouts_plan_schedule_mode),
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -306,15 +308,15 @@ fun CreatePlanBottomSheet(
                             ) {
                                 IntervalTypeCard(
                                     modifier = Modifier.weight(1f),
-                                    title = "Cycle",
-                                    subtitle = "Plan defines cycle style",
+                                    title = stringResource(id = R.string.workouts_cycle),
+                                    subtitle = stringResource(id = R.string.workouts_plan_defines_cycle_style),
                                     selected = planIntervalType == PlanIntervalType.CYCLE,
                                     onClick = { planIntervalType = PlanIntervalType.CYCLE }
                                 )
                                 IntervalTypeCard(
                                     modifier = Modifier.weight(1f),
-                                    title = "Frequency",
-                                    subtitle = "Rest days set per routine",
+                                    title = stringResource(id = R.string.workouts_frequency),
+                                    subtitle = stringResource(id = R.string.workouts_rest_days_set_per_routine),
                                     selected = planIntervalType == PlanIntervalType.FREQUENCY,
                                     onClick = { planIntervalType = PlanIntervalType.FREQUENCY }
                                 )
@@ -322,7 +324,7 @@ fun CreatePlanBottomSheet(
 
                             if (planIntervalType == PlanIntervalType.CYCLE) {
                                 Text(
-                                    text = "Cycle setup",
+                                    text = stringResource(id = R.string.workouts_cycle_setup),
                                     color = Color.White,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
@@ -334,15 +336,15 @@ fun CreatePlanBottomSheet(
                                 ) {
                                     CycleModeCard(
                                         modifier = Modifier.weight(1f),
-                                        title = "Weekly",
-                                        subtitle = "7-day cycle (Mon-Sun)",
+                                        title = stringResource(id = R.string.workouts_weekly),
+                                        subtitle = stringResource(id = R.string.workouts_weekly_cycle_subtitle),
                                         selected = cycleMode == CycleMode.WEEKLY,
                                         onClick = { cycleMode = CycleMode.WEEKLY }
                                     )
                                     CycleModeCard(
                                         modifier = Modifier.weight(1f),
-                                        title = "Custom",
-                                        subtitle = "Set your own cycle length",
+                                        title = stringResource(id = R.string.workouts_custom),
+                                        subtitle = stringResource(id = R.string.workouts_custom_cycle_subtitle),
                                         selected = cycleMode == CycleMode.CUSTOM,
                                         onClick = { cycleMode = CycleMode.CUSTOM }
                                     )
@@ -390,7 +392,7 @@ fun CreatePlanBottomSheet(
                         disabledContainerColor = ShadowGrey
                     )
                 ) {
-                    Text("NEXT", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(id = R.string.workouts_next), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -407,33 +409,37 @@ private fun SelectedScheduleInfoText(
 ) {
     val selectedModeLabel = when (planIntervalType) {
         PlanIntervalType.CYCLE -> {
-            if (cycleMode == CycleMode.WEEKLY) "Selected: Weekly cycle" else "Selected: Custom cycle"
+            if (cycleMode == CycleMode.WEEKLY) {
+                stringResource(id = R.string.workouts_selected_weekly_cycle)
+            } else {
+                stringResource(id = R.string.workouts_selected_custom_cycle)
+            }
         }
-        PlanIntervalType.FREQUENCY -> "Selected: Frequency"
+        PlanIntervalType.FREQUENCY -> stringResource(id = R.string.workouts_selected_frequency)
     }
 
     val detailsLabel = when (planIntervalType) {
         PlanIntervalType.CYCLE -> {
             if (cycleMode == CycleMode.WEEKLY) {
-                "Pick weekdays for each routine. Best for stable weekly splits."
+                stringResource(id = R.string.workouts_pick_weekdays_help)
             } else {
-                "Plan runs in a $customCycleLengthDays-day loop. Pick cycle days for each routine."
+                stringResource(id = R.string.workouts_custom_cycle_help, customCycleLengthDays)
             }
         }
-        PlanIntervalType.FREQUENCY -> "Each routine defines rest days between sessions. Best for recovery-based training."
+        PlanIntervalType.FREQUENCY -> stringResource(id = R.string.workouts_frequency_help)
     }
 
     val exampleLabel = when (planIntervalType) {
         PlanIntervalType.CYCLE -> {
             if (cycleMode == CycleMode.WEEKLY) {
-                "Example: Mon train, Wed train, Fri train."
+                stringResource(id = R.string.workouts_example_weekly)
             } else {
                 val cycleLength = customCycleLengthDays.coerceAtLeast(1)
                 val mid = (cycleLength + 1) / 2
-                "Example: Day 1, Day $mid and Day $cycleLength in each $cycleLength-day cycle."
+                stringResource(id = R.string.workouts_example_custom_cycle, mid, cycleLength, cycleLength)
             }
         }
-        PlanIntervalType.FREQUENCY -> "Example: Train, Rest, Rest, Train, Rest, Rest."
+        PlanIntervalType.FREQUENCY -> stringResource(id = R.string.workouts_example_frequency)
     }
 
     Column(
@@ -529,13 +535,13 @@ private fun CycleLengthSelector(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Cycle length",
+                    text = stringResource(id = R.string.workouts_cycle_length),
                     color = Color.White,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "$value days",
+                    text = stringResource(id = R.string.workouts_days_count, value),
                     color = LightGrey,
                     fontSize = 12.sp
                 )
@@ -544,7 +550,7 @@ private fun CycleLengthSelector(
             IconButton(onClick = { onChange((value - 1).coerceAtLeast(1)) }) {
                 Icon(
                     imageVector = Icons.Default.Remove,
-                    contentDescription = "Decrease cycle length",
+                    contentDescription = stringResource(id = R.string.workouts_decrease_cycle_length_cd),
                     tint = LightGrey
                 )
             }
@@ -552,7 +558,7 @@ private fun CycleLengthSelector(
             IconButton(onClick = { onChange(value + 1) }) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Increase cycle length",
+                    contentDescription = stringResource(id = R.string.workouts_increase_cycle_length_cd),
                     tint = CrayolaBlue
                 )
             }

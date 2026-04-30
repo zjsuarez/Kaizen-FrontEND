@@ -13,10 +13,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
@@ -52,7 +54,7 @@ fun WorkoutsEmptyState(
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "Your training starts here",
+            text = stringResource(id = R.string.workouts_empty_title),
             color = Color.White,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
@@ -62,7 +64,7 @@ fun WorkoutsEmptyState(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Organize your workouts by creating Plans first (like 'Push Pull Legs'), then add your Routines inside them.",
+            text = stringResource(id = R.string.workouts_empty_description),
             color = LightGrey,
             fontSize = 16.sp,
             textAlign = TextAlign.Center,
@@ -75,16 +77,16 @@ fun WorkoutsEmptyState(
         // Step Guide
         OnboardingStepItem(
             icon = Icons.Default.Layers,
-            title = "1. Create a Plan",
-            description = "The container for your workout schedule."
+            title = stringResource(id = R.string.workouts_empty_step1_title),
+            description = stringResource(id = R.string.workouts_empty_step1_description)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         OnboardingStepItem(
             icon = Icons.Default.Add,
-            title = "2. Add Routines",
-            description = "Specific sessions like 'Chest & Triceps'.",
+            title = stringResource(id = R.string.workouts_empty_step2_title),
+            description = stringResource(id = R.string.workouts_empty_step2_description),
             isPending = true
         )
 
@@ -101,7 +103,7 @@ fun WorkoutsEmptyState(
             Icon(Icons.Default.Add, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                "Create First Plan",
+                stringResource(id = R.string.workouts_empty_create_plan_button),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )

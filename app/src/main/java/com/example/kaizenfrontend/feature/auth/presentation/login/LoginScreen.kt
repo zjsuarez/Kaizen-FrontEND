@@ -1,5 +1,6 @@
 package com.example.kaizenfrontend.feature.auth.presentation.login
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,10 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.ui.components.CustomTextField
 import com.example.kaizenfrontend.core.ui.theme.DarkBackground
 import com.example.kaizenfrontend.core.ui.theme.InputFieldColor
@@ -27,6 +30,7 @@ import com.example.kaizenfrontend.core.ui.components.GoogleSignInButton
 @Composable
 fun LoginScreen(
     onBackClick: () -> Unit = {},
+    onSystemBack: () -> Unit = {},
     onLoginClick: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -35,6 +39,8 @@ fun LoginScreen(
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    BackHandler(onBack = onSystemBack)
 
     // Navigate on success
     LaunchedEffect(uiState) {
@@ -57,24 +63,29 @@ fun LoginScreen(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
+                contentDescription = stringResource(id = R.string.auth_back),
                 tint = Color.White
             )
         }
 
-        Text(
-            text = "Welcome\nback",
-            color = Color.White,
-            fontSize = 44.sp,
-            fontWeight = FontWeight.Bold,
-            lineHeight = 50.sp,
-            modifier = Modifier.padding(bottom = 48.dp)
-        )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(id = R.string.auth_welcome_back),
+                color = Color.White,
+                fontSize = 44.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 50.sp,
+                modifier = Modifier.padding(bottom = 48.dp)
+            )
+            Box(modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp)) {
+                com.example.kaizenfrontend.core.ui.components.PreLoginLanguagePicker()
+            }
+        }
 
         CustomTextField(
             value = email,
             onValueChange = { email = it },
-            hint = "Email",
+            hint = stringResource(id = R.string.auth_email_hint),
             leadingIcon = Icons.Outlined.Email,
             modifier = Modifier.fillMaxWidth()
         )
@@ -84,7 +95,7 @@ fun LoginScreen(
         CustomTextField(
             value = password,
             onValueChange = { password = it },
-            hint = "Password",
+            hint = stringResource(id = R.string.auth_password_hint),
             leadingIcon = Icons.Outlined.Lock,
             isPassword = true,
             modifier = Modifier.fillMaxWidth()
@@ -123,7 +134,7 @@ fun LoginScreen(
             if (uiState is LoginUiState.Loading) {
                 CircularProgressIndicator(color = Color.Black, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             } else {
-                Text(text = "LOG IN", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(text = stringResource(id = R.string.auth_log_in), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
 
@@ -134,7 +145,7 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             HorizontalDivider(modifier = Modifier.weight(1f), color = LightGrayText.copy(alpha = 0.5f))
-            Text(text = "or", color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 16.dp))
+            Text(text = stringResource(id = R.string.auth_or), color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 16.dp))
             HorizontalDivider(modifier = Modifier.weight(1f), color = LightGrayText.copy(alpha = 0.5f))
         }
 

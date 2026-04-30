@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -39,7 +40,7 @@ fun RecoveryTimeWidget(
 ) {
     val isRecovered = hours != null && hours <= 0
     val displayHours = if (isRecovered) "0" else hours?.toString() ?: "--"
-    val subtext = if (isRecovered) "Recovered" else if (hours != null) "Recovering" else "No Data"
+    val subtext = if (isRecovered) stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovered) else if (hours != null) stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovering) else stringResource(id = com.example.kaizenfrontend.R.string.dashboard_no_data)
     val accentColor = if (isRecovered) MalachiteGreen else CrayolaBlue
 
     KaizenWidgetContainer(modifier = modifier) {
@@ -52,13 +53,13 @@ fun RecoveryTimeWidget(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.BatteryChargingFull,
-                    contentDescription = "Recovery",
+                    contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovery),
                     tint = accentColor,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "RECOVERY",
+                    text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovery),
                     color = LightGrey,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -78,7 +79,7 @@ fun RecoveryTimeWidget(
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        text = "h",
+                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_hours),
                         color = LightGrey,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Normal,
@@ -117,13 +118,13 @@ fun LastSessionWidget(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.History,
-                    contentDescription = "Last Session",
+                    contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_last_session),
                     tint = CrayolaBlue,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "LAST SESSION",
+                    text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_last_session),
                     color = LightGrey,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -176,13 +177,13 @@ fun WeightTrendWidget(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.MonitorWeight,
-                    contentDescription = "Body Weight",
+                    contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_body_weight),
                     tint = CrayolaBlue,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "BODY WEIGHT",
+                    text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_body_weight),
                     color = LightGrey,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -211,7 +212,7 @@ fun WeightTrendWidget(
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        text = "kg",
+                        text = stringResource(id = com.example.kaizenfrontend.R.string.settings_unit_kg),
                         color = LightGrey,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Normal,

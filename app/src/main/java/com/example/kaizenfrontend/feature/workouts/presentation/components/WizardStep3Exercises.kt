@@ -42,11 +42,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.data.local.SessionManager
-import com.example.kaizenfrontend.core.network.RetrofitClient
+import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
@@ -156,7 +158,7 @@ fun ExerciseCatalogBottomSheet(
     val context = LocalContext.current
     val resolvedExerciseRepository = remember(exerciseRepository, context) {
         exerciseRepository ?: ExerciseRepositoryImpl(
-            api = RetrofitClient.exerciseService,
+            api = context.applicationContext.hiltServiceEntryPoint().exerciseApiService(),
             sessionManager = SessionManager(context),
             fallbackRepository = MockExerciseRepository()
         )
@@ -464,7 +466,7 @@ private fun SelectedExerciseCard(
                 IconButton(onClick = onRemoveClick) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Remove exercise",
+                        contentDescription = stringResource(id = R.string.workouts_remove_exercise_cd),
                         tint = LightGrey
                     )
                 }

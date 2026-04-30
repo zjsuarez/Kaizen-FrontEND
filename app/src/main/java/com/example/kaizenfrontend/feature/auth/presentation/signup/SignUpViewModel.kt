@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
+import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.auth.data.repository.AuthRepositoryImpl
 import com.example.kaizenfrontend.feature.auth.domain.usecase.RegisterUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,11 +21,16 @@ sealed class SignUpUiState {
 
 class SignUpViewModel(context: Context) : ViewModel() {
 
+    private val appContext = context.applicationContext
+    private val serviceEntryPoint = appContext.hiltServiceEntryPoint()
     private val sessionManager = SessionManager(context)
-    private val authRepository = AuthRepositoryImpl(sessionManager)
+    private val authRepository = AuthRepositoryImpl(serviceEntryPoint.authApiService(), sessionManager)
     private val registerUseCase = RegisterUseCase(authRepository)
 
-    private val userRepository = com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl(sessionManager)
+    private val userRepository = com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl(
+        serviceEntryPoint.userApiService(),
+        sessionManager
+    )
 
     private val _uiState = MutableStateFlow<SignUpUiState>(SignUpUiState.Idle)
     val uiState: StateFlow<SignUpUiState> = _uiState.asStateFlow()
@@ -32,11 +38,11 @@ class SignUpViewModel(context: Context) : ViewModel() {
     fun register(email: String, password: String, confirmPassword: String) {
         when {
             email.isBlank() || password.isBlank() -> {
-                _uiState.value = SignUpUiState.Error("Please fill in all fields")
+                _uiState.value = SignUpUiState.Error(appContext.getString(com.example.kaizenfrontend.R.string.auth_error_fill_all_fields))
                 return
             }
             password != confirmPassword -> {
-                _uiState.value = SignUpUiState.Error("Passwords don't match")
+                _uiState.value = SignUpUiState.Error(appContext.getString(com.example.kaizenfrontend.R.string.auth_error_passwords_do_not_match))
                 return
             }
         }
@@ -48,7 +54,7 @@ class SignUpViewModel(context: Context) : ViewModel() {
                 sessionManager.awaitTokenPersistence(token)
                 checkCalibrationAndEmitSuccess(token)
             } else {
-                _uiState.value = SignUpUiState.Error(result.exceptionOrNull()?.message ?: "Registration failed")
+                _uiState.value = SignUpUiState.Error(result.exceptionOrNull()?.message ?: appContext.getString(com.example.kaizenfrontend.R.string.auth_error_registration_failed))
             }
         }
     }
@@ -127,15 +133,15 @@ class SignUpViewModel(context: Context) : ViewModel() {
                             fromGoogleSignUp = true
                         )
                     } else {
-                        _uiState.value = SignUpUiState.Error(loginResult.exceptionOrNull()?.message ?: "Google Sign-In failed")
+                        _uiState.value = SignUpUiState.Error(loginResult.exceptionOrNull()?.message ?: appContext.getString(com.example.kaizenfrontend.R.string.auth_error_google_sign_in_failed))
                     }
                 } else {
-                    _uiState.value = SignUpUiState.Error("Unexpected credential type")
+                    _uiState.value = SignUpUiState.Error(appContext.getString(com.example.kaizenfrontend.R.string.auth_error_unexpected_credential_type))
                 }
             } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
                 _uiState.value = SignUpUiState.Idle
             } catch (e: Exception) {
-                _uiState.value = SignUpUiState.Error(e.message ?: "Google Sign-In failed")
+                _uiState.value = SignUpUiState.Error(e.message ?: appContext.getString(com.example.kaizenfrontend.R.string.auth_error_google_sign_in_failed))
             }
         }
     }

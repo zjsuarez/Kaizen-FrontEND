@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -81,13 +82,13 @@ fun NextWorkoutWidget(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                         imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Next Workout",
+                        contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_next_workout),
                         tint = CrayolaBlue,
                         modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                        text = "NEXT WORKOUT",
+                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_next_workout),
                         color = LightGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -101,7 +102,7 @@ fun NextWorkoutWidget(
                     contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = routineName ?: if (isGhost) "--" else "No workout scheduled",
+                    text = routineName ?: if (isGhost) "--" else stringResource(id = com.example.kaizenfrontend.R.string.dashboard_no_workout_scheduled),
                         color = if (routineName != null) PureWhite else LightGrey,
                     fontSize = if (routineName != null || isGhost) 32.sp else 16.sp,
                         fontWeight = FontWeight.Bold,
@@ -124,7 +125,7 @@ fun NextWorkoutWidget(
                             )
             ) {
                 Text(
-                        text = "START WORKOUT",
+                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_start_workout),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
@@ -152,13 +153,13 @@ fun RecentPrsWidget(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                         imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = "Recent PRs",
+                        contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recent_prs),
                         tint = CrayolaBlue,
                         modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                        text = "RECENT PRs",
+                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recent_prs),
                         color = LightGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -175,7 +176,7 @@ fun RecentPrsWidget(
                         contentAlignment = Alignment.Center
                 ) {
                     Text(
-                            text = "No recent PRs yet.\nTime to lift heavy.",
+                            text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_no_recent_prs),
                             color = LightGrey.copy(alpha = 0.5f),
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center,
@@ -303,7 +304,7 @@ fun CalendarWidget(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                             imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = "Calendar",
+                            contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.widget_calendar_title),
                             tint = CrayolaBlue,
                             modifier = Modifier.size(20.dp)
                     )
@@ -326,7 +327,7 @@ fun CalendarWidget(
                         ) {
                         Icon(
                                 imageVector = Icons.Default.ChevronLeft,
-                                contentDescription = "Previous month",
+                                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.statistics_previous_month),
                                 tint = LightGrey,
                                 modifier = Modifier.size(20.dp)
                         )
@@ -338,7 +339,7 @@ fun CalendarWidget(
                         ) {
                         Icon(
                                 imageVector = Icons.Default.ChevronRight,
-                                contentDescription = "Next month",
+                                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.statistics_next_month),
                                 tint = LightGrey,
                                 modifier = Modifier.size(20.dp)
                         )
@@ -349,7 +350,15 @@ fun CalendarWidget(
             Spacer(modifier = Modifier.height(10.dp))
 
             // Day-of-week header row
-            val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+            val dayLabels = listOf(
+                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_mon_short),
+                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_tue_short),
+                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_wed_short),
+                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_thu_short),
+                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_fri_short),
+                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_sat_short),
+                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_sun_short)
+            )
             Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -416,19 +425,19 @@ fun CalendarWidget(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(CrayolaBlue))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Push", color = LightGrey, fontSize = 9.sp)
+                    Text(stringResource(id = com.example.kaizenfrontend.R.string.statistics_push), color = LightGrey, fontSize = 9.sp)
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(MalachiteGreen))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Pull", color = LightGrey, fontSize = 9.sp)
+                    Text(stringResource(id = com.example.kaizenfrontend.R.string.statistics_pull), color = LightGrey, fontSize = 9.sp)
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(SubtleRed))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Pierna", color = LightGrey, fontSize = 9.sp)
+                    Text(stringResource(id = com.example.kaizenfrontend.R.string.statistics_legs), color = LightGrey, fontSize = 9.sp)
                 }
             }
         }

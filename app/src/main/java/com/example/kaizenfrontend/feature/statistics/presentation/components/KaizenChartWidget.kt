@@ -28,7 +28,7 @@ fun KaizenChartWidget(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     headerContent: (@Composable () -> Unit)? = null,
-    emptyMessage: String = "Not enough data",
+    emptyMessage: String,
     content: @Composable () -> Unit
 ) {
     Card(
