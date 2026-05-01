@@ -70,11 +70,11 @@ fun WizardStep3Exercises(
     showEmptyError: Boolean
 ) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "Step 3: Exercises",
+            text = stringResource(R.string.workouts_step3_title),
             color = Color.White,
             fontWeight = FontWeight.SemiBold,
             fontSize = 18.sp
@@ -82,7 +82,7 @@ fun WizardStep3Exercises(
 
         if (selectedExercises.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -90,7 +90,7 @@ fun WizardStep3Exercises(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "No exercises selected yet",
+                        text = stringResource(R.string.workouts_no_exercises_yet),
                         color = LightGrey,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -101,7 +101,7 @@ fun WizardStep3Exercises(
                         border = BorderStroke(1.dp, CrayolaBlue)
                     ) {
                         Text(
-                            text = "Add first exercise",
+                            text = stringResource(R.string.workouts_add_first_exercise),
                             color = CrayolaBlue,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -109,7 +109,7 @@ fun WizardStep3Exercises(
 
                     if (showEmptyError) {
                         Text(
-                            text = "Add at least one exercise",
+                            text = stringResource(R.string.workouts_add_at_least_one_exercise),
                             color = SubtleRed,
                             fontSize = 12.sp
                         )
@@ -130,11 +130,11 @@ fun WizardStep3Exercises(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.size(8.dp))
-                Text(text = "Add exercise")
+                Text(text = stringResource(R.string.workouts_add_exercise))
             }
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(selectedExercises, key = { it.exercise.id }) { routineExercise ->

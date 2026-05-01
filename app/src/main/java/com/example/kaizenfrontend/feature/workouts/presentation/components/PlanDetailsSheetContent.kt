@@ -57,18 +57,18 @@ import com.example.kaizenfrontend.feature.workouts.domain.model.Routine
 import com.example.kaizenfrontend.feature.workouts.presentation.PlanDetailsState
 import com.example.kaizenfrontend.feature.workouts.presentation.utils.RoutineScheduleCalculator
 import kotlinx.coroutines.launch
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun PlanDetailsSheetContent(
     state: PlanDetailsState,
+    onDismiss: () -> Unit,
     onEditClick: () -> Unit,
     onDoneClick: () -> Unit,
-    onToggleActive: () -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onRemoveRoutine: (String) -> Unit,
     onMoveRoutine: (Int, Int) -> Unit,
-    onAddRoutineClick: () -> Unit,
     onRoutineClick: (Routine) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -93,10 +93,9 @@ fun PlanDetailsSheetContent(
                 PlanDetailsHeader(
                     title = state.title,
                     isEditMode = isEditMode,
-                    isActive = state.isActive,
+                    onDismiss = onDismiss,
                     onEditClick = onEditClick,
                     onDoneClick = onDoneClick,
-                    onToggleActive = onToggleActive,
                     onTitleChange = onTitleChange
                 )
             }
@@ -203,12 +202,6 @@ fun PlanDetailsSheetContent(
                             )
                         }
                     }
-
-                    if (state.isEditMode) {
-                        item {
-                            AddRoutineButton(onClick = onAddRoutineClick)
-                        }
-                    }
                 }
             }
 
@@ -225,10 +218,9 @@ fun PlanDetailsSheetContent(
 private fun PlanDetailsHeader(
     title: String,
     isEditMode: Boolean,
-    isActive: Boolean,
+    onDismiss: () -> Unit,
     onEditClick: () -> Unit,
     onDoneClick: () -> Unit,
-    onToggleActive: () -> Unit,
     onTitleChange: (String) -> Unit
 ) {
     Row(
@@ -237,6 +229,7 @@ private fun PlanDetailsHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (isEditMode) {
+            // Edit mode: [EditableTitle (weight 1f)] [Done button]
             PlanEditableText(
                 value = title,
                 onValueChange = onTitleChange,
@@ -248,57 +241,49 @@ private fun PlanDetailsHeader(
                 ),
                 modifier = Modifier.weight(1f)
             )
-        } else {
-            Text(
-                text = title,
-                color = PureWhite,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        if (isEditMode) {
             OutlinedButton(
                 onClick = onDoneClick,
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, PureWhite),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = PureWhite
-                )
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite)
             ) {
-                Text(text = stringResource(id = R.string.workouts_done), fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = stringResource(id = R.string.workouts_done),
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         } else {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onEditClick) {
-                    Icon(
-                        imageVector = Icons.Filled.Edit,
-                        contentDescription = stringResource(id = R.string.workouts_edit_plan_cd),
-                        tint = PureWhite
-                    )
-                }
+            // View mode: [← Close] [Title (weight 1f)] [Edit →]
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(R.string.workouts_close_plan_details_cd),
+                    tint = LightGrey
+                )
+            }
 
-                Button(
-                    onClick = onToggleActive,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isActive) CrayolaBlue else ShadowGrey,
-                        contentColor = PureWhite
-                    )
-                ) {
-                    Text(
-                        text = if (isActive) stringResource(id = R.string.workouts_active) else stringResource(id = R.string.workouts_inactive),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+            Text(
+                text = title,
+                color = PureWhite,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 6.dp)
+            )
+
+            IconButton(onClick = onEditClick) {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = stringResource(id = R.string.workouts_edit_plan_cd),
+                    tint = PureWhite
+                )
             }
         }
     }
+
 }
 
 @Composable
@@ -489,27 +474,6 @@ private fun PlanRoutineCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun AddRoutineButton(onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 2.dp),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, PureWhite),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = PureWhite
-        )
-    ) {
-        Text(
-            text = stringResource(id = R.string.workouts_add_routine_button),
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(vertical = 6.dp)
-        )
     }
 }
 
