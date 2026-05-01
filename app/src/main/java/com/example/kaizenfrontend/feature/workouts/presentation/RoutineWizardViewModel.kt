@@ -210,27 +210,32 @@ class RoutineWizardViewModel(
         _uiState.update { it.copy(currentStep = step.coerceIn(1, 3)) }
     }
 
-    fun resetWizard() {
+    fun resetWizard(preferredPlanId: String? = null) {
         val cachedExercises = _uiState.value.availableExercises
-        val cachedPlans = _uiState.value.availablePlans
-        val cachedRoutines = _uiState.value.availableRoutines
-        val defaultPlan = cachedPlans.firstOrNull()
+        val cachedPlans     = _uiState.value.availablePlans
+        val cachedRoutines  = _uiState.value.availableRoutines
+
+        val defaultPlan = cachedPlans.firstOrNull { it.id == preferredPlanId }
+            ?: cachedPlans.firstOrNull { it.isActive }
+            ?: cachedPlans.firstOrNull()
+
         val intervalConfig = PlanIntervalConfig.fromBackend(
-            interval = defaultPlan?.interval,
+            interval    = defaultPlan?.interval,
             cycleLength = defaultPlan?.cycleLength
         )
         _uiState.value = RoutineWizardUiState(
-            currentStep = 1,
-            availablePlans = cachedPlans,
+            currentStep       = 1,
+            availablePlans    = cachedPlans,
             availableRoutines = cachedRoutines,
-            selectedPlanId = defaultPlan?.id,
+            selectedPlanId    = defaultPlan?.id,
             selectedPlanInterval = intervalConfig,
             selectedCycleDays = normalizedCycleDays(setOf(1), intervalConfig.cycleLengthDays),
-            availableExercises = cachedExercises,
-            isLoadingExercises = false,
-            exercisesError = null
+            availableExercises   = cachedExercises,
+            isLoadingExercises   = false,
+            exercisesError       = null
         )
     }
+
 
     fun saveRoutine() {
         viewModelScope.launch {

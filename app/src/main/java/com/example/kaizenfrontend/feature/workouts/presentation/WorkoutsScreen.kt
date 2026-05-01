@@ -57,6 +57,23 @@ import com.example.kaizenfrontend.feature.workouts.presentation.components.Worko
 import com.example.kaizenfrontend.feature.workouts.presentation.components.RoutineWizardScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.utils.RoutineScheduleCalculator
 import com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import com.example.kaizenfrontend.core.ui.theme.PureWhite
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SecondaryScrollableTabRow
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material.icons.outlined.PlaylistAdd
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +88,6 @@ fun WorkoutsScreen(
     val planDetailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var isEditMode by remember { mutableStateOf(false) }
-    var showFabMenu by remember { mutableStateOf(false) }
     var showCreatePlanDialog by remember { mutableStateOf(false) }
     var showCreateRoutineWizard by remember { mutableStateOf(false) }
     var selectedRoutineForDetails by remember { mutableStateOf<Routine?>(null) }
@@ -135,54 +151,30 @@ fun WorkoutsScreen(
                         Icon(imageVector = Icons.Default.Edit, contentDescription = stringResource(id = R.string.workouts_enter_edit_mode_cd))
                     }
                 } else {
-                    // EL FIX 2: wrapContentWidth() para garantizar que los botones miden lo que necesitan
                     Row(
                         modifier = Modifier.wrapContentWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box {
-                            FloatingActionButton(
-                                onClick = { showFabMenu = true },
-                                containerColor = CrayolaBlue,
-                                contentColor = Color.White,
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(id = R.string.workouts_add_menu_cd))
-                            }
-
-                            DropdownMenu(
-                                expanded = showFabMenu,
-                                onDismissRequest = { showFabMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(id = R.string.workouts_create_plan)) },
-                                    onClick = {
-                                        showFabMenu = false
-                                        showCreatePlanDialog = true
-                                    }
-                                )
-                                if ((uiState as? WorkoutsUiState.Success)?.plans?.isNotEmpty() == true) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(id = R.string.workouts_create_routine)) },
-                                        onClick = {
-                                            showFabMenu = false
-                                            showCreateRoutineWizard = true
-                                        }
-                                    )
-                                }
-                            }
+                        // Single-action FAB: directly opens Create Plan.
+                        // Routine creation lives inline at the bottom of the routine list.
+                        FloatingActionButton(
+                            onClick = { showCreatePlanDialog = true },
+                            containerColor = CrayolaBlue,
+                            contentColor = Color.White,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.PlaylistAdd,
+                                contentDescription = stringResource(id = R.string.workouts_create_plan),
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
-
-                        // EL FIX 3: Ajustamos el padding del Button para asegurar que el contenido respire
                         Button(
-                            onClick = {
-                                isEditMode = false
-                                showFabMenu = false
-                            },
+                            onClick = { isEditMode = false },
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = ShadowGrey),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) // Explicit padding
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Done,
@@ -197,7 +189,7 @@ fun WorkoutsScreen(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
-                                softWrap = false // Esto es correcto para botones, pero necesita espacio.
+                                softWrap = false
                             )
                         }
                     }
@@ -243,28 +235,48 @@ fun WorkoutsScreen(
                                 val selectedPlan = preferredPlan
                                 val selectedPlanRoutinesForFocus = state.routinesByPlanId[selectedPlan.id] ?: emptyList()
 
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(bottom = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                FocusPlanSelectorRow(
-                                    plans = state.plans,
-                                    selectedPlanId = selectedPlan.id,
-                                    onSelectPlan = { selectedFocusPlanId = it }
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(bottom = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                                ) {
+                                    // Micro-header
+                                    Text(
+                                        text = stringResource(R.string.workouts_training_plans_header),
+                                        color = LightGrey,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 1.8.sp,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
 
-                                FocusPlanOverviewCard(
-                                    plan = selectedPlan,
-                                    routineCount = selectedPlanRoutinesForFocus.size,
-                                    onOpenPlanDetails = {
-                                        selectedPlanForDetails = selectedPlan
-                                        selectedPlanRoutines = selectedPlanRoutinesForFocus
-                                    }
-                                )
+                                    // Plan tab selector
+                                    PlanScrollableTabRow(
+                                        plans = state.plans,
+                                        selectedPlanId = selectedPlan.id,
+                                        onSelectPlan = { selectedFocusPlanId = it }
+                                    )
 
-                                if (selectedPlanRoutinesForFocus.isEmpty()) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // Context bar (replaces FocusPlanOverviewCard)
+                                    PlanContextBar(
+                                        plan = selectedPlan,
+                                        routineCount = selectedPlanRoutinesForFocus.size,
+                                        onEditClick = {
+                                            selectedPlanForDetails = selectedPlan
+                                            selectedPlanRoutines = selectedPlanRoutinesForFocus
+                                        },
+                                        onSetActive = {
+                                            viewModel.setPlanAsActive(selectedPlan.id)
+                                        }
+                                    )
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+
+                                    if (selectedPlanRoutinesForFocus.isEmpty()) {
                                     FocusNoRoutineState(
                                         isFirstRoutineJourney = !hasAnyRoutine,
                                         onCreateRoutineClick = { showCreateRoutineWizard = true }
@@ -279,7 +291,7 @@ fun WorkoutsScreen(
                                             val nextOccurrenceText = remember(routine, selectedPlan) {
                                                 RoutineScheduleCalculator.getDisplayStringOrFallback(routine, selectedPlan)
                                             }
-                                            RoutineCard(
+                                            RoutineScanCard(
                                                 routine = routine,
                                                 isEditMode = false,
                                                 nextOccurrenceText = nextOccurrenceText,
@@ -288,6 +300,41 @@ fun WorkoutsScreen(
                                                 onMoveUpClick = {},
                                                 onMoveDownClick = {}
                                             )
+                                        }
+
+                                        item(key = "add_routine_inline_${selectedPlan.id}") {
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            OutlinedButton(
+                                                onClick = { showCreateRoutineWizard = true },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 4.dp),
+                                                shape = RoundedCornerShape(14.dp),
+                                                border = BorderStroke(
+                                                    width = 1.dp,
+                                                    color = CrayolaBlue.copy(alpha = 0.45f)
+                                                ),
+                                                colors = ButtonDefaults.outlinedButtonColors(
+                                                    contentColor = CrayolaBlue
+                                                )
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Add,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = stringResource(
+                                                        R.string.workouts_add_routine_to_plan,
+                                                        selectedPlan.name
+                                                    ),
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -341,7 +388,7 @@ fun WorkoutsScreen(
                                                 val nextOccurrenceText = remember(routine, plan) {
                                                     RoutineScheduleCalculator.getDisplayStringOrFallback(routine, plan)
                                                 }
-                                                RoutineCard(
+                                                RoutineScanCard(
                                                     routine = routine,
                                                     isEditMode = true,
                                                     nextOccurrenceText = nextOccurrenceText,
@@ -376,38 +423,85 @@ fun WorkoutsScreen(
                     if (showCreateRoutineWizard) {
                         val routineWizardViewModel: RoutineWizardViewModel =
                             androidx.lifecycle.viewmodel.compose.viewModel(key = "routine_wizard_vm")
+                        val wizardState by routineWizardViewModel.uiState.collectAsState()
+                        val wizardIsDirty = wizardState.name.isNotBlank() ||
+                                wizardState.selectedExercises.isNotEmpty()
+                        var showRoutineDiscardDialog by remember { mutableStateOf(false) }
 
                         LaunchedEffect(Unit) {
-                            val allRoutines = state.routinesByPlanId.values.flatten() + state.unassignedRoutines
+                            val allRoutines = state.routinesByPlanId.values.flatten() +
+                                    state.unassignedRoutines
                             routineWizardViewModel.setAvailablePlans(state.plans)
                             routineWizardViewModel.setAvailableRoutines(allRoutines)
-                            routineWizardViewModel.resetWizard()
+                            routineWizardViewModel.resetWizard(
+                                preferredPlanId = selectedFocusPlanId
+                            )
+                        }
+
+                        if (showRoutineDiscardDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showRoutineDiscardDialog = false },
+                                containerColor = ShadowGrey,
+                                title = {
+                                    Text(stringResource(R.string.workouts_discard_dialog_title),
+                                        color = Color.White, fontWeight = FontWeight.Bold)
+                                },
+                                text = {
+                                    Text(stringResource(R.string.workouts_discard_dialog_message),
+                                        color = LightGrey, fontSize = 14.sp)
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        showRoutineDiscardDialog = false
+                                        showCreateRoutineWizard = false
+                                    }) {
+                                        Text(stringResource(R.string.workouts_discard_confirm),
+                                            color = SubtleRed, fontWeight = FontWeight.SemiBold)
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showRoutineDiscardDialog = false }) {
+                                        Text(stringResource(R.string.workouts_discard_keep_editing),
+                                            color = CrayolaBlue, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            )
                         }
 
                         ModalBottomSheet(
-                            onDismissRequest = { showCreateRoutineWizard = false },
-                            sheetState = createRoutineSheetState,
+                            onDismissRequest = {
+                                if (wizardIsDirty) showRoutineDiscardDialog = true
+                                else showCreateRoutineWizard = false
+                            },
+                            sheetState = rememberModalBottomSheetState(
+                                skipPartiallyExpanded = true,
+                                confirmValueChange = { targetValue ->
+                                    if (targetValue == SheetValue.Hidden && wizardIsDirty) {
+                                        showRoutineDiscardDialog = true
+                                        false
+                                    } else { true }
+                                }
+                            ),
                             containerColor = Onyx,
                             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                         ) {
                             RoutineWizardScreen(
                                 viewModel = routineWizardViewModel,
-                                onCreateRoutine = { planId, name, description, schedulingValue, startingDate, selectedExercises ->
+                                onCreateRoutine = { planId, name, description,
+                                                    schedulingValue, startingDate, selectedExercises ->
                                     viewModel.createRoutine(
-                                        planId = planId,
-                                        name = name,
+                                        planId = planId, name = name,
                                         description = description,
                                         schedulingValue = schedulingValue,
                                         startingDate = startingDate,
                                         routineExercises = selectedExercises
                                     )
                                 },
-                                onWizardClosed = {
-                                    showCreateRoutineWizard = false
-                                }
+                                onWizardClosed = { showCreateRoutineWizard = false }
                             )
                         }
                     }
+
 
                     pendingDelete?.let { target ->
                         ConfirmDeleteDialog(
@@ -440,35 +534,23 @@ fun WorkoutsScreen(
                         ) {
                             PlanDetailsSheetContent(
                                 state = planDetailsState,
+                                onDismiss = { selectedPlanForDetails = null },
                                 onEditClick = planDetailsViewModel::toggleEditMode,
                                 onDoneClick = {
                                     planDetailsViewModel.saveChanges()
                                     val updatedState = planDetailsViewModel.uiState.value
                                     val updatedPlan = selectedPlan.copy(
-                                        name = updatedState.title,
+                                        name        = updatedState.title,
                                         description = updatedState.description,
-                                        isActive = updatedState.isActive
+                                        isActive    = updatedState.isActive
                                     )
                                     viewModel.savePlanEdits(updatedPlan)
                                 },
-                                onToggleActive = {
-                                    planDetailsViewModel.toggleActive()
-                                    val updatedState = planDetailsViewModel.uiState.value
-                                    val updatedPlan = selectedPlan.copy(
-                                        name = updatedState.title,
-                                        description = updatedState.description,
-                                        isActive = updatedState.isActive
-                                    )
-                                    viewModel.savePlanEdits(updatedPlan)
-                                },
-                                onTitleChange = planDetailsViewModel::updateTitle,
+                                onTitleChange       = planDetailsViewModel::updateTitle,
                                 onDescriptionChange = planDetailsViewModel::updateDescription,
-                                onRemoveRoutine = planDetailsViewModel::removeRoutine,
-                                onMoveRoutine = planDetailsViewModel::moveRoutine,
-                                onAddRoutineClick = {
-                                    // TODO: Open routine wizard pre-scoped to this plan
-                                },
-                                onRoutineClick = { routine ->
+                                onRemoveRoutine     = planDetailsViewModel::removeRoutine,
+                                onMoveRoutine       = planDetailsViewModel::moveRoutine,
+                                onRoutineClick      = { routine ->
                                     selectedRoutineForDetails = routine
                                 }
                             )
@@ -608,87 +690,242 @@ private fun RoutineOnboardingHint(isEditMode: Boolean) {
         }
     }
 }
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FocusPlanSelectorRow(
+private fun PlanScrollableTabRow(
     plans: List<TrainingPlan>,
     selectedPlanId: String,
     onSelectPlan: (String) -> Unit
 ) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(plans, key = { it.id }) { plan ->
-            val isSelected = plan.id == selectedPlanId
-            Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = if (isSelected) CrayolaBlue.copy(alpha = 0.2f) else ShadowGrey,
-                border = BorderStroke(1.dp, if (isSelected) CrayolaBlue else Color.Transparent),
+    val selectedIndex = plans.indexOfFirst { it.id == selectedPlanId }.coerceAtLeast(0)
+
+    ScrollableTabRow(
+        selectedTabIndex = selectedIndex,
+        containerColor = Color.Transparent,
+        contentColor = Color.White,
+        edgePadding = 0.dp,
+        divider = {
+            HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 1.dp)
+        },
+        indicator = { tabPositions ->
+            if (selectedIndex < tabPositions.size) {
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedIndex]),
+                    height = 3.dp,
+                    color = CrayolaBlue
+                )
+            }
+        }
+    ) {
+        plans.forEachIndexed { index, plan ->
+            val isSelected = index == selectedIndex
+            Tab(
+                selected = isSelected,
                 onClick = { onSelectPlan(plan.id) }
             ) {
-                Text(
-                    text = plan.name,
-                    color = if (isSelected) CrayolaBlue else LightGrey,
-                    fontSize = 12.sp,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
-                )
+                // Custom tab content - name + optional active dot
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = plan.name,
+                        color = if (isSelected) PureWhite else LightGrey,
+                        fontSize = 13.sp,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (plan.isActive) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(CrayolaBlue, CircleShape)
+                        )
+                    } else {
+                        // Reserve the same 6dp + 4dp spacing to keep tab heights uniform
+                        Spacer(modifier = Modifier.size(6.dp))
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
+private fun PlanContextBar(
+    plan: TrainingPlan,
+    routineCount: Int,
+    onEditClick: () -> Unit,
+    onSetActive: () -> Unit
+) {
+    val intervalLabel = plan.interval?.takeIf { it.isNotBlank() }?.let {
+        PlanIntervalConfig.fromBackend(it, plan.cycleLength).toDisplayLabel()
+    } ?: stringResource(R.string.workouts_cycle_weekly)
+
+    val routineLabel = if (routineCount == 1)
+        stringResource(R.string.workouts_routine_count_one)
+    else
+        stringResource(R.string.workouts_routine_count_other, routineCount)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        // Left: metadata subtitle
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "$intervalLabel  ·  $routineLabel",
+                color = LightGrey,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Right: action zone
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            if (plan.isActive) {
+                // ACTIVE badge
+                // Positive confirmation that this is the running mesocycle.
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = CrayolaBlue.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, CrayolaBlue.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        text = stringResource(R.string.workouts_plan_active_badge),
+                        color = CrayolaBlue,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                    )
+                }
+            } else {
+                // Set Active CTA
+                TextButton(onClick = onSetActive) {
+                    Text(
+                        text = stringResource(R.string.workouts_set_as_active_plan),
+                        color = CrayolaBlue,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // Edit plan details - always visible
+            IconButton(onClick = onEditClick, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.workouts_edit_plan_cd),
+                    tint = LightGrey,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+}
+
+
+
+@Composable
 private fun FocusPlanOverviewCard(
     plan: TrainingPlan,
     routineCount: Int,
-    onOpenPlanDetails: () -> Unit
+    onOpenPlanDetails: () -> Unit,
+    onSetActive: () -> Unit
 ) {
     val intervalLabel = plan.interval?.takeIf { it.isNotBlank() }?.let {
         PlanIntervalConfig.fromBackend(it, plan.cycleLength).toDisplayLabel()
     } ?: stringResource(id = R.string.workouts_cycle_weekly)
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = ShadowGrey.copy(alpha = 0.72f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
-        onClick = onOpenPlanDetails
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = ShadowGrey.copy(alpha = 0.72f),
+            border = BorderStroke(
+                width = if (plan.isActive) 1.dp else 1.dp,
+                color = if (plan.isActive) CrayolaBlue.copy(alpha = 0.4f)
+                else Color.White.copy(alpha = 0.06f)
+            ),
+            onClick = onOpenPlanDetails
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = plan.name,
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                Text(
-                    text = intervalLabel,
-                    color = LightGrey,
-                    fontSize = 12.sp
-                )
-            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = plan.name,
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                        // ACTIVE badge - only shown when this is the active plan
+                        if (plan.isActive) {
+                            Surface(
+                                shape = RoundedCornerShape(999.dp),
+                                color = CrayolaBlue.copy(alpha = 0.18f)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.workouts_plan_active_badge),
+                                    color = CrayolaBlue,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp,
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
+                    Text(text = intervalLabel, color = LightGrey, fontSize = 12.sp)
+                }
 
-            Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = Onyx,
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = Onyx,
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+                ) {
+                    Text(
+                        text = if (routineCount == 1)
+                            stringResource(R.string.workouts_routine_count_one)
+                        else
+                            stringResource(R.string.workouts_routine_count_other, routineCount),
+                        color = LightGrey,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+            }
+        }
+
+        // "Set as Active Plan" CTA - only shown when this plan is NOT the active one
+        if (!plan.isActive) {
+            TextButton(
+                onClick = onSetActive,
+                modifier = Modifier.align(Alignment.End)
             ) {
                 Text(
-                    text = if (routineCount == 1) {
-                        stringResource(id = R.string.workouts_routine_count_one)
-                    } else {
-                        stringResource(id = R.string.workouts_routine_count_other, routineCount)
-                    },
-                    color = LightGrey,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    text = stringResource(R.string.workouts_set_as_active_plan),
+                    color = CrayolaBlue,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }
@@ -700,13 +937,28 @@ private fun FocusNoRoutineState(
     isFirstRoutineJourney: Boolean,
     onCreateRoutineClick: () -> Unit
 ) {
+    var visible by remember { mutableStateOf(false) }
+    val iconAlpha by animateFloatAsState(
+        targetValue = if (visible) 0.15f else 0f,
+        animationSpec = tween(durationMillis = 350),
+        label = "no_routine_icon_alpha"
+    )
+    LaunchedEffect(Unit) { visible = true }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
+            .padding(top = 48.dp, bottom = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Icon(
+            imageVector = Icons.Outlined.FitnessCenter,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = CrayolaBlue.copy(alpha = iconAlpha)
+        )
+
         Text(
             text = if (isFirstRoutineJourney) {
                 stringResource(id = R.string.workouts_focus_no_routine_first_journey)
@@ -714,14 +966,26 @@ private fun FocusNoRoutineState(
                 stringResource(id = R.string.workouts_focus_no_routine)
             },
             color = LightGrey,
-            fontSize = 13.sp,
-            textAlign = TextAlign.Center
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp)
         )
-        TextButton(onClick = onCreateRoutineClick) {
+
+        Button(
+            onClick = onCreateRoutineClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .height(52.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue),
+            shape = RoundedCornerShape(14.dp)
+        ) {
             Text(
-                text = stringResource(id = R.string.workouts_create_routine),
-                color = CrayolaBlue,
-                fontWeight = FontWeight.SemiBold
+                text = stringResource(id = R.string.workouts_no_routines_in_plan_cta),
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -895,7 +1159,7 @@ private fun PlanHeaderItem(
 }
 
 @Composable
-private fun RoutineCard(
+private fun RoutineScanCard(
     routine: Routine,
     isEditMode: Boolean,
     nextOccurrenceText: String? = null,
@@ -931,10 +1195,15 @@ private fun RoutineCard(
     )
     val liftedElevationPx = with(density) { liftedElevation.toPx() }
 
+    // Derive summary line from exercises list
+    val exerciseCount = routine.exercises.size
+    val totalSets = routine.exercises.sumOf { it.targetSets }
+    val hasSummary = exerciseCount > 0
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 8.dp)
+            .padding(vertical = 5.dp, horizontal = 8.dp)
             .graphicsLayer {
                 translationY = animatedDragOffset
                 scaleX = liftedScale
@@ -949,36 +1218,69 @@ private fun RoutineCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(
-                        if (isEditMode) Modifier else Modifier.clickable { onClick() }
+                    if (isEditMode) Modifier else Modifier.clickable { onClick() }
                 )
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Left icon
             Icon(
-                imageVector = Icons.Default.FitnessCenter,
+                imageVector = Icons.Outlined.FitnessCenter,
                 contentDescription = null,
                 tint = CrayolaBlue,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(22.dp)
             )
-            Spacer(modifier = Modifier.width(16.dp))
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // Main content column
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = routine.name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                if (routine.description.isNotBlank()) {
-                    Text(text = routine.description, color = LightGrey, fontSize = 13.sp)
-                }
-                nextOccurrenceText?.let {
+                // Routine title
+                Text(
+                    text = routine.name,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                // Scannable summary: "X exercises · Y sets"
+                if (hasSummary) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    val summaryText = if (exerciseCount == 1) {
+                        stringResource(id = R.string.workouts_routine_one_exercise_sets_summary, totalSets)
+                    } else {
+                        stringResource(id = R.string.workouts_routine_exercise_sets_summary, exerciseCount, totalSets)
+                    }
                     Text(
-                        text = it,
-                        color = CrayolaBlue,
+                        text = summaryText,
+                        color = LightGrey,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .padding(top = 4.dp, end = if (isEditMode) 8.dp else 0.dp)
+                        fontWeight = FontWeight.Normal
                     )
+                }
+
+                // Schedule badge (only when there's a schedule and not in edit mode)
+                if (!isEditMode && !nextOccurrenceText.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = CrayolaBlue.copy(alpha = 0.12f),
+                        modifier = Modifier.wrapContentWidth()
+                    ) {
+                        Text(
+                            text = nextOccurrenceText,
+                            color = CrayolaBlue,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
+                        )
+                    }
                 }
             }
 
+            // Edit mode controls
             if (isEditMode) {
                 IconButton(onClick = onDeleteClick) {
                     Icon(
