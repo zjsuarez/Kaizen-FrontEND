@@ -1,7 +1,12 @@
 package com.example.kaizenfrontend.core.ui.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,9 +62,22 @@ fun KaizenAppHost(
     }
 
     // ── Floating mini-island, visible across all tabs ──────────────
+    //
+    // The bottom-tab routes wrap their content in `KaizenTabScaffold`,
+    // which renders `KaizenBottomBar` at the very bottom of the screen.
+    // The bar's footprint is the NavigationBar height (80dp) plus the
+    // system gesture inset. Offset the island by both so it floats just
+    // above the bar instead of sitting on top of it and blocking taps.
+    //
+    // Pre-tab routes (splash/auth/onboarding) don't render a bottom bar,
+    // but no workout can be active during those flows anyway, so the
+    // unconditional offset is harmless there.
     Box(modifier = modifier.fillMaxSize()) {
         ActiveWorkoutOverlay(
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(bottom = 80.dp),
             onOpenWorkout = { showActiveWorkoutSheet = true }
         )
     }
