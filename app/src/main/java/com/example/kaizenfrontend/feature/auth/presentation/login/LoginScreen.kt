@@ -77,7 +77,12 @@ fun LoginScreen(
                 lineHeight = 50.sp,
                 modifier = Modifier.padding(bottom = 48.dp)
             )
-            Box(modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp)) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = 8.dp, end = 4.dp)
+            ) {
                 com.example.kaizenfrontend.core.ui.components.PreLoginLanguagePicker()
             }
         }

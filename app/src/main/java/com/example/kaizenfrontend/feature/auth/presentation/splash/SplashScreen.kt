@@ -19,6 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.data.local.SessionManager
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import com.example.kaizenfrontend.core.ui.components.PreLoginLanguagePicker
 import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.di.hiltServiceEntryPoint
@@ -87,7 +90,8 @@ fun SplashScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopEnd)
-                .padding(top = 48.dp, end = 24.dp)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(top = 8.dp, end = 16.dp)
         ) {
             PreLoginLanguagePicker()
         }

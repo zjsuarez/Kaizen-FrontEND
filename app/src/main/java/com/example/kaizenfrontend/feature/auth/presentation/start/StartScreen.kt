@@ -2,6 +2,9 @@ package com.example.kaizenfrontend.feature.auth.presentation.start
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -32,7 +35,15 @@ fun StartScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            Box(modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp)) {
+            // Picker sits below the status bar (edge-to-edge means no
+            // automatic inset) and a touch off the right edge so it
+            // doesn't read as clipped to the corner.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = 8.dp, end = 4.dp)
+            ) {
                 com.example.kaizenfrontend.core.ui.components.PreLoginLanguagePicker()
             }
             Column(
