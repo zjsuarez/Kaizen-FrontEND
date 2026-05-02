@@ -1,46 +1,33 @@
 package com.example.kaizenfrontend.core.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
-
-private val WidgetShape = RoundedCornerShape(16.dp)
-private val BorderColor = ShadowGrey.copy(alpha = 0.6f)
 
 /**
- * Reusable container for every dashboard widget.
- *
- * Provides the standard Kaizen card aesthetic:
- * dark surface background, subtle border, rounded corners.
- *
- * The caller is responsible for setting the overall size
- * (height / span) via [modifier]; this container only handles
- * the internal decoration and padding.
+ * Legacy widget container. Phase 1 routes this through [KaizenCard]
+ * so the dashboard widgets pick up the new chrome immediately;
+ * Phase 3 migrates each call site to [KaizenCard] directly and this
+ * file is deleted.
  */
+@Deprecated(
+    message = "Use KaizenCard directly",
+    replaceWith = ReplaceWith(
+        "KaizenCard(modifier = modifier, onClick = onClick) { content() }",
+        "com.example.kaizenfrontend.core.ui.components.KaizenCard"
+    )
+)
 @Composable
 fun KaizenWidgetContainer(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .then(modifier)
-            .clip(WidgetShape)
-            .clickable(enabled = onClick != null) { onClick?.invoke() }
-            .background(ShadowGrey)
-            .border(width = 1.dp, color = BorderColor, shape = WidgetShape)
-            .padding(16.dp)
-    ) {
-        content()
-    }
+    KaizenCard(
+        modifier = modifier,
+        onClick = onClick,
+        contentPadding = PaddingValues(16.dp),
+        content = content
+    )
 }

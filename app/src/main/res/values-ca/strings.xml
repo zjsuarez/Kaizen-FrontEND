@@ -473,4 +473,20 @@ Afegeix mètriques per començar a seguir el teu progrés.</string>
     <string name="workouts_training_plans_header">PLANS D\'ENTRENAMENT</string>
     <string name="workouts_close_plan_details_cd">Tancar detalls del pla</string>
     <string name="workouts_tooltip_got_it">Entès</string>
+
+    <!-- Onboarding (post-calibration hierarchy explainer) -->
+    <string name="onboarding_title">Com funciona Kaizen</string>
+    <string name="onboarding_subtitle">Tres nivells — comença per dalt.</string>
+    <string name="onboarding_plan_title">Pla</string>
+    <string name="onboarding_plan_body">Un bloc d\'entrenament — la teva estructura setmanal o cíclica (p. ex. Push/Pull/Cames).</string>
+    <string name="onboarding_routine_title">Rutina</string>
+    <string name="onboarding_routine_body">Un dia d\'entrenament dins d\'un pla — la sessió exacta que fas al gimnàs.</string>
+    <string name="onboarding_exercise_title">Exercici</string>
+    <string name="onboarding_exercise_body">Els moviments dins d\'una rutina, amb sèries, repeticions i esforç objectiu.</string>
+    <string name="onboarding_continue">Crear el meu primer pla</string>
+
+    <!-- Today / Active workout overlay -->
+    <string name="today_start_workout">Començar entrenament</string>
+    <string name="today_resume_workout">Reprendre entrenament</string>
+    <string name="today_resume_hint">Toca per reprendre</string>
 </resources>

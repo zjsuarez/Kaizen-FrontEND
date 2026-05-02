@@ -75,6 +75,11 @@ class SessionManager @Inject constructor(@ApplicationContext context: Context) {
 
     fun isCalibrationComplete(): Boolean = prefs.getBoolean(CALIBRATION_KEY, false)
 
+    fun saveOnboardingCompleted(completed: Boolean) =
+        prefs.edit().putBoolean(ONBOARDING_KEY, completed).apply()
+
+    fun isOnboardingCompleted(): Boolean = prefs.getBoolean(ONBOARDING_KEY, false)
+
     fun saveUserPreferences(
         email: String,
         unitSystem: String,
@@ -109,6 +114,7 @@ class SessionManager @Inject constructor(@ApplicationContext context: Context) {
         private const val PREFS_NAME = "kaizen_prefs"
         private const val TOKEN_KEY = "auth_token"
         private const val CALIBRATION_KEY = "calibration_complete"
+        private const val ONBOARDING_KEY = "onboarding_complete"
         private const val PREFS_EMAIL = "prefs_email"
         private const val PREFS_UNIT = "prefs_unit"
         private const val PREFS_EFFORT = "prefs_effort"

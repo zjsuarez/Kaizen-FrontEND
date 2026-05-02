@@ -473,4 +473,20 @@ Añade métricas para empezar a seguir tu progreso.</string>
     <string name="workouts_training_plans_header">PLANES DE ENTRENAMIENTO</string>
     <string name="workouts_close_plan_details_cd">Cerrar detalles del plan</string>
     <string name="workouts_tooltip_got_it">Entendido</string>
+
+    <!-- Onboarding (post-calibration hierarchy explainer) -->
+    <string name="onboarding_title">Cómo funciona Kaizen</string>
+    <string name="onboarding_subtitle">Tres niveles — empieza por arriba.</string>
+    <string name="onboarding_plan_title">Plan</string>
+    <string name="onboarding_plan_body">Un bloque de entrenamiento — tu estructura semanal o cíclica (p. ej. Push/Pull/Piernas).</string>
+    <string name="onboarding_routine_title">Rutina</string>
+    <string name="onboarding_routine_body">Un día de entrenamiento dentro de un plan — la sesión exacta que haces en el gimnasio.</string>
+    <string name="onboarding_exercise_title">Ejercicio</string>
+    <string name="onboarding_exercise_body">Los movimientos dentro de una rutina, con series, repeticiones y esfuerzo objetivo.</string>
+    <string name="onboarding_continue">Crear mi primer plan</string>
+
+    <!-- Today / Active workout overlay -->
+    <string name="today_start_workout">Empezar entrenamiento</string>
+    <string name="today_resume_workout">Reanudar entrenamiento</string>
+    <string name="today_resume_hint">Toca para reanudar</string>
 </resources>
