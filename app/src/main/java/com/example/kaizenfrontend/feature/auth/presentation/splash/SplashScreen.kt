@@ -29,6 +29,7 @@ import com.example.kaizenfrontend.feature.user.domain.usecase.GetCurrentUserUseC
 fun SplashScreen(
     onNavigateToStart: () -> Unit,
     onNavigateToCalibration: () -> Unit,
+    onNavigateToOnboarding: () -> Unit,
     onNavigateToDashboard: () -> Unit
 ) {
     val context = LocalContext.current
@@ -57,7 +58,11 @@ fun SplashScreen(
 
                 if (isCalibrated) {
                     sessionManager.saveCalibrationComplete(true)
-                    onNavigateToDashboard()
+                    if (sessionManager.isOnboardingCompleted()) {
+                        onNavigateToDashboard()
+                    } else {
+                        onNavigateToOnboarding()
+                    }
                 } else {
                     sessionManager.saveCalibrationComplete(false)
                     onNavigateToCalibration()

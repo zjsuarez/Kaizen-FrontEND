@@ -22,9 +22,6 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -59,15 +56,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavController
 import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.data.local.SessionManager
+import com.example.kaizenfrontend.core.ui.navigation.KaizenTabScaffold
 import com.example.kaizenfrontend.core.ui.theme.*
-import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
-import com.example.kaizenfrontend.feature.workouts.presentation.components.ActiveWorkoutBottomSheet
-import com.example.kaizenfrontend.feature.workouts.presentation.components.WorkoutSummaryBottomSheet
-import com.example.kaizenfrontend.feature.workouts.presentation.components.ZenModeScreen
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetConfig
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetSize
 import com.example.kaizenfrontend.feature.dashboard.model.WidgetType
@@ -81,9 +74,6 @@ import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.RecentP
 import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.RecoveryTimeWidget
 import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.StreakWidget
 import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.WeightTrendWidget
-import com.example.kaizenfrontend.feature.statistics.presentation.StatisticsScreen
-import com.example.kaizenfrontend.feature.user.presentation.settings.SettingsScreen
-import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutsScreen
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -177,9 +167,9 @@ private val dashboardWidgets =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-        viewModel: DashboardViewModel = hiltViewModel(),
-        onWorkoutClick: () -> Unit = {},
-        onLogoutClick: () -> Unit = {}
+    navController: NavController,
+    viewModel: DashboardViewModel = hiltViewModel(),
+    onWorkoutClick: () -> Unit = {}
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -200,13 +190,7 @@ fun DashboardScreen(
     val todayLabel = remember {
         LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault()))
     }
-    var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showAddWidgetSheet by remember { mutableStateOf(false) }
-    var showActiveWorkoutSheet by remember { mutableStateOf(false) }
-    var zenModeInitialPage by remember { mutableStateOf<Int?>(null) }
-    var finishedWorkoutSnapshot by remember {
-        mutableStateOf<com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState?>(null)
-    }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val addWidgetSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -225,166 +209,104 @@ fun DashboardScreen(
         }
     }
 
-    Scaffold(
-            containerColor = Onyx,
-            topBar = {
-                if (selectedTab == 0) {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Text(
-                                    text = stringResource(id = R.string.dashboard_title),
-                                    color = PureWhite,
-                                    fontSize = 38.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = stringResource(id = R.string.dashboard_hello, userName),
-                                    color = LightGrey,
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.padding(top = 2.dp)
-                                )
-                                Text(
-                                    text = todayLabel,
-                                    color = LightGrey.copy(alpha = 0.8f),
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(top = 1.dp)
-                                )
-                            }
-                        },
-                        actions = {
-                            if (!isEditing) {
-                                FloatingActionButton(
-                                    onClick = { viewModel.toggleEditMode() },
-                                    containerColor = ShadowGrey,
-                                    contentColor = PureWhite,
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = stringResource(id = R.string.dashboard_edit_mode_enter),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            } else {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(end = 12.dp)
-                                ) {
-                                    FloatingActionButton(
-                                        onClick = { showAddWidgetSheet = true },
-                                        containerColor = CrayolaBlue,
-                                        contentColor = PureWhite,
-                                        modifier = Modifier.size(40.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = stringResource(id = R.string.dashboard_add_widget),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                    Button(
-                                        onClick = { viewModel.toggleEditMode() },
-                                        shape = RoundedCornerShape(14.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = ShadowGrey)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Done,
-                                            contentDescription = null,
-                                            tint = PureWhite,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(stringResource(id = R.string.dashboard_edit_mode_done), color = PureWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Onyx,
-                            titleContentColor = PureWhite,
-                            actionIconContentColor = PureWhite
-                        )
+    KaizenTabScaffold(
+        navController = navController,
+        title = stringResource(id = R.string.dashboard_title),
+        subtitle = "${stringResource(id = R.string.dashboard_hello, userName)}  ·  $todayLabel",
+        headerActions = {
+            if (!isEditing) {
+                IconButton(
+                    onClick = { viewModel.toggleEditMode() },
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = stringResource(id = R.string.dashboard_edit_mode_enter)
                     )
                 }
-            },
-            bottomBar = {
-                KaizenBottomNavigation(
-                        selectedTabIndex = selectedTab,
-                        onTabSelected = { selectedTab = it }
-                )
+            } else {
+                IconButton(
+                    onClick = { showAddWidgetSheet = true },
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(id = R.string.dashboard_add_widget),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                IconButton(
+                    onClick = { viewModel.toggleEditMode() },
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Done,
+                        contentDescription = stringResource(id = R.string.dashboard_edit_mode_done)
+                    )
+                }
             }
+        }
     ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            Box(modifier = Modifier.fillMaxSize()) {
-            when (selectedTab) {
-                0 ->
-                        when (val state = uiState) {
-                            is DashboardUiState.Loading -> {
-                                Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                            color = CrayolaBlue,
-                                            modifier = Modifier.align(Alignment.Center)
-                                    )
-                                }
-                            }
-                            is DashboardUiState.Success -> {
-                                val context = androidx.compose.ui.platform.LocalContext.current
-                                DashboardWidgetGrid(
-                                    successState = state,
-                                    widgetOrder = widgetOrder,
-                                    weightHistory = weightHistory,
-                                    isEditing = isEditing,
-                                    onWorkoutClick = onWorkoutClick,
-                                    onWidgetClick = { activeBottomSheet = it },
-                                    onRemoveWidget = { widgetKey -> viewModel.removeWidget(widgetKey) },
-                                    onReorderWidgets = { updatedOrder ->
-                                        viewModel.onReorderWidgets(updatedOrder)
-                                    },
-                                    onAddWidgetClick = { showAddWidgetSheet = true }
-                                )
-                            }
-                            is DashboardUiState.Empty -> {
-                                // Normally this handles no-data gracefully
-                            }
-                            is DashboardUiState.Error -> {
-                                val errorMessage = state.message?.takeIf { it.isNotBlank() }
-                                    ?: state.messageResId?.let { stringResource(id = it) }
-                                    ?: stringResource(id = R.string.dashboard_error_backend_connection)
-                                Box(
-                                        modifier =
-                                                Modifier.fillMaxWidth()
-                                                        .height(100.dp)
-                                                        .background(
-                                                                ShadowGrey,
-                                                                RoundedCornerShape(16.dp)
-                                                        )
-                                                        .padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = errorMessage, color = Color.Red, fontSize = 14.sp)
-                                }
-                            }
-                        }
-                1 -> WorkoutsScreen()
-                2 -> StatisticsScreen()
-                3 -> SettingsScreen(onLogoutClick = onLogoutClick)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when (val state = uiState) {
+                is DashboardUiState.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                is DashboardUiState.Success -> {
+                    DashboardWidgetGrid(
+                        successState = state,
+                        widgetOrder = widgetOrder,
+                        weightHistory = weightHistory,
+                        isEditing = isEditing,
+                        onWorkoutClick = onWorkoutClick,
+                        onWidgetClick = { activeBottomSheet = it },
+                        onRemoveWidget = { widgetKey -> viewModel.removeWidget(widgetKey) },
+                        onReorderWidgets = { updatedOrder ->
+                            viewModel.onReorderWidgets(updatedOrder)
+                        },
+                        onAddWidgetClick = { showAddWidgetSheet = true }
+                    )
+                }
+                is DashboardUiState.Empty -> {
+                    // No-data state handled by widget grid's empty branch.
+                }
+                is DashboardUiState.Error -> {
+                    val errorMessage = state.message?.takeIf { it.isNotBlank() }
+                        ?: state.messageResId?.let { stringResource(id = it) }
+                        ?: stringResource(id = R.string.dashboard_error_backend_connection)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceContainer,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
             }
 
-            // ── Floating Island: active workout mini-player ─────────
-            ActiveWorkoutOverlay(
-                modifier = Modifier.align(Alignment.BottomCenter),
-                onOpenWorkout = { showActiveWorkoutSheet = true }
-            )
-
-            // Pinned helper overlay to avoid content jump when entering edit mode.
+            // Pinned helper overlay so the reorder hint stays visible above
+            // the grid without pushing content down.
             androidx.compose.animation.AnimatedVisibility(
-                visible = selectedTab == 0 && isEditing,
+                visible = isEditing,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = 8.dp)
@@ -393,16 +315,15 @@ fun DashboardScreen(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .background(
-                            color = ShadowGrey.copy(alpha = 0.92f),
+                            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
                             shape = RoundedCornerShape(12.dp)
                         )
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = stringResource(id = R.string.dashboard_edit_mode_reorder_hint),
-                        color = LightGrey,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
@@ -413,8 +334,8 @@ fun DashboardScreen(
         ModalBottomSheet(
             onDismissRequest = { activeBottomSheet = null },
             sheetState = sheetState,
-            containerColor = Onyx,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = LightGrey) }
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
         ) {
             BottomSheetContent(
                 sheetType = activeBottomSheet!!,
@@ -450,13 +371,15 @@ fun DashboardScreen(
                 viewModel.dismissGoogleWelcomePrompt()
             },
             sheetState = googleWelcomeSheetState,
-            containerColor = Onyx,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = LightGrey) }
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
         ) {
             GoogleWelcomeBottomSheet(
                 onSetPasswordClick = {
                     viewModel.dismissGoogleWelcomePrompt()
-                    selectedTab = 3 // Open Profile/Settings for password setup.
+                    navController.navigate(com.example.kaizenfrontend.core.ui.navigation.KaizenDestinations.SETTINGS) {
+                        launchSingleTop = true
+                    }
                 },
                 onNotNowClick = {
                     viewModel.dismissGoogleWelcomePrompt()
@@ -464,63 +387,7 @@ fun DashboardScreen(
             )
         }
     }
-
-    // ── Active Workout "Tunnel Mode" bottom sheet ─────────
-    if (showActiveWorkoutSheet) {
-        ActiveWorkoutBottomSheet(
-            onDismiss = { showActiveWorkoutSheet = false },
-            onFinish = {
-                val snapshot = com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.finishWorkout()
-                snapshot?.let {
-                    finishedWorkoutSnapshot = it
-                    viewModel.saveWorkout(it)
-                }
-                showActiveWorkoutSheet = false
-                zenModeInitialPage = null // close Zen Mode if open
-            },
-            onAddExercise = { /* TODO: open exercise catalog — Task 4+ */ },
-            onNavigateToZenMode = { page ->
-                zenModeInitialPage = page
-            }
-        )
-    }
-
-    // ── Workout Summary Sheet (post-finish) ─────────
-    finishedWorkoutSnapshot?.let { snapshot ->
-        val unitSystem = remember { sessionManager.getUserUnitSystem() ?: "METRIC" }
-        val weightUnit = if (unitSystem == "IMPERIAL") "lbs" else "kg"
-        WorkoutSummaryBottomSheet(
-            workoutSnapshot = snapshot,
-            saveStatusFlow = viewModel.workoutSaveStatus,
-            weightUnit = weightUnit,
-            onDismiss = {
-                finishedWorkoutSnapshot = null
-                viewModel.resetWorkoutSaveStatus()
-            },
-            onRetry = {
-                viewModel.saveWorkout(snapshot)
-            }
-        )
-    }
-
-    // ── Zen Mode Full Screen ─────────
-    zenModeInitialPage?.let { initialPage ->
-        Dialog(
-            onDismissRequest = { zenModeInitialPage = null },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                decorFitsSystemWindows = false
-            )
-        ) {
-            ZenModeScreen(
-                initialPage = initialPage,
-                onClose = { zenModeInitialPage = null }
-            )
-        }
-    }
-            // close inner Box (already closed above, this is formatting fix)
-        } // close Column
-    }
+}
 
 // ──────────────────────────────────────────────────────────────
 // Widget Grid Engine  (dual-mode: grid view / drag-edit)
@@ -920,53 +787,6 @@ private fun GhostWidgetContent(
                 onClick = null,
                 onPrClick = {},
                 isGhost = true
-            )
-        }
-    }
-}
-
-// ──────────────────────────────────────────────────────────────
-// Bottom Navigation
-// ──────────────────────────────────────────────────────────────
-
-@Composable
-private fun KaizenBottomNavigation(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
-    val dashboardLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_nav_dashboard)
-    val workoutsLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_nav_workouts)
-    val statisticsLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_nav_statistics)
-    val settingsLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_nav_settings)
-
-    val items =
-            listOf(
-                    Pair(dashboardLabel, Icons.Default.Home),
-                    Pair(workoutsLabel, Icons.Default.FitnessCenter),
-                    Pair(statisticsLabel, Icons.Default.BarChart),
-                    Pair(settingsLabel, Icons.Default.Settings)
-            )
-
-    NavigationBar(containerColor = Onyx, tonalElevation = 0.dp) {
-        items.forEachIndexed { index, pair ->
-            val selected = selectedTabIndex == index
-            NavigationBarItem(
-                    selected = selected,
-                    onClick = { onTabSelected(index) },
-                    icon = { Icon(imageVector = pair.second, contentDescription = pair.first) },
-                    label = {
-                        Text(
-                            text = pair.first,
-                            fontSize = 10.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    colors =
-                            NavigationBarItemDefaults.colors(
-                                    selectedIconColor = Onyx,
-                                    unselectedIconColor = LightGrey,
-                                    selectedTextColor = CrayolaBlue,
-                                    unselectedTextColor = LightGrey,
-                                    indicatorColor = CrayolaBlue
-                            )
             )
         }
     }

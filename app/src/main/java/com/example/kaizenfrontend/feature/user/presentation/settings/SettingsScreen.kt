@@ -24,10 +24,13 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.ui.res.stringResource
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
+import androidx.navigation.NavController
+import com.example.kaizenfrontend.core.ui.navigation.KaizenTabScaffold
 import com.example.kaizenfrontend.core.ui.theme.*
 
 @Composable
 fun SettingsScreen(
+    navController: NavController,
     onLogoutClick: () -> Unit = {},
     onDeleteAccountClick: () -> Unit = {},
     onExportClick: () -> Unit = {},
@@ -102,17 +105,18 @@ fun SettingsScreen(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Onyx)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)
-            .padding(top = 48.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        Text(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_title), color = PureWhite, fontSize = 38.sp, fontWeight = FontWeight.Bold)
-
+    KaizenTabScaffold(
+        navController = navController,
+        title = stringResource(id = com.example.kaizenfrontend.R.string.settings_title)
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
         SettingsAppSection(onLanguageClick = { showLanguageDialog = true })
 
         SettingsAccountSection(
@@ -139,6 +143,7 @@ fun SettingsScreen(
             onExportClick = onExportClick,
             onManageApiClick = onManageApiClick
         )
+        }
     }
 }
 
@@ -542,11 +547,7 @@ private fun SettingsDivider() {
     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Onyx, thickness = 1.dp)
 }
 
-@Preview(showBackground = true)
-@Composable
-fun SettingsScreenPreview() {
-    MaterialTheme { SettingsScreen() }
-}
+// Preview removed — SettingsScreen now requires a NavController.
 
 
 

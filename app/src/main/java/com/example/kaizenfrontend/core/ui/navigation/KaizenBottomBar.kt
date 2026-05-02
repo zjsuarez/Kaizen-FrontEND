@@ -18,7 +18,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.kaizenfrontend.R
 
@@ -62,9 +61,15 @@ fun KaizenBottomBar(navController: NavController) {
                 selected = selected,
                 onClick = {
                     if (currentRoute != item.route) {
+                        // Use DASHBOARD as the tab-root anchor so each tab
+                        // switch unwinds to a single shared root and saves the
+                        // outgoing tab's state. Anchoring to graph.startDestination
+                        // (splash) would not work — splash is no longer on the
+                        // stack once the user has authenticated.
                         navController.navigate(item.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
+                            popUpTo(KaizenDestinations.DASHBOARD) {
                                 saveState = true
+                                inclusive = false
                             }
                             launchSingleTop = true
                             restoreState = true

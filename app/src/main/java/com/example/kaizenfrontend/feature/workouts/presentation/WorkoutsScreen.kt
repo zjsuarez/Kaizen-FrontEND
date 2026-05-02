@@ -78,6 +78,7 @@ import androidx.compose.material.icons.outlined.PlaylistAdd
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutsScreen(
+    navController: androidx.navigation.NavController,
     viewModel: WorkoutsViewModel = viewModel(
         factory = WorkoutsViewModelFactory(LocalContext.current.applicationContext)
     )
@@ -97,106 +98,50 @@ fun WorkoutsScreen(
     var showRoutineDetailsExerciseCatalog by remember { mutableStateOf(false) }
     var selectedFocusPlanId by rememberSaveable { mutableStateOf<String?>(null) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Onyx)
-    ) {
+    com.example.kaizenfrontend.core.ui.navigation.KaizenTabScaffold(
+        navController = navController,
+        title = stringResource(id = R.string.workouts_title),
+        subtitle = stringResource(id = R.string.workouts_subtitle_library),
+        headerActions = {
+            if (!isEditMode) {
+                IconButton(
+                    onClick = { isEditMode = true },
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = stringResource(id = R.string.workouts_enter_edit_mode_cd)
+                    )
+                }
+            } else {
+                IconButton(
+                    onClick = { showCreatePlanDialog = true },
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.PlaylistAdd,
+                        contentDescription = stringResource(id = R.string.workouts_create_plan),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                IconButton(
+                    onClick = { isEditMode = false },
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Done,
+                        contentDescription = stringResource(id = R.string.workouts_done)
+                    )
+                }
+            }
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
                 .padding(horizontal = 24.dp)
-                .padding(top = 48.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // EL FIX 1: Añadimos Modifier.weight(1f) a esta Column
-                // Esto hace que el título ocupe el espacio disponible, empujando
-                // a los botones a la derecha, pero SIN aplastarlos. Si el título
-                // es muy largo, se cortará el título, protegiendo los botones.
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.workouts_title),
-                        color = Color.White,
-                        fontSize = 38.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1, // Protegemos el título de saltos raros
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = stringResource(id = R.string.workouts_subtitle_library),
-                        color = LightGrey,
-                        fontSize = 14.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp, end = 8.dp) // Un poco de aire por la derecha
-                    )
-                }
-
-                // Mantenemos este Spacer pequeño por seguridad
-                Spacer(modifier = Modifier.width(8.dp))
-
-                if (!isEditMode) {
-                    FloatingActionButton(
-                        onClick = { isEditMode = true },
-                        containerColor = ShadowGrey,
-                        contentColor = Color.White,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = stringResource(id = R.string.workouts_enter_edit_mode_cd))
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.wrapContentWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Single-action FAB: directly opens Create Plan.
-                        // Routine creation lives inline at the bottom of the routine list.
-                        FloatingActionButton(
-                            onClick = { showCreatePlanDialog = true },
-                            containerColor = CrayolaBlue,
-                            contentColor = Color.White,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.PlaylistAdd,
-                                contentDescription = stringResource(id = R.string.workouts_create_plan),
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Button(
-                            onClick = { isEditMode = false },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ShadowGrey),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Done,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                stringResource(id = R.string.workouts_done),
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
 
             when (val state = uiState) {
                 is WorkoutsUiState.Loading -> {

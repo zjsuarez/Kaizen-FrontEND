@@ -25,31 +25,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import com.example.kaizenfrontend.feature.workouts.domain.usecase.SaveWorkoutUseCase
-import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
-
-sealed class WorkoutSaveStatus {
-    data object Idle : WorkoutSaveStatus()
-    data object Saving : WorkoutSaveStatus()
-    data object Success : WorkoutSaveStatus()
-    data class Error(val message: String) : WorkoutSaveStatus()
-}
-
 @HiltViewModel
 class DashboardViewModel
 @Inject
 constructor(
         private val repository: DashboardRepository,
         private val dashboardPreferences: DashboardPreferences,
-    private val saveWorkoutUseCase: SaveWorkoutUseCase,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
-
-    private val _workoutSaveStatus = MutableStateFlow<WorkoutSaveStatus>(WorkoutSaveStatus.Idle)
-    val workoutSaveStatus: StateFlow<WorkoutSaveStatus> = _workoutSaveStatus.asStateFlow()
 
     private val _weightHistory =
             MutableStateFlow<
@@ -233,26 +219,6 @@ constructor(
 
     fun onReorderWidgets(newOrderedList: List<String>) {
         viewModelScope.launch { dashboardPreferences.saveWidgetOrder(newOrderedList) }
-    }
-    fun saveWorkout(state: ActiveWorkoutState) {
-        _workoutSaveStatus.value = WorkoutSaveStatus.Saving
-        viewModelScope.launch {
-            val unitSystem = sessionManager.getUserUnitSystem() ?: "METRIC"
-            val result = saveWorkoutUseCase(state, unitSystem)
-            if (result.isSuccess) {
-                android.util.Log.d("KAIZEN", "Workout saved successfully! Updating dashboard...")
-                _workoutSaveStatus.value = WorkoutSaveStatus.Success
-                refreshDashboardData()
-            } else {
-                val errorMsg = result.exceptionOrNull()?.message ?: "Unknown error"
-                android.util.Log.e("KAIZEN", "Failed to save workout: $errorMsg")
-                _workoutSaveStatus.value = WorkoutSaveStatus.Error(errorMsg)
-            }
-        }
-    }
-
-    fun resetWorkoutSaveStatus() {
-        _workoutSaveStatus.value = WorkoutSaveStatus.Idle
     }
 
     companion object {

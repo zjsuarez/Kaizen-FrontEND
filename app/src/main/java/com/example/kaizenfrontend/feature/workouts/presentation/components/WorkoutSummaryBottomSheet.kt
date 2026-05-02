@@ -76,7 +76,7 @@ import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.core.ui.theme.SubtleRed
-import com.example.kaizenfrontend.feature.dashboard.presentation.WorkoutSaveStatus
+import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutSaveStatus
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
