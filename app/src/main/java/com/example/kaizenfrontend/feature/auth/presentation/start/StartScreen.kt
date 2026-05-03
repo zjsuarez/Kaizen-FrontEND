@@ -32,7 +32,12 @@ fun StartScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            Box(modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp)) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(top = 12.dp, end = 4.dp)
+            ) {
                 com.example.kaizenfrontend.core.ui.components.PreLoginLanguagePicker()
             }
             Column(
