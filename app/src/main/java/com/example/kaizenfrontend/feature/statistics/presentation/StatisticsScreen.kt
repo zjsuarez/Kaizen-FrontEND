@@ -4,16 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
@@ -50,7 +47,6 @@ import com.example.kaizenfrontend.feature.statistics.presentation.components.Act
 import com.example.kaizenfrontend.feature.statistics.presentation.components.PrFrequencyHeatmapWidget
 import com.example.kaizenfrontend.feature.statistics.presentation.components.PrPeakTimeWidget
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen(
     viewModel: StatisticsViewModel = hiltViewModel()
@@ -74,31 +70,30 @@ fun StatisticsScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(id = R.string.statistics_title),
-                        color = PureWhite,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Onyx,
-                    titleContentColor = PureWhite
-                )
-            )
-        },
-        containerColor = Onyx
-    ) { paddingValues ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Onyx)
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp)
+                .padding(horizontal = 24.dp),
+            contentPadding = PaddingValues(top = 48.dp, bottom = 24.dp)
         ) {
+            item {
+                Text(
+                    text = stringResource(id = R.string.statistics_title),
+                    color = PureWhite,
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
             item {
                 TimeRangeSelector(
                     selectedRange = uiState.selectedTimeRange,

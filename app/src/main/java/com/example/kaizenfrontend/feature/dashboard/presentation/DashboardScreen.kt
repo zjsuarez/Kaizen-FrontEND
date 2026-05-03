@@ -227,11 +227,31 @@ fun DashboardScreen(
 
     Scaffold(
             containerColor = Onyx,
-            topBar = {
-                if (selectedTab == 0) {
-                    TopAppBar(
-                        title = {
-                            Column {
+            topBar = {},
+            bottomBar = {
+                KaizenBottomNavigation(
+                        selectedTabIndex = selectedTab,
+                        onTabSelected = { selectedTab = it }
+                )
+            }
+    ) { paddingValues ->
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Box(modifier = Modifier.fillMaxSize()) {
+            when (selectedTab) {
+                0 -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 48.dp, bottom = 24.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = stringResource(id = R.string.dashboard_title),
                                     color = PureWhite,
@@ -251,8 +271,9 @@ fun DashboardScreen(
                                     modifier = Modifier.padding(top = 1.dp)
                                 )
                             }
-                        },
-                        actions = {
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
                             if (!isEditing) {
                                 FloatingActionButton(
                                     onClick = { viewModel.toggleEditMode() },
@@ -269,8 +290,7 @@ fun DashboardScreen(
                             } else {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(end = 12.dp)
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     FloatingActionButton(
                                         onClick = { showAddWidgetSheet = true },
@@ -296,81 +316,73 @@ fun DashboardScreen(
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text(stringResource(id = R.string.dashboard_edit_mode_done), color = PureWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(
+                                            text = stringResource(id = R.string.dashboard_edit_mode_done),
+                                            color = PureWhite,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Onyx,
-                            titleContentColor = PureWhite,
-                            actionIconContentColor = PureWhite
-                        )
-                    )
-                }
-            },
-            bottomBar = {
-                KaizenBottomNavigation(
-                        selectedTabIndex = selectedTab,
-                        onTabSelected = { selectedTab = it }
-                )
-            }
-    ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            Box(modifier = Modifier.fillMaxSize()) {
-            when (selectedTab) {
-                0 ->
-                        when (val state = uiState) {
-                            is DashboardUiState.Loading -> {
-                                Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                            color = CrayolaBlue,
-                                            modifier = Modifier.align(Alignment.Center)
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                            when (val state = uiState) {
+                                is DashboardUiState.Loading -> {
+                                    Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                                color = CrayolaBlue,
+                                                modifier = Modifier.align(Alignment.Center)
+                                        )
+                                    }
+                                }
+                                is DashboardUiState.Success -> {
+                                    val context = androidx.compose.ui.platform.LocalContext.current
+                                    DashboardWidgetGrid(
+                                        successState = state,
+                                        widgetOrder = widgetOrder,
+                                        weightHistory = weightHistory,
+                                        isEditing = isEditing,
+                                        onWorkoutClick = onWorkoutClick,
+                                        onWidgetClick = { activeBottomSheet = it },
+                                        onRemoveWidget = { widgetKey -> viewModel.removeWidget(widgetKey) },
+                                        onReorderWidgets = { updatedOrder ->
+                                            viewModel.onReorderWidgets(updatedOrder)
+                                        },
+                                        onAddWidgetClick = { showAddWidgetSheet = true }
                                     )
                                 }
-                            }
-                            is DashboardUiState.Success -> {
-                                val context = androidx.compose.ui.platform.LocalContext.current
-                                DashboardWidgetGrid(
-                                    successState = state,
-                                    widgetOrder = widgetOrder,
-                                    weightHistory = weightHistory,
-                                    isEditing = isEditing,
-                                    onWorkoutClick = onWorkoutClick,
-                                    onWidgetClick = { activeBottomSheet = it },
-                                    onRemoveWidget = { widgetKey -> viewModel.removeWidget(widgetKey) },
-                                    onReorderWidgets = { updatedOrder ->
-                                        viewModel.onReorderWidgets(updatedOrder)
-                                    },
-                                    onAddWidgetClick = { showAddWidgetSheet = true }
-                                )
-                            }
-                            is DashboardUiState.Empty -> {
-                                // Normally this handles no-data gracefully
-                            }
-                            is DashboardUiState.Error -> {
-                                val errorMessage = state.message?.takeIf { it.isNotBlank() }
-                                    ?: state.messageResId?.let { stringResource(id = it) }
-                                    ?: stringResource(id = R.string.dashboard_error_backend_connection)
-                                Box(
-                                        modifier =
-                                                Modifier.fillMaxWidth()
-                                                        .height(100.dp)
-                                                        .background(
-                                                                ShadowGrey,
-                                                                RoundedCornerShape(16.dp)
-                                                        )
-                                                        .padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = errorMessage, color = Color.Red, fontSize = 14.sp)
+                                is DashboardUiState.Empty -> {
+                                    // Normally this handles no-data gracefully
+                                }
+                                is DashboardUiState.Error -> {
+                                    val errorMessage = state.message?.takeIf { it.isNotBlank() }
+                                        ?: state.messageResId?.let { stringResource(id = it) }
+                                        ?: stringResource(id = R.string.dashboard_error_backend_connection)
+                                    Box(
+                                            modifier =
+                                                    Modifier.fillMaxWidth()
+                                                            .height(100.dp)
+                                                            .background(
+                                                                    ShadowGrey,
+                                                                    RoundedCornerShape(16.dp)
+                                                            )
+                                                            .padding(16.dp),
+                                            contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text = errorMessage, color = Color.Red, fontSize = 14.sp)
+                                    }
                                 }
                             }
                         }
+                    }
+                }
                 1 -> WorkoutsScreen()
                 2 -> StatisticsScreen()
                 3 -> SettingsScreen(onLogoutClick = onLogoutClick)
