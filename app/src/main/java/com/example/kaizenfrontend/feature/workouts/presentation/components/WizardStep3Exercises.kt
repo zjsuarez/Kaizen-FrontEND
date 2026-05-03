@@ -42,11 +42,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.data.local.SessionManager
-import com.example.kaizenfrontend.core.network.RetrofitClient
+import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
@@ -68,11 +70,11 @@ fun WizardStep3Exercises(
     showEmptyError: Boolean
 ) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "Step 3: Exercises",
+            text = stringResource(R.string.workouts_step3_title),
             color = Color.White,
             fontWeight = FontWeight.SemiBold,
             fontSize = 18.sp
@@ -80,7 +82,7 @@ fun WizardStep3Exercises(
 
         if (selectedExercises.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -88,7 +90,7 @@ fun WizardStep3Exercises(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "No exercises selected yet",
+                        text = stringResource(R.string.workouts_no_exercises_yet),
                         color = LightGrey,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -99,7 +101,7 @@ fun WizardStep3Exercises(
                         border = BorderStroke(1.dp, CrayolaBlue)
                     ) {
                         Text(
-                            text = "Add first exercise",
+                            text = stringResource(R.string.workouts_add_first_exercise),
                             color = CrayolaBlue,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -107,7 +109,7 @@ fun WizardStep3Exercises(
 
                     if (showEmptyError) {
                         Text(
-                            text = "Add at least one exercise",
+                            text = stringResource(R.string.workouts_add_at_least_one_exercise),
                             color = SubtleRed,
                             fontSize = 12.sp
                         )
@@ -128,11 +130,11 @@ fun WizardStep3Exercises(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.size(8.dp))
-                Text(text = "Add exercise")
+                Text(text = stringResource(R.string.workouts_add_exercise))
             }
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(selectedExercises, key = { it.exercise.id }) { routineExercise ->
@@ -156,7 +158,7 @@ fun ExerciseCatalogBottomSheet(
     val context = LocalContext.current
     val resolvedExerciseRepository = remember(exerciseRepository, context) {
         exerciseRepository ?: ExerciseRepositoryImpl(
-            api = RetrofitClient.exerciseService,
+            api = context.applicationContext.hiltServiceEntryPoint().exerciseApiService(),
             sessionManager = SessionManager(context),
             fallbackRepository = MockExerciseRepository()
         )
@@ -464,7 +466,7 @@ private fun SelectedExerciseCard(
                 IconButton(onClick = onRemoveClick) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Remove exercise",
+                        contentDescription = stringResource(id = R.string.workouts_remove_exercise_cd),
                         tint = LightGrey
                     )
                 }

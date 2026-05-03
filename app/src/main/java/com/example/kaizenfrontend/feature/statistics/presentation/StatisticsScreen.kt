@@ -4,17 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.clickable
@@ -24,9 +22,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
@@ -44,42 +47,53 @@ import com.example.kaizenfrontend.feature.statistics.presentation.components.Act
 import com.example.kaizenfrontend.feature.statistics.presentation.components.PrFrequencyHeatmapWidget
 import com.example.kaizenfrontend.feature.statistics.presentation.components.PrPeakTimeWidget
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen(
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsState()
     val bodyWeightProducer = viewModel.bodyWeightModelProducer
     val oneRmProducer = viewModel.estimated1RmModelProducer
     val volumeProducer = viewModel.volumeBarModelProducer
     val fatigueProducer = viewModel.fatigueModelProducer
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Analytics Lab",
-                        color = PureWhite,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Onyx,
-                    titleContentColor = PureWhite
-                )
-            )
-        },
-        containerColor = Onyx
-    ) { paddingValues ->
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshStatistics()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Onyx)
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp)
+                .padding(horizontal = 24.dp),
+            contentPadding = PaddingValues(top = 48.dp, bottom = 24.dp)
         ) {
+            item {
+                Text(
+                    text = stringResource(id = R.string.statistics_title),
+                    color = PureWhite,
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
             item {
                 TimeRangeSelector(
                     selectedRange = uiState.selectedTimeRange,
@@ -89,7 +103,7 @@ fun StatisticsScreen(
 
             // Strength & Health 
             item {
-                SectionHeader(title = "Strength & Health")
+                SectionHeader(title = stringResource(id = R.string.statistics_strength_health))
             }
 
             item {
@@ -119,7 +133,7 @@ fun StatisticsScreen(
 
             // Hypertrophy & Overload 
             item {
-                SectionHeader(title = "Hypertrophy & Overload")
+                SectionHeader(title = stringResource(id = R.string.statistics_hypertrophy_overload))
             }
 
             item {
@@ -151,7 +165,7 @@ fun StatisticsScreen(
 
             // Efficiency & Fatigue (The Brain)
             item {
-                SectionHeader(title = "Efficiency & Fatigue")
+                SectionHeader(title = stringResource(id = R.string.statistics_efficiency_fatigue))
             }
 
             item {
@@ -183,7 +197,7 @@ fun StatisticsScreen(
 
             // Discipline & Habits
             item {
-                SectionHeader(title = "Discipline & Habits")
+                SectionHeader(title = stringResource(id = R.string.statistics_discipline_habits))
             }
 
             item {
@@ -250,7 +264,7 @@ private fun TimeRangeSelector(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = range.label,
+                    text = stringResource(id = range.labelResId),
                     color = if (isSelected) CrayolaBlue else LightGrey,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold

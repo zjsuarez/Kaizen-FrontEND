@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
+import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.auth.data.repository.AuthRepositoryImpl
 import com.example.kaizenfrontend.feature.auth.domain.usecase.LoginUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,18 +28,23 @@ sealed class LoginUiState {
 
 class LoginViewModel(context: Context) : ViewModel() {
 
+    private val appContext = context.applicationContext
+    private val serviceEntryPoint = appContext.hiltServiceEntryPoint()
     private val sessionManager = SessionManager(context)
-    private val authRepository = AuthRepositoryImpl(sessionManager)
+    private val authRepository = AuthRepositoryImpl(serviceEntryPoint.authApiService(), sessionManager)
     private val loginUseCase = LoginUseCase(authRepository)
 
-    private val userRepository = com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl(sessionManager)
+    private val userRepository = com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl(
+        serviceEntryPoint.userApiService(),
+        sessionManager
+    )
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
-            _uiState.value = LoginUiState.Error("Please fill in all fields")
+            _uiState.value = LoginUiState.Error(appContext.getString(com.example.kaizenfrontend.R.string.auth_error_fill_all_fields))
             return
         }
         viewModelScope.launch {
@@ -50,11 +56,11 @@ class LoginViewModel(context: Context) : ViewModel() {
                 sessionManager.awaitTokenPersistence(token)
                 checkCalibrationAndEmitSuccess(token)
             } else {
-                val errorMessage = result.exceptionOrNull()?.message ?: "Login failed"
+                val errorMessage = result.exceptionOrNull()?.message ?: appContext.getString(com.example.kaizenfrontend.R.string.auth_error_login_failed)
                 if (errorMessage.contains("OAUTH_ONLY_ACCOUNT", ignoreCase = true)) {
-                    _uiState.value = LoginUiState.Error("This account uses Google Sign-In. Please use the Google button or Reset Password to create a local key.")
+                    _uiState.value = LoginUiState.Error(appContext.getString(com.example.kaizenfrontend.R.string.auth_error_google_account_only))
                 } else if (errorMessage.contains("INVALID_CREDENTIALS", ignoreCase = true)) {
-                    _uiState.value = LoginUiState.Error("Wrong password")
+                    _uiState.value = LoginUiState.Error(appContext.getString(com.example.kaizenfrontend.R.string.auth_error_wrong_password))
                 } else {
                     _uiState.value = LoginUiState.Error(errorMessage)
                 }
@@ -140,15 +146,15 @@ class LoginViewModel(context: Context) : ViewModel() {
                         sessionManager.awaitTokenPersistence(token)
                         checkCalibrationAndEmitSuccess(token, fromGoogleAuth = true)
                     } else {
-                        _uiState.value = LoginUiState.Error(loginResult.exceptionOrNull()?.message ?: "Google Login failed")
+                        _uiState.value = LoginUiState.Error(loginResult.exceptionOrNull()?.message ?: appContext.getString(com.example.kaizenfrontend.R.string.auth_error_google_login_failed))
                     }
                 } else {
-                    _uiState.value = LoginUiState.Error("Unexpected credential type")
+                    _uiState.value = LoginUiState.Error(appContext.getString(com.example.kaizenfrontend.R.string.auth_error_unexpected_credential_type))
                 }
             } catch (e: GetCredentialCancellationException) {
                 _uiState.value = LoginUiState.Idle
             } catch (e: Exception) {
-                _uiState.value = LoginUiState.Error(e.message ?: "Google Sign-In failed")
+                _uiState.value = LoginUiState.Error(e.message ?: appContext.getString(com.example.kaizenfrontend.R.string.auth_error_google_sign_in_failed))
             }
         }
     }

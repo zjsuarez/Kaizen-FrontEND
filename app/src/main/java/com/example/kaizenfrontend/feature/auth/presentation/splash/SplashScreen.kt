@@ -1,6 +1,8 @@
 package com.example.kaizenfrontend.feature.auth.presentation.splash
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
@@ -11,10 +13,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.data.local.SessionManager
+import com.example.kaizenfrontend.core.ui.components.PreLoginLanguagePicker
 import com.example.kaizenfrontend.core.ui.theme.Onyx
+import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl
 import com.example.kaizenfrontend.feature.user.domain.usecase.GetCurrentUserUseCase
 
@@ -27,7 +34,12 @@ fun SplashScreen(
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val getCurrentUserUseCase = remember {
-        GetCurrentUserUseCase(UserRepositoryImpl(sessionManager))
+        GetCurrentUserUseCase(
+            UserRepositoryImpl(
+                context.applicationContext.hiltServiceEntryPoint().userApiService(),
+                sessionManager
+            )
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -66,8 +78,16 @@ fun SplashScreen(
             .background(Onyx),
         contentAlignment = Alignment.Center
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopEnd)
+                .padding(top = 48.dp, end = 24.dp)
+        ) {
+            PreLoginLanguagePicker()
+        }
         Text(
-            text = "KAIZEN",
+            text = stringResource(id = R.string.auth_app_name_splash),
             color = Color.White,
             fontSize = 38.sp,
             fontWeight = FontWeight.Bold,

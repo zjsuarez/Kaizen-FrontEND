@@ -8,7 +8,9 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.data.local.SessionManager
+import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.dashboard.data.local.DashboardPreferences
 import com.example.kaizenfrontend.feature.dashboard.data.repository.DashboardRepository
 import com.example.kaizenfrontend.feature.dashboard.worker.DashboardSyncWorker
@@ -65,7 +67,12 @@ constructor(
         val showGoogleWelcomePrompt: StateFlow<Boolean> = _showGoogleWelcomePrompt.asStateFlow()
 
         private val sessionManager by lazy { SessionManager(appContext) }
-        private val userRepository by lazy { UserRepositoryImpl(sessionManager) }
+        private val userRepository by lazy {
+            UserRepositoryImpl(
+                appContext.hiltServiceEntryPoint().userApiService(),
+                sessionManager
+            )
+        }
 
     val widgetOrder: StateFlow<List<String>> =
             dashboardPreferences.widgetOrder.stateIn(
@@ -192,12 +199,19 @@ constructor(
                                 if (_uiState.value !is DashboardUiState.Success) {
                                     _uiState.value =
                                             DashboardUiState.Error(
-                                                    error.message ?: "Failed to connect to backend."
+                                                    message = error.message,
+                                                    messageResId = R.string.dashboard_error_backend_connection
                                             )
                                 }
                             }
                     )
         }
+    }
+
+    fun onScreenFocused() {
+        refreshDashboardData()
+        fetchWeightHistory()
+        evaluateGoogleWelcomePrompt()
     }
 
     fun logBodyWeight(weight: Double) {

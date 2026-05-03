@@ -25,6 +25,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,11 +49,11 @@ fun ActivityHeatmapWidget(
     modifier: Modifier = Modifier
 ) {
     KaizenChartWidget(
-        title = "Activity Consistency",
-        subtitle = "GitHub-style streak map of workout days",
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_activity_consistency_title),
+        subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_activity_consistency_subtitle),
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
-        emptyMessage = uiState.message,
+        emptyMessage = uiState.message.resolve(),
         headerContent = {
             HeatmapHeader(
                 totalHighlights = uiState.totalHighlights,
@@ -77,11 +79,11 @@ fun PrFrequencyHeatmapWidget(
     modifier: Modifier = Modifier
 ) {
     KaizenChartWidget(
-        title = "PR Frequency",
-        subtitle = "Days where personal records were achieved",
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_pr_frequency_title),
+        subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_pr_frequency_subtitle),
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
-        emptyMessage = uiState.message,
+        emptyMessage = uiState.message.resolve(),
         headerContent = {
             HeatmapHeader(
                 totalHighlights = uiState.totalHighlights,
@@ -107,19 +109,28 @@ fun PrPeakTimeWidget(
     modifier: Modifier = Modifier
 ) {
     KaizenChartWidget(
-        title = "PR Peak Time",
-        subtitle = "When in the day your PRs usually happen",
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_pr_peak_time_title),
+        subtitle = stringResource(id = com.example.kaizenfrontend.R.string.statistics_pr_peak_time_subtitle),
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
-        emptyMessage = uiState.message,
+        emptyMessage = uiState.message.resolve(),
         headerContent = {
             if (!uiState.isLoading && !uiState.isEmpty) {
                 val formatter = remember { DateTimeFormatter.ofPattern("MMM dd") }
                 val start = uiState.startDate?.format(formatter).orEmpty()
                 val end = uiState.endDate?.format(formatter).orEmpty()
-                val rangeLabel = if (start.isNotBlank() && end.isNotBlank()) "$start to $end" else ""
+                val rangeLabel = if (start.isNotBlank() && end.isNotBlank()) {
+                    stringResource(id = com.example.kaizenfrontend.R.string.statistics_date_range, start, end)
+                } else {
+                    ""
+                }
+                val eventsLabel = pluralStringResource(
+                    id = com.example.kaizenfrontend.R.plurals.statistics_pr_events_count,
+                    count = uiState.points.size,
+                    uiState.points.size
+                )
                 Text(
-                    text = "${uiState.points.size} PR events${if (rangeLabel.isNotBlank()) "  |  $rangeLabel" else ""}",
+                    text = "$eventsLabel${if (rangeLabel.isNotBlank()) "  |  $rangeLabel" else ""}",
                     color = LightGrey,
                     fontSize = 11.sp,
                     modifier = Modifier.padding(bottom = 10.dp)
@@ -145,10 +156,19 @@ private fun HeatmapHeader(
     val formatter = remember { DateTimeFormatter.ofPattern("MMM dd") }
     val start = startDate?.format(formatter).orEmpty()
     val end = endDate?.format(formatter).orEmpty()
-    val rangeLabel = if (start.isNotBlank() && end.isNotBlank()) "$start to $end" else ""
+    val rangeLabel = if (start.isNotBlank() && end.isNotBlank()) {
+        stringResource(id = com.example.kaizenfrontend.R.string.statistics_date_range, start, end)
+    } else {
+        ""
+    }
+    val activeDaysLabel = pluralStringResource(
+        id = com.example.kaizenfrontend.R.plurals.statistics_active_days_count,
+        count = totalHighlights,
+        totalHighlights
+    )
 
     Text(
-        text = "$totalHighlights active days${if (rangeLabel.isNotBlank()) "  |  $rangeLabel" else ""}",
+        text = "$activeDaysLabel${if (rangeLabel.isNotBlank()) "  |  $rangeLabel" else ""}",
         color = LightGrey,
         fontSize = 11.sp,
         modifier = Modifier.padding(bottom = 10.dp)
@@ -266,7 +286,15 @@ private fun DayAxisLabels(
     cellHeight: androidx.compose.ui.unit.Dp,
     rowSpacing: androidx.compose.ui.unit.Dp
 ) {
-    val labels = listOf("M", "", "W", "", "F", "", "")
+    val labels = listOf(
+        stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_mon_short),
+        "",
+        stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_wed_short),
+        "",
+        stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_fri_short),
+        "",
+        ""
+    )
     Column(verticalArrangement = Arrangement.spacedBy(rowSpacing)) {
         labels.forEach { label ->
             Box(
@@ -292,7 +320,7 @@ private fun HeatmapLegend(activeColor: Color) {
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = "Less", color = LightGrey, fontSize = 10.sp)
+        Text(text = stringResource(id = com.example.kaizenfrontend.R.string.statistics_less), color = LightGrey, fontSize = 10.sp)
         Spacer(modifier = Modifier.width(6.dp))
         levels.forEach { level ->
             Box(
@@ -304,7 +332,7 @@ private fun HeatmapLegend(activeColor: Color) {
             Spacer(modifier = Modifier.width(4.dp))
         }
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text = "More", color = LightGrey, fontSize = 10.sp)
+        Text(text = stringResource(id = com.example.kaizenfrontend.R.string.statistics_more), color = LightGrey, fontSize = 10.sp)
     }
 }
 
@@ -407,7 +435,7 @@ private fun PrPeakTimeScatter(
         }
 
         Text(
-            text = "Date",
+            text = stringResource(id = com.example.kaizenfrontend.R.string.statistics_date),
             color = PureWhite,
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,

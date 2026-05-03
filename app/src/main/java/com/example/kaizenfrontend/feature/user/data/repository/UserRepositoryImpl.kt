@@ -1,16 +1,15 @@
 package com.example.kaizenfrontend.feature.user.data.repository
 
 import com.example.kaizenfrontend.core.data.local.SessionManager
-import com.example.kaizenfrontend.core.network.RetrofitClient
+import com.example.kaizenfrontend.feature.user.data.remote.UserApiService
 import com.example.kaizenfrontend.feature.user.data.remote.dto.UserUpdateRequest
 import com.example.kaizenfrontend.feature.user.domain.model.User
 import com.example.kaizenfrontend.feature.user.domain.repository.UserRepository
 
 class UserRepositoryImpl(
+    private val api: UserApiService,
     private val sessionManager: SessionManager
 ) : UserRepository {
-
-    private val api = RetrofitClient.userService
 
     private fun toBearer(tokenOrBearer: String?): String? {
         val normalized = tokenOrBearer

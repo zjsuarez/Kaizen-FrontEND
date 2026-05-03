@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
-import com.example.kaizenfrontend.core.network.RetrofitClient
+import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.workouts.data.repository.ExerciseRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.data.repository.PlanRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.data.repository.MockExerciseRepository
@@ -101,21 +101,31 @@ class WorkoutsViewModel(
         cycleLength: Int? = null
     ) {
         viewModelScope.launch {
+            val isFirstPlan = (_uiState.value as? WorkoutsUiState.Success)
+                ?.plans
+                ?.isEmpty()
+                ?: true  // If state is Loading/Error we treat it as "no plans yet"
+
             _uiState.value = WorkoutsUiState.Loading
+
             val result = createPlanUseCase(
-                name = name,
+                name        = name,
                 description = description,
                 startingDate = startingDate,
-                interval = interval,
-                cycleLength = cycleLength
+                interval    = interval,
+                cycleLength = cycleLength,
+                isActive    = isFirstPlan   // explicit: only first plan auto-activates
             )
             if (result.isSuccess) {
                 loadData()
             } else {
-                _uiState.value = WorkoutsUiState.Error(result.exceptionOrNull()?.message ?: "Failed to create plan")
+                _uiState.value = WorkoutsUiState.Error(
+                    result.exceptionOrNull()?.message ?: "Failed to create plan"
+                )
             }
         }
     }
+
 
     fun createRoutine(
         planId: String?,
@@ -217,6 +227,55 @@ class WorkoutsViewModel(
             }
         }
     }
+
+    fun setPlanAsActive(planId: String) {
+        // Snapshot state BEFORE mutation to capture who needs deactivating
+        val currentSuccess = _uiState.value as? WorkoutsUiState.Success ?: return
+        val planToActivate = currentSuccess.plans.firstOrNull { it.id == planId } ?: return
+        val plansToDeactivate = currentSuccess.plans.filter { it.isActive && it.id != planId }
+
+        // Optimistic local update
+        _uiState.update { state ->
+            if (state !is WorkoutsUiState.Success) return@update state
+            state.copy(
+                plans = state.plans.map { plan ->
+                    plan.copy(isActive = plan.id == planId)
+                }
+            )
+        }
+
+        // Backend persistence
+        viewModelScope.launch {
+            // Step 1: deactivate every previously-active plan
+            plansToDeactivate.forEach { plan ->
+                updatePlanUseCase(
+                    planId      = plan.id,
+                    name        = plan.name,
+                    description = plan.description,
+                    isActive    = false
+                )
+            }
+
+            // Step 2: activate the target plan
+            val result = updatePlanUseCase(
+                planId      = planId,
+                name        = planToActivate.name,
+                description = planToActivate.description,
+                isActive    = true
+            )
+
+            // Step 3: merge canonical backend response (server may adjust fields)
+            result.getOrNull()?.let { canonical ->
+                _uiState.update { state ->
+                    if (state !is WorkoutsUiState.Success) return@update state
+                    state.copy(
+                        plans = state.plans.map { if (it.id == canonical.id) canonical else it }
+                    )
+                }
+            }
+        }
+    }
+
 
     fun deletePlan(planId: String) {
         viewModelScope.launch {
@@ -332,14 +391,15 @@ class WorkoutsViewModel(
 class WorkoutsViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(WorkoutsViewModel::class.java)) {
+            val serviceEntryPoint = context.applicationContext.hiltServiceEntryPoint()
             val sessionManager = SessionManager(context)
-            val planRepo = PlanRepositoryImpl(RetrofitClient.planService, sessionManager)
+            val planRepo = PlanRepositoryImpl(serviceEntryPoint.planApiService(), sessionManager)
             val exerciseRepo = ExerciseRepositoryImpl(
-                api = RetrofitClient.exerciseService,
+                api = serviceEntryPoint.exerciseApiService(),
                 sessionManager = sessionManager,
                 fallbackRepository = MockExerciseRepository()
             )
-            val routineRepo = RoutineRepositoryImpl(RetrofitClient.routineService, sessionManager, exerciseRepo)
+            val routineRepo = RoutineRepositoryImpl(serviceEntryPoint.routineApiService(), sessionManager, exerciseRepo)
             @Suppress("UNCHECKED_CAST")
             return WorkoutsViewModel(
                 GetPlansUseCase(planRepo),

@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
@@ -190,7 +192,7 @@ fun CreateCustomExerciseWizardOverlay(
                         IconButton(onClick = ::goBack, enabled = !isSubmitting) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back",
+                                contentDescription = stringResource(id = R.string.auth_back),
                                 tint = PureWhite
                             )
                         }
@@ -205,7 +207,7 @@ fun CreateCustomExerciseWizardOverlay(
                                 )
                             ) {
                                 Text(
-                                    text = if (isSubmitting) "SAVING..." else "FINISH",
+                                    text = if (isSubmitting) stringResource(id = R.string.workouts_saving) else stringResource(id = R.string.workouts_finish_uppercase),
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
@@ -239,7 +241,7 @@ fun CreateCustomExerciseWizardOverlay(
                                     name = it
                                     if (nameError != null) nameError = null
                                 },
-                                placeholder = "Unilateral Lat Pulldown"
+                                placeholder = stringResource(id = R.string.workouts_custom_exercise_name_placeholder)
                             )
                             ValidationSlot(error = nameError)
 
@@ -249,13 +251,13 @@ fun CreateCustomExerciseWizardOverlay(
                                     description = it
                                     onClearExternalError()
                                 },
-                                placeholder = "Optional notes",
+                                placeholder = stringResource(id = R.string.workouts_optional_notes_placeholder),
                                 minLines = 4
                             )
                             Spacer(modifier = Modifier.weight(1f))
 
                             WizardActionButton(
-                                text = "NEXT",
+                                text = stringResource(id = R.string.workouts_next),
                                 onClick = ::goNext,
                                 enabled = !isSubmitting
                             )

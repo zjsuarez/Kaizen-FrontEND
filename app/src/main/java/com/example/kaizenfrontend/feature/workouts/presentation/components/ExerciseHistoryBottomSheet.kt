@@ -33,12 +33,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
@@ -125,7 +127,7 @@ private fun ExerciseHistorySheetContent(
             .padding(horizontal = 20.dp, vertical = 8.dp)
     ) {
         Text(
-            text = "${target.exerciseName} - History",
+            text = stringResource(id = R.string.workouts_history_title, target.exerciseName),
             color = PureWhite,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
@@ -134,7 +136,7 @@ private fun ExerciseHistorySheetContent(
         )
 
         Text(
-            text = "Recent workouts first",
+            text = stringResource(id = R.string.workouts_history_recent_first),
             color = LightGrey,
             fontSize = 13.sp,
             modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
@@ -167,7 +169,7 @@ private fun ExerciseHistorySheetContent(
                             modifier = Modifier.padding(top = 12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = CrayolaBlue)
                         ) {
-                            Text("Retry")
+                            Text(stringResource(id = R.string.workouts_retry))
                         }
                     }
                 }
@@ -179,7 +181,7 @@ private fun ExerciseHistorySheetContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No history found for this exercise yet.",
+                        text = stringResource(id = R.string.workouts_history_empty),
                         color = LightGrey,
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center
@@ -239,7 +241,7 @@ private fun ExerciseHistoryWorkoutCard(
 
             if (item.isMostRecent) {
                 Text(
-                    text = "Most recent workout",
+                    text = stringResource(id = R.string.workouts_history_most_recent),
                     color = CrayolaBlue,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -270,21 +272,25 @@ private fun ExerciseHistoryHeaderRow(weightUnit: WeightUnit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Set #",
+            text = stringResource(id = R.string.workouts_set_number),
             color = LightGrey.copy(alpha = 0.8f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.width(52.dp)
         )
         Text(
-            text = if (weightUnit == WeightUnit.KG) "Weight (kg)" else "Weight (lbs)",
+            text = if (weightUnit == WeightUnit.KG) {
+                stringResource(id = R.string.workouts_weight_kg)
+            } else {
+                stringResource(id = R.string.workouts_weight_lbs)
+            },
             color = LightGrey.copy(alpha = 0.8f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = "Reps",
+            text = stringResource(id = R.string.workouts_reps),
             color = LightGrey.copy(alpha = 0.8f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
@@ -292,7 +298,7 @@ private fun ExerciseHistoryHeaderRow(weightUnit: WeightUnit) {
             textAlign = TextAlign.End
         )
         Text(
-            text = "RPE",
+            text = stringResource(id = R.string.workouts_rpe),
             color = LightGrey.copy(alpha = 0.8f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,

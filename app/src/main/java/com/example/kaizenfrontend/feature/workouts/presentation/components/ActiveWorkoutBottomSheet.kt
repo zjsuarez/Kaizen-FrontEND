@@ -59,6 +59,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -67,6 +68,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.ui.components.formatElapsed
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
@@ -291,7 +293,7 @@ private fun WorkoutHeader(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add exercise",
+                    contentDescription = stringResource(id = R.string.workouts_add_exercise_cd),
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -306,7 +308,7 @@ private fun WorkoutHeader(
                 )
             ) {
                 Text(
-                    text = "Finish",
+                    text = stringResource(id = R.string.workouts_finish),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp
                 )
@@ -337,7 +339,11 @@ internal fun RestTimerBar(
         IconButton(onClick = onPlayPause) {
             Icon(
                 imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (isRunning) "Pause rest" else "Start rest",
+                contentDescription = if (isRunning) {
+                    stringResource(id = R.string.workouts_pause_rest_cd)
+                } else {
+                    stringResource(id = R.string.workouts_start_rest_cd)
+                },
                 tint = PureWhite,
                 modifier = Modifier.size(22.dp)
             )
@@ -361,7 +367,7 @@ internal fun RestTimerBar(
         IconButton(onClick = onReset) {
             Icon(
                 imageVector = Icons.Default.Replay,
-                contentDescription = "Reset rest timer",
+                contentDescription = stringResource(id = R.string.workouts_reset_rest_timer_cd),
                 tint = LightGrey,
                 modifier = Modifier.size(20.dp)
             )
@@ -463,7 +469,7 @@ private fun ActiveExerciseRow(
             // Subtle drag handle
             Icon(
                 imageVector = Icons.Default.DragHandle,
-                contentDescription = "Reorder",
+                contentDescription = stringResource(id = R.string.workouts_reorder_cd),
                 tint = PureWhite.copy(alpha = 0.18f),
                 modifier = Modifier.size(18.dp)
             )
@@ -495,7 +501,7 @@ private fun ActiveExerciseRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.AspectRatio, // We will need to import AspectRatio or Fullscreen
-                    contentDescription = "Zen Mode",
+                    contentDescription = stringResource(id = R.string.workouts_zen_mode_cd),
                     tint = CrayolaBlue,
                     modifier = Modifier.size(20.dp)
                 )
@@ -504,7 +510,11 @@ private fun ActiveExerciseRow(
             // Animated chevron
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = if (exercise.isExpanded) "Collapse" else "Expand",
+                contentDescription = if (exercise.isExpanded) {
+                    stringResource(id = R.string.workouts_collapse_cd)
+                } else {
+                    stringResource(id = R.string.workouts_expand_cd)
+                },
                 tint = LightGrey,
                 modifier = Modifier
                     .size(22.dp)
@@ -532,7 +542,7 @@ private fun ActiveExerciseRow(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "SET",
+                        text = stringResource(id = R.string.workouts_set),
                         color = LightGrey.copy(alpha = 0.5f),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -540,7 +550,7 @@ private fun ActiveExerciseRow(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "WEIGHT",
+                        text = stringResource(id = R.string.workouts_weight),
                         color = LightGrey.copy(alpha = 0.5f),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -548,7 +558,7 @@ private fun ActiveExerciseRow(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "REPS",
+                        text = stringResource(id = R.string.workouts_reps),
                         color = LightGrey.copy(alpha = 0.5f),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -594,7 +604,7 @@ private fun ActiveExerciseRow(
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     Text(
-                        text = "+ Add Set",
+                        text = stringResource(id = R.string.workouts_add_set_button),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -648,7 +658,7 @@ internal fun WorkoutSetRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Change Set Type",
+                    contentDescription = stringResource(id = R.string.workouts_change_set_type_cd),
                     tint = LightGrey.copy(alpha = 0.5f),
                     modifier = Modifier.size(16.dp)
                 )
@@ -691,7 +701,7 @@ internal fun WorkoutSetRow(
             value = set.weight,
             onValueChange = onWeightChange,
             suffix = weightUnit,
-            placeholder = "—",
+            placeholder = stringResource(id = R.string.workouts_em_dash),
             modifier = Modifier.weight(1f)
         )
 
@@ -699,8 +709,8 @@ internal fun WorkoutSetRow(
         SetInputField(
             value = set.reps,
             onValueChange = onRepsChange,
-            suffix = "reps",
-            placeholder = "—",
+            suffix = stringResource(id = R.string.workouts_reps),
+            placeholder = stringResource(id = R.string.workouts_em_dash),
             modifier = Modifier.weight(1f)
         )
 
@@ -713,7 +723,7 @@ internal fun WorkoutSetRow(
             value = if (isRirDisabled) "0" else set.rpe,
             onValueChange = onRpeChange,
             suffix = effortMetric,
-            placeholder = "—",
+            placeholder = stringResource(id = R.string.workouts_em_dash),
             enabled = !isRirDisabled,
             modifier = Modifier.weight(1f)
         )
@@ -731,7 +741,11 @@ internal fun WorkoutSetRow(
         ) {
             Icon(
                 imageVector = Icons.Default.Check,
-                contentDescription = if (set.isCompleted) "Mark incomplete" else "Mark complete",
+                contentDescription = if (set.isCompleted) {
+                    stringResource(id = R.string.workouts_mark_incomplete_cd)
+                } else {
+                    stringResource(id = R.string.workouts_mark_complete_cd)
+                },
                 tint = if (set.isCompleted) PureWhite else LightGrey.copy(alpha = 0.4f),
                 modifier = Modifier.size(16.dp)
             )

@@ -1,12 +1,19 @@
 package com.example.kaizenfrontend
 
+import android.app.Activity
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -21,7 +28,7 @@ import com.example.kaizenfrontend.feature.user.presentation.calibration.Calibrat
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -37,11 +44,22 @@ class MainActivity : ComponentActivity() {
 fun KaizenNavHost() {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val activity = context as? Activity
     val sessionManager = remember { SessionManager(context) }
+    var restoredRoute by rememberSaveable { mutableStateOf<String?>(null) }
+    val backStackEntry by navController.currentBackStackEntryAsState()
+
+    LaunchedEffect(backStackEntry) {
+        backStackEntry?.destination?.route?.let { route ->
+            if (route != "splash") {
+                restoredRoute = route
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
-        startDestination = "splash"
+        startDestination = restoredRoute ?: "splash"
     ) {
         composable("splash") {
             SplashScreen(
@@ -64,13 +82,37 @@ fun KaizenNavHost() {
         }
         composable("start") {
             StartScreen(
-                onGetStartedClick = { navController.navigate("signup") },
-                onLoginClick = { navController.navigate("login") }
+                onGetStartedClick = {
+                    navController.navigate("signup") {
+                        launchSingleTop = true
+                    }
+                },
+                onLoginClick = {
+                    navController.navigate("login") {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
         composable("signup") {
             SignUpScreen(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    navController.navigate("start") {
+                        popUpTo("start") { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
+                onSystemBack = {
+                    if (!navController.popBackStack()) {
+                        activity?.finish()
+                    }
+                },
+                onLoginClick = {
+                    navController.navigate("login") {
+                        popUpTo("signup") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
                 onSignUpClick = { needsCalibration ->
                     if (needsCalibration) {
                         navController.navigate("calibration") {
@@ -86,7 +128,17 @@ fun KaizenNavHost() {
         }
         composable("login") {
             LoginScreen(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    navController.navigate("start") {
+                        popUpTo("start") { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
+                onSystemBack = {
+                    if (!navController.popBackStack()) {
+                        activity?.finish()
+                    }
+                },
                 onLoginClick = { needsCalibration ->
                     if (needsCalibration) {
                         navController.navigate("calibration") {

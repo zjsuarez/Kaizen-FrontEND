@@ -2,6 +2,7 @@ package com.example.kaizenfrontend.feature.dashboard.presentation
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,18 +43,23 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.kaizenfrontend.R
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
@@ -174,6 +181,7 @@ fun DashboardScreen(
         onWorkoutClick: () -> Unit = {},
         onLogoutClick: () -> Unit = {}
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val widgetOrder by viewModel.widgetOrder.collectAsState()
@@ -192,7 +200,7 @@ fun DashboardScreen(
     val todayLabel = remember {
         LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault()))
     }
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showAddWidgetSheet by remember { mutableStateOf(false) }
     var showActiveWorkoutSheet by remember { mutableStateOf(false) }
     var zenModeInitialPage by remember { mutableStateOf<Int?>(null) }
@@ -205,21 +213,53 @@ fun DashboardScreen(
     val googleWelcomeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var activeBottomSheet by remember { mutableStateOf<DashboardBottomSheetType?>(null) }
 
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.onScreenFocused()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     Scaffold(
             containerColor = Onyx,
-            topBar = {
-                if (selectedTab == 0) {
-                    TopAppBar(
-                        title = {
-                            Column {
+            topBar = {},
+            bottomBar = {
+                KaizenBottomNavigation(
+                        selectedTabIndex = selectedTab,
+                        onTabSelected = { selectedTab = it }
+                )
+            }
+    ) { paddingValues ->
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Box(modifier = Modifier.fillMaxSize()) {
+            when (selectedTab) {
+                0 -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 48.dp, bottom = 24.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Workouts",
+                                    text = stringResource(id = R.string.dashboard_title),
                                     color = PureWhite,
                                     fontSize = 38.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Hola, $userName",
+                                    text = stringResource(id = R.string.dashboard_hello, userName),
                                     color = LightGrey,
                                     fontSize = 14.sp,
                                     modifier = Modifier.padding(top = 2.dp)
@@ -231,8 +271,9 @@ fun DashboardScreen(
                                     modifier = Modifier.padding(top = 1.dp)
                                 )
                             }
-                        },
-                        actions = {
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
                             if (!isEditing) {
                                 FloatingActionButton(
                                     onClick = { viewModel.toggleEditMode() },
@@ -242,15 +283,14 @@ fun DashboardScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Edit,
-                                        contentDescription = "Enter edit mode",
+                                        contentDescription = stringResource(id = R.string.dashboard_edit_mode_enter),
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
                             } else {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(end = 12.dp)
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     FloatingActionButton(
                                         onClick = { showAddWidgetSheet = true },
@@ -260,7 +300,7 @@ fun DashboardScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Add,
-                                            contentDescription = "Add widget",
+                                            contentDescription = stringResource(id = R.string.dashboard_add_widget),
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -276,78 +316,73 @@ fun DashboardScreen(
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Done", color = PureWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(
+                                            text = stringResource(id = R.string.dashboard_edit_mode_done),
+                                            color = PureWhite,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Onyx,
-                            titleContentColor = PureWhite,
-                            actionIconContentColor = PureWhite
-                        )
-                    )
-                }
-            },
-            bottomBar = {
-                KaizenBottomNavigation(
-                        selectedTabIndex = selectedTab,
-                        onTabSelected = { selectedTab = it }
-                )
-            }
-    ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            Box(modifier = Modifier.fillMaxSize()) {
-            when (selectedTab) {
-                0 ->
-                        when (val state = uiState) {
-                            is DashboardUiState.Loading -> {
-                                Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                            color = CrayolaBlue,
-                                            modifier = Modifier.align(Alignment.Center)
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                            when (val state = uiState) {
+                                is DashboardUiState.Loading -> {
+                                    Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                                color = CrayolaBlue,
+                                                modifier = Modifier.align(Alignment.Center)
+                                        )
+                                    }
+                                }
+                                is DashboardUiState.Success -> {
+                                    val context = androidx.compose.ui.platform.LocalContext.current
+                                    DashboardWidgetGrid(
+                                        successState = state,
+                                        widgetOrder = widgetOrder,
+                                        weightHistory = weightHistory,
+                                        isEditing = isEditing,
+                                        onWorkoutClick = onWorkoutClick,
+                                        onWidgetClick = { activeBottomSheet = it },
+                                        onRemoveWidget = { widgetKey -> viewModel.removeWidget(widgetKey) },
+                                        onReorderWidgets = { updatedOrder ->
+                                            viewModel.onReorderWidgets(updatedOrder)
+                                        },
+                                        onAddWidgetClick = { showAddWidgetSheet = true }
                                     )
                                 }
-                            }
-                            is DashboardUiState.Success -> {
-                                val context = androidx.compose.ui.platform.LocalContext.current
-                                DashboardWidgetGrid(
-                                    successState = state,
-                                    widgetOrder = widgetOrder,
-                                    weightHistory = weightHistory,
-                                    isEditing = isEditing,
-                                    onWorkoutClick = onWorkoutClick,
-                                    onWidgetClick = { activeBottomSheet = it },
-                                    onRemoveWidget = { widgetKey -> viewModel.removeWidget(widgetKey) },
-                                    onReorderWidgets = { updatedOrder ->
-                                        viewModel.onReorderWidgets(updatedOrder)
-                                    },
-                                    onAddWidgetClick = { showAddWidgetSheet = true }
-                                )
-                            }
-                            is DashboardUiState.Empty -> {
-                                // Normally this handles no-data gracefully
-                            }
-                            is DashboardUiState.Error -> {
-                                Box(
-                                        modifier =
-                                                Modifier.fillMaxWidth()
-                                                        .height(100.dp)
-                                                        .background(
-                                                                ShadowGrey,
-                                                                RoundedCornerShape(16.dp)
-                                                        )
-                                                        .padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = state.message, color = Color.Red, fontSize = 14.sp)
+                                is DashboardUiState.Empty -> {
+                                    // Normally this handles no-data gracefully
+                                }
+                                is DashboardUiState.Error -> {
+                                    val errorMessage = state.message?.takeIf { it.isNotBlank() }
+                                        ?: state.messageResId?.let { stringResource(id = it) }
+                                        ?: stringResource(id = R.string.dashboard_error_backend_connection)
+                                    Box(
+                                            modifier =
+                                                    Modifier.fillMaxWidth()
+                                                            .height(100.dp)
+                                                            .background(
+                                                                    ShadowGrey,
+                                                                    RoundedCornerShape(16.dp)
+                                                            )
+                                                            .padding(16.dp),
+                                            contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text = errorMessage, color = Color.Red, fontSize = 14.sp)
+                                    }
                                 }
                             }
                         }
+                    }
+                }
                 1 -> WorkoutsScreen()
                 2 -> StatisticsScreen()
                 3 -> SettingsScreen(onLogoutClick = onLogoutClick)
@@ -376,7 +411,7 @@ fun DashboardScreen(
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Text(
-                        text = "Mantén pulsado y arrastra para reordenar",
+                        text = stringResource(id = R.string.dashboard_edit_mode_reorder_hint),
                         color = LightGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
@@ -707,6 +742,10 @@ private fun WidgetContent(
     onWidgetClick: (DashboardBottomSheetType) -> Unit
 ) {
     val data = successState.data
+    val freeLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_free_label)
+    val neverLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_never_label)
+    val overviewLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_overview_label)
+
     when (widgetType) {
         WidgetType.STREAK ->
             widgetModifier.StreakWidget(streakDays = data.workoutStreak)
@@ -714,7 +753,7 @@ private fun WidgetContent(
             AvgTimeWidget(minutes = data.avgDurationMinutes, trendDiffMinutes = 0, modifier = widgetModifier)
         WidgetType.ONE_RM ->
             OneRmWidget(
-                exercise = "Estimated 1RM",
+                exercise = stringResource(id = com.example.kaizenfrontend.R.string.statistics_estimated_1rm_title),
                 weight = data.estimated1RM,
                 isNewPr = false,
                 weightIncrease = 0.0,
@@ -725,7 +764,11 @@ private fun WidgetContent(
             val isPos = diff >= 0
             WeightTrendWidget(
                 currentWeight = data.currentWeight ?: 0.0,
-                trendLabel = "${if (isPos) "+" else ""}$diff kg esta semana",
+                trendLabel = if (isPos) {
+                    stringResource(id = com.example.kaizenfrontend.R.string.dashboard_weight_trend_up_week, diff)
+                } else {
+                    stringResource(id = com.example.kaizenfrontend.R.string.dashboard_weight_trend_down_week, diff)
+                },
                 isPositive = isPos,
                 modifier = widgetModifier,
                 onClick = { onWidgetClick(DashboardBottomSheetType.LogBodyWeight(data.currentWeight ?: 0.0)) }
@@ -735,17 +778,17 @@ private fun WidgetContent(
             RecoveryTimeWidget(hours = data.recoveryTimeHours ?: 0, modifier = widgetModifier)
         WidgetType.LAST_SESSION ->
             LastSessionWidget(
-                routineName = data.lastSession?.routineName ?: "Libre",
-                timeLabel = data.lastSession?.completedAt?.take(10) ?: "Nunca",
+                routineName = data.lastSession?.routineName ?: freeLabel,
+                timeLabel = data.lastSession?.completedAt?.take(10) ?: neverLabel,
                 modifier = widgetModifier,
-                onClick = { onWidgetClick(DashboardBottomSheetType.LastSessionDetails(data.lastSession?.routineName ?: "Libre")) }
+                onClick = { onWidgetClick(DashboardBottomSheetType.LastSessionDetails(data.lastSession?.routineName ?: freeLabel)) }
             )
         WidgetType.NEXT_WORKOUT ->
             NextWorkoutWidget(
                 routineName = data.nextWorkout?.routineName,
                 onStartClick = onWorkoutClick,
                 modifier = widgetModifier,
-                onClick = { onWidgetClick(DashboardBottomSheetType.NextWorkoutOptions(data.nextWorkout?.routineName ?: "Libre")) }
+                onClick = { onWidgetClick(DashboardBottomSheetType.NextWorkoutOptions(data.nextWorkout?.routineName ?: freeLabel)) }
             )
         WidgetType.CALENDAR -> {
             val days = data.trainingDaysThisMonth.mapNotNull {
@@ -765,7 +808,7 @@ private fun WidgetContent(
             RecentPrsWidget(
                 prs = mapPrs,
                 modifier = widgetModifier,
-                onClick = { onWidgetClick(DashboardBottomSheetType.PrDetails(data.recentPrs.firstOrNull()?.exerciseName ?: "Overview")) },
+                onClick = { onWidgetClick(DashboardBottomSheetType.PrDetails(data.recentPrs.firstOrNull()?.exerciseName ?: overviewLabel)) },
                 onPrClick = { exercise -> onWidgetClick(DashboardBottomSheetType.PrDetails(exercise)) }
             )
         }
@@ -808,14 +851,14 @@ private fun DashboardWidgetGhostPlaceholder(
         ) {
             Icon(
                 imageVector = Icons.Default.DragIndicator,
-                contentDescription = "Reordenar",
+                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_reorder_content_description),
                 tint = LightGrey,
                 modifier = Modifier.size(16.dp)
             )
             IconButton(onClick = onRemove, modifier = Modifier.size(22.dp)) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Eliminar widget",
+                    contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_remove_widget_content_description),
                     tint = SubtleRed,
                     modifier = Modifier.size(14.dp)
                 )
@@ -900,12 +943,17 @@ private fun GhostWidgetContent(
 
 @Composable
 private fun KaizenBottomNavigation(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
+    val dashboardLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_nav_dashboard)
+    val workoutsLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_nav_workouts)
+    val statisticsLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_nav_statistics)
+    val settingsLabel = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_nav_settings)
+
     val items =
             listOf(
-                    Pair("Dashboard", Icons.Default.Home),
-                    Pair("Workouts", Icons.Default.FitnessCenter),
-                    Pair("Statistics", Icons.Default.BarChart),
-                    Pair("Settings", Icons.Default.Settings)
+                    Pair(dashboardLabel, Icons.Default.Home),
+                    Pair(workoutsLabel, Icons.Default.FitnessCenter),
+                    Pair(statisticsLabel, Icons.Default.BarChart),
+                    Pair(settingsLabel, Icons.Default.Settings)
             )
 
     NavigationBar(containerColor = Onyx, tonalElevation = 0.dp) {
@@ -915,7 +963,14 @@ private fun KaizenBottomNavigation(selectedTabIndex: Int, onTabSelected: (Int) -
                     selected = selected,
                     onClick = { onTabSelected(index) },
                     icon = { Icon(imageVector = pair.second, contentDescription = pair.first) },
-                    label = { Text(text = pair.first, fontSize = 10.sp) },
+                    label = {
+                        Text(
+                            text = pair.first,
+                            fontSize = 10.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
                     colors =
                             NavigationBarItemDefaults.colors(
                                     selectedIconColor = Onyx,
@@ -967,11 +1022,11 @@ private fun BottomSheetContent(
                 RecoveryInfoSheet(sheetType.hours)
             }
             is DashboardBottomSheetType.MetricHistory -> {
-                Text("${sheetType.metricName} History", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_metric_history_title, sheetType.metricName), color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Current: ${sheetType.currentValue}", color = CrayolaBlue, fontSize = 18.sp)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_metric_current_value, sheetType.currentValue), color = CrayolaBlue, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Charts will be available in the Analytics Lab.", color = LightGrey, fontSize = 14.sp)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_metric_history_hint), color = LightGrey, fontSize = 14.sp)
             }
         }
         Spacer(modifier = Modifier.height(40.dp))
@@ -980,16 +1035,16 @@ private fun BottomSheetContent(
 
 @Composable
 fun NextWorkoutSheet(routineName: String, onWorkoutClick: () -> Unit) {
-    Text("Día de Tirón (Pull)", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_pull_day_title), color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(16.dp))
 
     Column(
         modifier = Modifier.fillMaxWidth().background(ShadowGrey, RoundedCornerShape(12.dp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("1. Peso Muerto (4x8)", color = LightGrey, fontSize = 14.sp)
-        Text("2. Dominadas (3x10)", color = LightGrey, fontSize = 14.sp)
-        Text("3. Remo (3x12)", color = LightGrey, fontSize = 14.sp)
+        Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_workout_item_1), color = LightGrey, fontSize = 14.sp)
+        Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_workout_item_2), color = LightGrey, fontSize = 14.sp)
+        Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_workout_item_3), color = LightGrey, fontSize = 14.sp)
     }
 
     Spacer(modifier = Modifier.height(16.dp))
@@ -997,12 +1052,12 @@ fun NextWorkoutSheet(routineName: String, onWorkoutClick: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxWidth().background(Onyx, RoundedCornerShape(12.dp)).border(1.dp, LightGrey.copy(alpha = 0.2f), RoundedCornerShape(12.dp)).padding(16.dp)
     ) {
-        Text("Próximas rutinas en tu plan: Jueves (Pierna), Viernes (Descanso)", color = LightGrey, fontSize = 14.sp)
+        Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_upcoming_plan), color = LightGrey, fontSize = 14.sp)
     }
 
     Spacer(modifier = Modifier.height(24.dp))
     Button(onClick = onWorkoutClick, colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue), modifier = Modifier.fillMaxWidth()) {
-        Text("Comenzar Entrenamiento", color = Onyx, fontWeight = FontWeight.Bold)
+        Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_start_workout_cta), color = Onyx, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -1018,7 +1073,7 @@ fun BodyWeightSheet(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (weightHistory.isEmpty()) {
-            Text("No hay registros", color = LightGrey, fontSize = 14.sp)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_no_records), color = LightGrey, fontSize = 14.sp)
         } else {
             weightHistory.take(3).forEachIndexed { index, measurement ->
                 val dateStr = try {
@@ -1033,7 +1088,7 @@ fun BodyWeightSheet(
                 val fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal
                 val fontSize = if (index == 0) 16.sp else 14.sp
 
-                Text("$dateStr: ${measurement.weightKg} kg", color = textColor, fontSize = fontSize, fontWeight = fontWeight)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_weight_log_entry, dateStr, measurement.weightKg), color = textColor, fontSize = fontSize, fontWeight = fontWeight)
             }
         }
     }
@@ -1051,7 +1106,7 @@ fun BodyWeightSheet(
                 inputWeight = newValue
             }
         },
-        label = { Text("Nuevo peso (kg)", color = LightGrey) },
+        label = { Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_new_weight_label), color = LightGrey) },
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = CrayolaBlue,
             unfocusedBorderColor = ShadowGrey,
@@ -1068,63 +1123,63 @@ fun BodyWeightSheet(
         modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue)
     ) {
-        Text("Guardar Registro", color = Onyx, fontWeight = FontWeight.Bold)
+        Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_save_log), color = Onyx, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 fun RecoveryInfoSheet(hours: Int?) {
-    Icon(imageVector = Icons.Default.BatteryChargingFull, contentDescription = "Battery", tint = MalachiteGreen, modifier = Modifier.size(64.dp))
+    Icon(imageVector = Icons.Default.BatteryChargingFull, contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovery_battery_content_description), tint = MalachiteGreen, modifier = Modifier.size(64.dp))
     Spacer(modifier = Modifier.height(8.dp))
-    Text("48h Restantes", color = PureWhite, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+    Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovery_remaining_hours), color = PureWhite, fontSize = 28.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(16.dp))
 
     Text(
-        "Basado en tu alto volumen en el Día de Pierna de ayer, tu Sistema Nervioso Central necesita descanso.",
+        stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovery_description),
         color = LightGrey, fontSize = 15.sp, textAlign = TextAlign.Center, lineHeight = 22.sp
     )
     Spacer(modifier = Modifier.height(24.dp))
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         Box(modifier = Modifier.background(Color(0xFF4A1A1A), RoundedCornerShape(8.dp)).border(1.dp, SubtleRed, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
-            Text("Piernas (Fatiga Alta)", color = SubtleRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_legs_high_fatigue), color = SubtleRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
         Box(modifier = Modifier.background(Color(0xFF1A3320), RoundedCornerShape(8.dp)).border(1.dp, MalachiteGreen, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
-            Text("Pecho (Fresco)", color = MalachiteGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_chest_fresh), color = MalachiteGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
 fun LastSessionSheet(routineName: String) {
-    Text("Ticket de Resumen: $routineName", color = PureWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+    Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_summary_ticket, routineName), color = PureWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(24.dp))
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(imageVector = Icons.Default.DateRange, contentDescription = "Date", tint = LightGrey, modifier = Modifier.size(24.dp))
+            Icon(imageVector = Icons.Default.DateRange, contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.statistics_date), tint = LightGrey, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.height(4.dp))
-            Text("12 Abril", color = LightGrey, fontSize = 14.sp)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_session_date_example), color = LightGrey, fontSize = 14.sp)
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(imageVector = Icons.Default.Timer, contentDescription = "Duration", tint = LightGrey, modifier = Modifier.size(24.dp))
+            Icon(imageVector = Icons.Default.Timer, contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_duration), tint = LightGrey, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.height(4.dp))
-            Text("75 min", color = LightGrey, fontSize = 14.sp)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_session_duration_example), color = LightGrey, fontSize = 14.sp)
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = "Volume", tint = LightGrey, modifier = Modifier.size(24.dp))
+            Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_volume), tint = LightGrey, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.height(4.dp))
-            Text("6,400 kg", color = LightGrey, fontSize = 14.sp)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_session_volume_example), color = LightGrey, fontSize = 14.sp)
         }
     }
 
     Spacer(modifier = Modifier.height(24.dp))
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        Text("Ejercicios Principales:", color = PureWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_main_exercises), color = PureWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "• Sentadilla Libre\n• Prensa de Piernas\n• Extensiones",
+            stringResource(id = com.example.kaizenfrontend.R.string.dashboard_main_exercises_list),
             color = LightGrey, fontSize = 14.sp, lineHeight = 22.sp
         )
     }
@@ -1134,47 +1189,47 @@ fun LastSessionSheet(routineName: String) {
     Box(
         modifier = Modifier.fillMaxWidth().background(Color(0xFF2A2410), RoundedCornerShape(12.dp)).border(1.dp, PrGold, RoundedCornerShape(12.dp)).padding(16.dp)
     ) {
-        Text("🏆 Logro destacado: Nuevo PR en Dominadas", color = PrGold, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_highlight_achievement), color = PrGold, fontSize = 15.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 fun CalendarDaySheet(day: Int, isTrainingDay: Boolean) {
     if (isTrainingDay) {
-        Text("Día de Tirón (Pull)", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_pull_day_title), color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
         Column(
             modifier = Modifier.fillMaxWidth().background(ShadowGrey, RoundedCornerShape(12.dp)).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("• Sentadilla: 100kg x 8, 100kg x 7", color = PureWhite, fontSize = 15.sp)
-            Text("• Prensa: 200kg x 10, 200kg x 10", color = PureWhite, fontSize = 15.sp)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_training_detail_1), color = PureWhite, fontSize = 15.sp)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_training_detail_2), color = PureWhite, fontSize = 15.sp)
         }
     } else {
-        Text("Día de Descanso", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_rest_day_title), color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
         Box(
             modifier = Modifier.fillMaxWidth().background(ShadowGrey, RoundedCornerShape(12.dp)).border(1.dp, LightGrey.copy(alpha = 0.2f), RoundedCornerShape(12.dp)).padding(16.dp)
         ) {
-            Text("Recomendación: Caminar 10.000 pasos hoy para recuperación activa.", color = LightGrey, fontSize = 15.sp, lineHeight = 22.sp)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_rest_day_recommendation), color = LightGrey, fontSize = 15.sp, lineHeight = 22.sp)
         }
     }
 }
 
 @Composable
 fun PrDetailsSheet(exerciseName: String) {
-    Text("Historial: $exerciseName", color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_history_title, exerciseName), color = PureWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(24.dp))
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Row 1
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
-                Text("105 kg x 1", fontSize = 18.sp, color = PureWhite, fontWeight = FontWeight.Bold)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_pr_entry_1), fontSize = 18.sp, color = PureWhite, fontWeight = FontWeight.Bold)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("Push Day", color = LightGrey, fontSize = 14.sp)
-                Text("Hace 2 semanas", color = LightGrey, fontSize = 12.sp)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.statistics_push), color = LightGrey, fontSize = 14.sp)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_two_weeks_ago), color = LightGrey, fontSize = 12.sp)
             }
         }
         HorizontalDivider(color = Onyx)
@@ -1182,11 +1237,11 @@ fun PrDetailsSheet(exerciseName: String) {
         // Row 2
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
-                Text("102.5 kg x 2", fontSize = 18.sp, color = PureWhite, fontWeight = FontWeight.Bold)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_pr_entry_2), fontSize = 18.sp, color = PureWhite, fontWeight = FontWeight.Bold)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("Push Day", color = LightGrey, fontSize = 14.sp)
-                Text("Hace 1 mes", color = LightGrey, fontSize = 12.sp)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.statistics_push), color = LightGrey, fontSize = 14.sp)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_one_month_ago), color = LightGrey, fontSize = 12.sp)
             }
         }
         HorizontalDivider(color = Onyx)
@@ -1194,11 +1249,11 @@ fun PrDetailsSheet(exerciseName: String) {
         // Row 3
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
-                Text("100 kg x 3", fontSize = 18.sp, color = PureWhite, fontWeight = FontWeight.Bold)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_pr_entry_3), fontSize = 18.sp, color = PureWhite, fontWeight = FontWeight.Bold)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("Full Body", color = LightGrey, fontSize = 14.sp)
-                Text("Hace 3 meses", color = LightGrey, fontSize = 12.sp)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_full_body), color = LightGrey, fontSize = 14.sp)
+                Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_three_months_ago), color = LightGrey, fontSize = 12.sp)
             }
         }
     }
@@ -1223,21 +1278,21 @@ private fun GoogleWelcomeBottomSheet(
         ) {
             Icon(
                 painter = painterResource(id = com.example.kaizenfrontend.R.drawable.ic_google),
-                contentDescription = "Google",
+                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.settings_google_content_description),
                 tint = Color.Unspecified,
                 modifier = Modifier.size(26.dp)
             )
         }
 
         Text(
-            text = "Welcome to Kaizen",
+            text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_google_welcome_title),
             color = PureWhite,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
 
         Text(
-            text = "You signed up with Google. Do you want to set a local password for dual access?",
+            text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_google_welcome_message),
             color = LightGrey,
             fontSize = 14.sp,
             lineHeight = 20.sp
@@ -1251,7 +1306,7 @@ private fun GoogleWelcomeBottomSheet(
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue)
         ) {
-            Text("Set Password", color = Onyx, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_set_password), color = Onyx, fontWeight = FontWeight.SemiBold)
         }
 
         OutlinedButton(
@@ -1263,7 +1318,7 @@ private fun GoogleWelcomeBottomSheet(
             colors = ButtonDefaults.outlinedButtonColors(contentColor = LightGrey),
             border = androidx.compose.foundation.BorderStroke(1.dp, LightGrey.copy(alpha = 0.35f))
         ) {
-            Text("Not Now", color = LightGrey, fontWeight = FontWeight.Medium)
+            Text(stringResource(id = com.example.kaizenfrontend.R.string.dashboard_not_now), color = LightGrey, fontWeight = FontWeight.Medium)
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -1284,13 +1339,13 @@ fun DashboardEmptyState(onAddWidgetClick: () -> Unit) {
     ) {
         Icon(
             imageVector = Icons.Default.BarChart,
-            contentDescription = "Empty Dashboard",
+            contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_empty_content_description),
             tint = LightGrey,
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Tu Kaizen Hub está vacío.\nAñade métricas para empezar a trackear tu progreso.",
+            text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_empty_state_message),
             color = PureWhite,
             fontSize = 16.sp,
             textAlign = TextAlign.Center,
@@ -1302,9 +1357,9 @@ fun DashboardEmptyState(onAddWidgetClick: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = CrayolaBlue, contentColor = PureWhite),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(imageVector = Icons.Default.Add, contentDescription = "Añadir")
+            Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_add_widget))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Añadir Widget", fontWeight = FontWeight.SemiBold)
+            Text(text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_add_widget), fontWeight = FontWeight.SemiBold)
         }
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,9 +26,11 @@ import com.example.kaizenfrontend.core.ui.theme.InputFieldColor
 fun GoogleSignInButton(
     onClick: () -> Unit,
     isLoading: Boolean,
-    text: String = "CONTINUE WITH GOOGLE",
+    text: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val resolvedText = text ?: stringResource(id = R.string.auth_continue_with_google)
+
     Button(
         onClick = onClick,
         modifier = modifier
@@ -45,12 +48,12 @@ fun GoogleSignInButton(
         } else {
             Icon(
                 painter = painterResource(id = R.drawable.ic_google),
-                contentDescription = "Google Logo",
+                contentDescription = stringResource(id = R.string.auth_google_logo_content_description),
                 tint = Color.Unspecified,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Text(text = text, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(text = resolvedText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         }
     }
 }

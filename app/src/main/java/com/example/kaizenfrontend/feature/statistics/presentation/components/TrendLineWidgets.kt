@@ -20,6 +20,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
@@ -50,12 +51,15 @@ fun BodyWeightTrendWidget(
     modelProducer: ChartEntryModelProducer,
     modifier: Modifier = Modifier
 ) {
+    val resolvedSubtitle = uiState.subtitle.resolveOrNull()
+    val resolvedMessage = uiState.message.resolve()
+
     KaizenChartWidget(
-        title = "Body Weight Trend",
-        subtitle = uiState.subtitle,
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_body_weight_trend_title),
+        subtitle = resolvedSubtitle,
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
-        emptyMessage = uiState.message,
+        emptyMessage = resolvedMessage,
         modifier = modifier
     ) {
         TrendLineChart(
@@ -77,19 +81,24 @@ fun Estimated1RmWidget(
     modifier: Modifier = Modifier
 ) {
     val selectedExerciseName = remember(exercises, selectedExerciseId) {
-        exercises.firstOrNull { it.id == selectedExerciseId }?.name ?: "Select exercise"
+        exercises.firstOrNull { it.id == selectedExerciseId }?.name ?: ""
     }
 
+    val fallbackExerciseName = stringResource(id = com.example.kaizenfrontend.R.string.statistics_select_exercise)
+
+    val resolvedSubtitle = uiState.subtitle.resolveOrNull()
+    val resolvedMessage = uiState.message.resolve()
+
     KaizenChartWidget(
-        title = "Estimated 1RM",
-        subtitle = uiState.subtitle,
+        title = stringResource(id = com.example.kaizenfrontend.R.string.statistics_estimated_1rm_title),
+        subtitle = resolvedSubtitle,
         isLoading = uiState.isLoading,
         isEmpty = uiState.isEmpty,
-        emptyMessage = uiState.message,
+        emptyMessage = resolvedMessage,
         headerContent = {
             ExerciseDropdown(
                 exercises = exercises,
-                selectedExerciseName = selectedExerciseName,
+                selectedExerciseName = if (selectedExerciseName.isBlank()) fallbackExerciseName else selectedExerciseName,
                 onExerciseSelected = onExerciseSelected
             )
         },
@@ -195,7 +204,7 @@ private fun ExerciseDropdown(
             onValueChange = {},
             readOnly = true,
             singleLine = true,
-            label = { Text("Exercise", color = LightGrey) },
+            label = { Text(stringResource(id = com.example.kaizenfrontend.R.string.statistics_exercise_label), color = LightGrey) },
             trailingIcon = {
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
@@ -220,7 +229,7 @@ private fun ExerciseDropdown(
             containerColor = ShadowGrey
         ) {
             DropdownMenuItem(
-                text = { Text("None", color = PureWhite) },
+                text = { Text(stringResource(id = com.example.kaizenfrontend.R.string.statistics_none), color = PureWhite) },
                 onClick = {
                     onExerciseSelected(null)
                     expanded = false

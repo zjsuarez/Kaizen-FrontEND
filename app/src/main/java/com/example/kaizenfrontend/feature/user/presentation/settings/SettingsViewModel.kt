@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
+import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.user.data.remote.dto.UserUpdateRequest
 import com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl
 import com.example.kaizenfrontend.feature.user.domain.usecase.GetCurrentUserUseCase
@@ -21,18 +22,20 @@ data class SettingsUiState(
     val defaultRest: String = "90 s",
     val savedUnit: String = "METRIC",
     val savedEffort: String = "RPE",
+    val savedRest: String = "90 s",
     val authProvider: String? = null,
     val isLoading: Boolean = false,
     val isSavingPrefs: Boolean = false,
     val errorMessage: String? = null
 ) {
-    val hasUnsavedChanges: Boolean get() = unitSystem != savedUnit || effortMetric != savedEffort
+    val hasUnsavedChanges: Boolean get() = unitSystem != savedUnit || effortMetric != savedEffort || defaultRest != savedRest
 }
 
 class SettingsViewModel(context: Context) : ViewModel() {
 
     private val sessionManager = SessionManager(context)
-    private val repository = UserRepositoryImpl(sessionManager)
+    private val userApiService = context.applicationContext.hiltServiceEntryPoint().userApiService()
+    private val repository = UserRepositoryImpl(userApiService, sessionManager)
     private val getCurrentUserUseCase = GetCurrentUserUseCase(repository)
     private val updateUserUseCase = UpdateUserUseCase(repository)
 
@@ -55,7 +58,8 @@ class SettingsViewModel(context: Context) : ViewModel() {
                 savedUnit = cachedUnit,
                 effortMetric = cachedEffort,
                 savedEffort = cachedEffort,
-                defaultRest = cachedRest
+                defaultRest = cachedRest,
+                savedRest = cachedRest
             )
         }
     }
@@ -75,6 +79,7 @@ class SettingsViewModel(context: Context) : ViewModel() {
                         effortMetric = user.effortMeasurement,
                         savedEffort = user.effortMeasurement,
                         defaultRest = rest,
+                        savedRest = rest,
                         authProvider = user.authProvider,
                         isLoading = false
                     )
@@ -89,20 +94,29 @@ class SettingsViewModel(context: Context) : ViewModel() {
     fun setDefaultRest(seconds: Int) {
         val rest = "$seconds s"
         _uiState.update { it.copy(defaultRest = rest) }
-        updateProfile(UserUpdateRequest(restTimerDefault = seconds))
     }
 
     fun savePreferences() {
         val state = _uiState.value
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingPrefs = true) }
+            val restSeconds = state.defaultRest.removeSuffix(" s").trim().toIntOrNull() ?: 90
             val result = updateUserUseCase(
-                UserUpdateRequest(unitSystem = state.unitSystem, effortMeasurement = state.effortMetric)
+                UserUpdateRequest(
+                    unitSystem = state.unitSystem,
+                    effortMeasurement = state.effortMetric,
+                    restTimerDefault = restSeconds
+                )
             )
             result.onSuccess {
                 sessionManager.saveUserPreferences(state.email, state.unitSystem, state.effortMetric, state.defaultRest)
                 _uiState.update {
-                    it.copy(savedUnit = it.unitSystem, savedEffort = it.effortMetric, isSavingPrefs = false)
+                    it.copy(
+                        savedUnit = it.unitSystem,
+                        savedEffort = it.effortMetric,
+                        savedRest = it.defaultRest,
+                        isSavingPrefs = false
+                    )
                 }
                 refreshUserProfile()
             }
