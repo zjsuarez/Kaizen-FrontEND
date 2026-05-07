@@ -465,10 +465,13 @@ Afegeix mètriques per començar a seguir el teu progrés.</string>
     <string name="workouts_discard_dialog_message">Les dades no desades es perdran permanentment.</string>
     <string name="workouts_discard_keep_editing">Continuar editant</string>
     <string name="workouts_discard_confirm">Descartar</string>
+    <string name="workouts_incomplete_sets_dialog_title">S\'han detectat sèries incompletes</string>
+    <string name="workouts_incomplete_sets_dialog_message">Algunes sèries tenen un pes o un nombre de repeticions igual a 0. Segur que vols finalitzar aquest entrenament?</string>
+    <string name="workouts_incomplete_sets_dialog_confirm">Finalitzar igualment</string>
     <string name="workouts_step3_title">Exercicis</string>
     <string name="workouts_no_exercises_yet">Encara no hi ha exercicis seleccionats</string>
     <string name="workouts_add_first_exercise">Afegir primer exercici</string>
-    <string name="workouts_add_exercise">Afegir exercici</string>
+...
     <string name="workouts_add_at_least_one_exercise">Afegeix almenys un exercici per continuar</string>
     <string name="workouts_inherited_schedule_label">Programació heretada del Pla</string>
     <string name="workouts_plan_active_badge">ACTIU</string>

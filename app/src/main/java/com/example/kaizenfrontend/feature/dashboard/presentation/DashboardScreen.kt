@@ -190,6 +190,7 @@ fun DashboardScreen(
     val isEditing by viewModel.isEditing.collectAsState()
     val showGoogleWelcomeSheet by viewModel.showGoogleWelcomePrompt.collectAsState()
     val sessionManager = remember { SessionManager(context) }
+    val effortMetric = remember { sessionManager.getUserEffortMetric() ?: "RPE" }
     val userName = remember {
         sessionManager.getUserEmail()
             ?.substringBefore("@")
@@ -483,7 +484,7 @@ fun DashboardScreen(
         ActiveWorkoutBottomSheet(
             onDismiss = { showActiveWorkoutSheet = false },
             onFinish = {
-                val snapshot = com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.finishWorkout()
+                val snapshot = com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.finishWorkout(effortMetric)
                 snapshot?.let {
                     finishedWorkoutSnapshot = it
                     viewModel.saveWorkout(it)
