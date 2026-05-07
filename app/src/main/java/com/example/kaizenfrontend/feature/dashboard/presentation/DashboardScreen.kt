@@ -84,6 +84,7 @@ import com.example.kaizenfrontend.feature.dashboard.presentation.widgets.WeightT
 import com.example.kaizenfrontend.feature.statistics.presentation.StatisticsScreen
 import com.example.kaizenfrontend.feature.user.presentation.settings.SettingsScreen
 import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutsScreen
+import com.example.kaizenfrontend.core.data.BuiltinExerciseCatalog
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -803,12 +804,12 @@ private fun WidgetContent(
         }
         WidgetType.RECENT_PRS -> {
             val mapPrs = data.recentPrs.map { pr ->
-                RecentPrMock(pr.exerciseName, "${pr.weight} kg", "", pr.achievedAt.take(10))
+                RecentPrMock(BuiltinExerciseCatalog.resolveExerciseName(pr.exerciseName), "${pr.weight} kg", "", pr.achievedAt.take(10))
             }
             RecentPrsWidget(
                 prs = mapPrs,
                 modifier = widgetModifier,
-                onClick = { onWidgetClick(DashboardBottomSheetType.PrDetails(data.recentPrs.firstOrNull()?.exerciseName ?: overviewLabel)) },
+                onClick = { onWidgetClick(DashboardBottomSheetType.PrDetails(BuiltinExerciseCatalog.resolveExerciseName(data.recentPrs.firstOrNull()?.exerciseName ?: overviewLabel))) },
                 onPrClick = { exercise -> onWidgetClick(DashboardBottomSheetType.PrDetails(exercise)) }
             )
         }
