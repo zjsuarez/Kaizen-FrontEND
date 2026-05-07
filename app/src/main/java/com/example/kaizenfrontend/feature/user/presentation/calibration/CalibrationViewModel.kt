@@ -20,6 +20,9 @@ sealed class CalibrationUiState {
     data class Error(val message: String) : CalibrationUiState()
 }
 
+private fun normalizeCalibrationNumberInput(input: String): String =
+    input.filter { it.isDigit() }.take(3)
+
 class CalibrationViewModel(context: Context) : ViewModel() {
 
     private val sessionManager = SessionManager(context)
@@ -33,8 +36,9 @@ class CalibrationViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             _uiState.value = CalibrationUiState.Loading
 
+            val normalizedBodyWeight = normalizeCalibrationNumberInput(bodyWeight)
             val unitSystemVal = if (selectedUnit == "KG") "METRIC" else "IMPERIAL"
-            val parsedWeight = bodyWeight.toDoubleOrNull()
+            val parsedWeight = normalizedBodyWeight.toDoubleOrNull()
             val weightKgValue = parsedWeight?.let {
                 if (selectedUnit == "LB") it * 0.453592 else it
             }

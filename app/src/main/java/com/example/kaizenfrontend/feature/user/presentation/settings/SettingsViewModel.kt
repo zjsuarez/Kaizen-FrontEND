@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.di.hiltServiceEntryPoint
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthInputValidator
 import com.example.kaizenfrontend.feature.user.data.remote.dto.UserUpdateRequest
 import com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl
 import com.example.kaizenfrontend.feature.user.domain.usecase.GetCurrentUserUseCase
@@ -125,7 +126,8 @@ class SettingsViewModel(context: Context) : ViewModel() {
     }
 
     fun changePassword(newPassword: String) {
-        updateProfile(UserUpdateRequest(password = newPassword))
+        val normalizedPassword = AuthInputValidator.normalizePasswordInput(newPassword)
+        updateProfile(UserUpdateRequest(password = normalizedPassword))
     }
 
     fun logout() {

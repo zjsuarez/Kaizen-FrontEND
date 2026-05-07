@@ -3,6 +3,7 @@ package com.example.kaizenfrontend.feature.workouts.domain
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveExerciseState
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
 import com.example.kaizenfrontend.feature.workouts.domain.model.WorkoutSetState
+import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutInputSanitizer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -194,10 +195,16 @@ object ActiveWorkoutManager {
                 ex.copy(
                     sets = ex.sets.map setMap@{ set ->
                         if (set.id != setId) return@setMap set
+                        val normalizedWeight = weight?.let(WorkoutInputSanitizer::normalizeSessionNumberInput)
+                        val normalizedReps = reps?.let(WorkoutInputSanitizer::normalizeSessionNumberInput)
+                        val normalizedRpe = rpe?.let {
+                            WorkoutInputSanitizer.normalizeEffortInput(it, set.rpe)
+                        }
+
                         set.copy(
-                            weight = weight ?: set.weight,
-                            reps = reps ?: set.reps,
-                            rpe = rpe ?: set.rpe,
+                            weight = normalizedWeight ?: set.weight,
+                            reps = normalizedReps ?: set.reps,
+                            rpe = normalizedRpe ?: set.rpe,
                             type = type ?: set.type
                         )
                     }
@@ -229,7 +236,9 @@ object ActiveWorkoutManager {
      * Updates the workout-level notes field.
      */
     fun updateNotes(notes: String) {
-        mutate { it.copy(notes = notes) }
+        mutate {
+            it.copy(notes = WorkoutInputSanitizer.normalizeNotesInput(notes))
+        }
     }
 
     // ── Add / Remove set helpers ────────────────────────────────────────

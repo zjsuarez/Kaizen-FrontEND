@@ -44,13 +44,13 @@ class RoutineDetailsViewModel(
 
     fun updateTitle(newTitle: String) {
         _uiState.update { current ->
-            current.copy(title = newTitle)
+            current.copy(title = WorkoutInputSanitizer.normalizeTitleInput(newTitle))
         }
     }
 
     fun updateDescription(newDesc: String) {
         _uiState.update { current ->
-            current.copy(description = newDesc)
+            current.copy(description = WorkoutInputSanitizer.normalizeDescriptionInput(newDesc))
         }
     }
 

@@ -78,11 +78,15 @@ class RoutineWizardViewModel(
     }
 
     fun updateName(value: String) {
-        _uiState.update { it.copy(name = value) }
+        _uiState.update {
+            it.copy(name = WorkoutInputSanitizer.normalizeTitleInput(value))
+        }
     }
 
     fun updateDescription(value: String) {
-        _uiState.update { it.copy(description = value) }
+        _uiState.update {
+            it.copy(description = WorkoutInputSanitizer.normalizeDescriptionInput(value))
+        }
     }
 
     fun setAvailablePlans(plans: List<TrainingPlan>) {
