@@ -467,6 +467,9 @@ Add metrics to start tracking your progress.</string>
     <string name="workouts_discard_dialog_message">Unsaved data will be permanently lost.</string>
     <string name="workouts_discard_keep_editing">Keep Editing</string>
     <string name="workouts_discard_confirm">Discard</string>
+    <string name="workouts_incomplete_sets_dialog_title">Incomplete sets detected</string>
+    <string name="workouts_incomplete_sets_dialog_message">Some sets have a weight or reps value of 0. Are you sure you want to finish this workout?</string>
+    <string name="workouts_incomplete_sets_dialog_confirm">Finish anyway</string>
     <string name="workouts_step3_title">Exercises</string>
     <string name="workouts_no_exercises_yet">No exercises selected yet</string>
     <string name="workouts_add_first_exercise">Add first exercise</string>
