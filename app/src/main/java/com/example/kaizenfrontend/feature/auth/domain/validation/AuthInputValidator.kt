@@ -57,4 +57,17 @@ object AuthInputValidator {
             else -> AuthValidationResult.Valid
         }
     }
+
+    fun validatePasswordChange(
+        password: String,
+        confirmPassword: String
+    ): AuthValidationResult {
+        return when {
+            password.isBlank() || confirmPassword.isBlank() -> AuthValidationResult.EmptyFields
+            password.length < MIN_PASSWORD_LENGTH -> AuthValidationResult.PasswordTooShort
+            password.length > MAX_PASSWORD_LENGTH -> AuthValidationResult.PasswordTooLong
+            password != confirmPassword -> AuthValidationResult.PasswordsDoNotMatch
+            else -> AuthValidationResult.Valid
+        }
+    }
 }

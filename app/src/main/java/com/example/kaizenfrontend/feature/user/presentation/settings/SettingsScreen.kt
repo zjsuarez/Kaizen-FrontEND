@@ -25,6 +25,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import com.example.kaizenfrontend.core.ui.theme.*
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthInputValidator
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthValidationResult
 
 @Composable
 fun SettingsScreen(
@@ -146,8 +148,10 @@ fun SettingsScreen(
 private fun ChangePasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    val passwordLengthError = stringResource(id = com.example.kaizenfrontend.R.string.error_password_length)
-    val passwordMismatchError = stringResource(id = com.example.kaizenfrontend.R.string.error_passwords_do_not_match)
+    val fillAllFieldsError = stringResource(id = com.example.kaizenfrontend.R.string.auth_error_fill_all_fields)
+    val passwordTooShortError = stringResource(id = com.example.kaizenfrontend.R.string.auth_error_password_too_short)
+    val passwordTooLongError = stringResource(id = com.example.kaizenfrontend.R.string.auth_error_password_too_long)
+    val passwordMismatchError = stringResource(id = com.example.kaizenfrontend.R.string.auth_error_passwords_do_not_match)
     var error by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
@@ -159,7 +163,10 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> U
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = newPassword,
-                    onValueChange = { newPassword = it; error = null },
+                    onValueChange = {
+                        newPassword = AuthInputValidator.normalizePasswordInput(it)
+                        error = null
+                    },
                     label = { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_new_password), color = LightGrey) },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
@@ -175,7 +182,10 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> U
                 )
                 OutlinedTextField(
                     value = confirmPassword,
-                    onValueChange = { confirmPassword = it; error = null },
+                    onValueChange = {
+                        confirmPassword = AuthInputValidator.normalizePasswordInput(it)
+                        error = null
+                    },
                     label = { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_confirm_password), color = LightGrey) },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
@@ -194,10 +204,13 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> U
         },
         confirmButton = {
             TextButton(onClick = {
-                when {
-                    newPassword.length < 6 -> error = passwordLengthError
-                    newPassword != confirmPassword -> error = passwordMismatchError
-                    else -> onConfirm(newPassword)
+                when (AuthInputValidator.validatePasswordChange(newPassword, confirmPassword)) {
+                    AuthValidationResult.Valid -> onConfirm(newPassword)
+                    AuthValidationResult.EmptyFields -> error = fillAllFieldsError
+                    AuthValidationResult.PasswordTooShort -> error = passwordTooShortError
+                    AuthValidationResult.PasswordTooLong -> error = passwordTooLongError
+                    AuthValidationResult.PasswordsDoNotMatch -> error = passwordMismatchError
+                    else -> error = passwordTooShortError
                 }
             }) { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_save), color = CrayolaBlue, fontWeight = FontWeight.SemiBold) }
         },
