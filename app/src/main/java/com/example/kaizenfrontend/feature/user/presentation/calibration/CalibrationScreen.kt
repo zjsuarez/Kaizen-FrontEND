@@ -23,6 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.theme.*
 
+private fun normalizeCalibrationNumberInput(input: String): String =
+    input.filter { it.isDigit() }.take(3)
+
 @Composable
 fun CalibrationScreen(onStartClick: () -> Unit = {}) {
     val context = LocalContext.current
@@ -77,7 +80,7 @@ fun CalibrationScreen(onStartClick: () -> Unit = {}) {
             CalibrationSectionLabel(text = "CURRENT BODY WEIGHT")
             WeightInputField(
                 value = bodyWeight,
-                onValueChange = { bodyWeight = it },
+                onValueChange = { bodyWeight = normalizeCalibrationNumberInput(it) },
                 unit = selectedUnit
             )
 
@@ -204,12 +207,12 @@ private fun WeightInputField(
                 fontSize = 18.sp,
                 textAlign = TextAlign.Center
             ),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             cursorBrush = SolidColor(CrayolaBlue),
             decorationBox = { innerTextField ->
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     if (value.isEmpty()) {
-                        Text(text = "0.0", color = TextGray, fontSize = 18.sp)
+                        Text(text = "0", color = TextGray, fontSize = 18.sp)
                     }
                     innerTextField()
                 }
