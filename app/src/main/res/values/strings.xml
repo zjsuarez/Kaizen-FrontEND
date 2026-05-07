@@ -236,6 +236,10 @@
     <string name="auth_error_google_login_failed">Google Login failed</string>
     <string name="auth_error_unexpected_credential_type">Unexpected credential type</string>
     <string name="auth_error_google_sign_in_failed">Google Sign-In failed</string>
+    <string name="auth_error_invalid_email">Please enter a valid email address</string>
+    <string name="auth_error_email_too_long">Email must be 255 characters or fewer</string>
+    <string name="auth_error_password_too_short">Password must be at least 8 characters</string>
+    <string name="auth_error_password_too_long">Password must be 20 characters or fewer</string>
     <string name="auth_error_passwords_do_not_match">Passwords don\'t match</string>
     <string name="auth_error_registration_failed">Registration failed</string>
 

@@ -7,6 +7,8 @@ import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.auth.data.repository.AuthRepositoryImpl
 import com.example.kaizenfrontend.feature.auth.domain.usecase.RegisterUseCase
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthInputValidator
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthValidationResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,19 +38,20 @@ class SignUpViewModel(context: Context) : ViewModel() {
     val uiState: StateFlow<SignUpUiState> = _uiState.asStateFlow()
 
     fun register(email: String, password: String, confirmPassword: String) {
-        when {
-            email.isBlank() || password.isBlank() -> {
-                _uiState.value = SignUpUiState.Error(appContext.getString(com.example.kaizenfrontend.R.string.auth_error_fill_all_fields))
-                return
-            }
-            password != confirmPassword -> {
-                _uiState.value = SignUpUiState.Error(appContext.getString(com.example.kaizenfrontend.R.string.auth_error_passwords_do_not_match))
-                return
-            }
+        val normalizedEmail = AuthInputValidator.normalizeEmail(email)
+        val validationResult = AuthInputValidator.validateRegistration(
+            email = normalizedEmail,
+            password = password,
+            confirmPassword = confirmPassword
+        )
+
+        if (validationResult != AuthValidationResult.Valid) {
+            _uiState.value = SignUpUiState.Error(validationResult.toMessage())
+            return
         }
         viewModelScope.launch {
             _uiState.value = SignUpUiState.Loading
-            val result = registerUseCase(email, password)
+            val result = registerUseCase(normalizedEmail, password)
             if (result.isSuccess) {
                 val token = result.getOrThrow()
                 sessionManager.awaitTokenPersistence(token)
@@ -57,6 +60,16 @@ class SignUpViewModel(context: Context) : ViewModel() {
                 _uiState.value = SignUpUiState.Error(result.exceptionOrNull()?.message ?: appContext.getString(com.example.kaizenfrontend.R.string.auth_error_registration_failed))
             }
         }
+    }
+
+    private fun AuthValidationResult.toMessage(): String = when (this) {
+        AuthValidationResult.Valid -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_registration_failed)
+        AuthValidationResult.EmptyFields -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_fill_all_fields)
+        AuthValidationResult.InvalidEmail -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_invalid_email)
+        AuthValidationResult.EmailTooLong -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_email_too_long)
+        AuthValidationResult.PasswordTooShort -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_password_too_short)
+        AuthValidationResult.PasswordTooLong -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_password_too_long)
+        AuthValidationResult.PasswordsDoNotMatch -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_passwords_do_not_match)
     }
 
     /**
