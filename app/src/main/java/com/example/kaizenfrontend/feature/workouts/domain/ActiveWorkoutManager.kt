@@ -85,8 +85,8 @@ object ActiveWorkoutManager {
      * Ends the current workout and cleans up all running coroutines.
      * Returns the final snapshot of the workout so callers can persist it.
      */
-    fun finishWorkout(): ActiveWorkoutState? {
-        val snapshot = _currentWorkout.value
+    fun finishWorkout(effortMetric: String): ActiveWorkoutState? {
+        val snapshot = _currentWorkout.value?.normalizedForSubmission(effortMetric)
         stopElapsedTicker()
         stopRestTimer()
         _currentWorkout.value = null
@@ -284,5 +284,42 @@ object ActiveWorkoutManager {
         transform: (List<ActiveExerciseState>) -> List<ActiveExerciseState>
     ) {
         mutate { it.copy(exercises = transform(it.exercises)) }
+    }
+
+    private fun ActiveWorkoutState.normalizedForSubmission(effortMetric: String): ActiveWorkoutState {
+        val normalizedMetric = effortMetric.uppercase()
+
+        return copy(
+            exercises = exercises.map { exercise ->
+                exercise.copy(
+                    sets = exercise.sets.map { set ->
+                        set.copy(rpe = resolveEffortValueForSubmission(set, normalizedMetric))
+                    }
+                )
+            }
+        )
+    }
+
+    private fun resolveEffortValueForSubmission(
+        set: WorkoutSetState,
+        effortMetric: String
+    ): String {
+        if (set.rpe.isNotBlank()) {
+            return set.rpe
+        }
+
+        val hasWeightAndReps = set.weight.isNotBlank() && set.reps.isNotBlank()
+        if (!hasWeightAndReps) {
+            return set.rpe
+        }
+
+        return when {
+            set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.FAILURE ||
+                set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.DROP_SET ||
+                set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.MYO_REP -> "0"
+
+            effortMetric == "RIR" -> "0"
+            else -> WorkoutInputSanitizer.MAX_EFFORT_VALUE.toString()
+        }
     }
 }

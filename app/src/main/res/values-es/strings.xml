@@ -465,12 +465,15 @@ Añade métricas para empezar a seguir tu progreso.</string>
     <string name="workouts_discard_dialog_message">Los datos no guardados se perderán permanentemente.</string>
     <string name="workouts_discard_keep_editing">Seguir editando</string>
     <string name="workouts_discard_confirm">Descartar</string>
+    <string name="workouts_incomplete_sets_dialog_title">Se detectaron series incompletas</string>
+    <string name="workouts_incomplete_sets_dialog_message">Algunas series tienen un peso o un número de repeticiones igual a 0. ¿Seguro que quieres finalizar este entrenamiento?</string>
+    <string name="workouts_incomplete_sets_dialog_confirm">Finalizar igualmente</string>
     <string name="workouts_step3_title">Ejercicios</string>
     <string name="workouts_no_exercises_yet">Aún no hay ejercicios seleccionados</string>
     <string name="workouts_add_first_exercise">Añadir primer ejercicio</string>
     <string name="workouts_add_exercise">Añadir ejercicio</string>
     <string name="workouts_add_at_least_one_exercise">Añade al menos un ejercicio para continuar</string>
-    <string name="workouts_inherited_schedule_label">Programación heredada del Plan</string>
+    ...
     <string name="workouts_plan_active_badge">ACTIVO</string>
     <string name="workouts_set_as_active_plan">Establecer como plan activo</string>
     <string name="workouts_add_routine_to_plan">Añadir rutina a %s</string>

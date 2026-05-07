@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,6 +47,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -83,6 +85,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private fun hasIncompleteSets(exercises: List<ActiveExerciseState>): Boolean =
+    exercises.any { exercise ->
+        exercise.sets.any { set ->
+            set.weight.isIncompleteLoggedValue() || set.reps.isIncompleteLoggedValue()
+        }
+    }
+
+private fun String.isIncompleteLoggedValue(): Boolean =
+    isBlank() || toIntOrNull() == 0
+
 // ──────────────────────────────────────────────────────────────
 // Active Workout Bottom Sheet — "Tunnel Mode"
 // ──────────────────────────────────────────────────────────────
@@ -115,6 +127,59 @@ fun ActiveWorkoutBottomSheet(
 
     // Guard — nothing to show if workout ended externally
     val state = workoutState ?: return
+    var showIncompleteSetsDialog by remember { mutableStateOf(false) }
+    val shouldWarnAboutIncompleteSets = hasIncompleteSets(state.exercises)
+    val handleFinishRequest = {
+        if (shouldWarnAboutIncompleteSets) {
+            showIncompleteSetsDialog = true
+        } else {
+            onFinish()
+        }
+    }
+
+    if (showIncompleteSetsDialog) {
+        AlertDialog(
+            onDismissRequest = { showIncompleteSetsDialog = false },
+            containerColor = ShadowGrey,
+            title = {
+                Text(
+                    text = stringResource(R.string.workouts_incomplete_sets_dialog_title),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.workouts_incomplete_sets_dialog_message),
+                    color = LightGrey,
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showIncompleteSetsDialog = false
+                        onFinish()
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.workouts_incomplete_sets_dialog_confirm),
+                        color = CrayolaBlue,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showIncompleteSetsDialog = false }) {
+                    Text(
+                        text = stringResource(R.string.workouts_discard_keep_editing),
+                        color = LightGrey,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -127,7 +192,7 @@ fun ActiveWorkoutBottomSheet(
             state = state,
             effortMetric = effortMetric,
             weightUnit = weightUnit,
-            onFinish = onFinish,
+            onFinish = handleFinishRequest,
             onAddExercise = onAddExercise,
             onPlayPauseRest = {
                 if (state.isRestTimerRunning) {
