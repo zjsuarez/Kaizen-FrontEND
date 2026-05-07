@@ -1,5 +1,6 @@
 package com.example.kaizenfrontend.feature.workouts.presentation.components
 
+import android.app.DatePickerDialog
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -11,6 +12,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -37,7 +40,9 @@ import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.feature.workouts.domain.model.CycleMode
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalConfig
 import com.example.kaizenfrontend.feature.workouts.domain.model.PlanIntervalType
+import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutInputSanitizer
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import androidx.compose.material3.AlertDialog
@@ -68,6 +73,7 @@ fun CreatePlanBottomSheet(
     onDismiss: () -> Unit,
     onCreate: (name: String, description: String, startingDate: String, interval: String?, cycleLength: Int?) -> Unit
 ) {
+    val context               = LocalContext.current
     var currentStep           by remember { mutableIntStateOf(1) }
     var name                  by remember { mutableStateOf("") }
     var description           by remember { mutableStateOf("") }
@@ -79,6 +85,13 @@ fun CreatePlanBottomSheet(
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     }
     var startingDate by remember { mutableStateOf(today) }
+    val startingDateCalendar = remember(startingDate) {
+        runCatching {
+            Calendar.getInstance().apply {
+                time = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(startingDate) ?: Date()
+            }
+        }.getOrElse { Calendar.getInstance() }
+    }
     val hasDirtyState = name.isNotBlank() || description.isNotBlank() || startingDate != today
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
@@ -254,7 +267,9 @@ fun CreatePlanBottomSheet(
 
                             OutlinedTextField(
                                 value = name,
-                                onValueChange = { name = it },
+                                onValueChange = {
+                                    name = WorkoutInputSanitizer.normalizeTitleInput(it)
+                                },
                                 singleLine = true,
                                 isError = showInlineErrors && name.isBlank(),
                                 modifier = Modifier.fillMaxWidth(),
@@ -284,7 +299,9 @@ fun CreatePlanBottomSheet(
 
                             OutlinedTextField(
                                 value = description,
-                                onValueChange = { description = it },
+                                onValueChange = {
+                                    description = WorkoutInputSanitizer.normalizeDescriptionInput(it)
+                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(130.dp),
@@ -309,10 +326,29 @@ fun CreatePlanBottomSheet(
 
                             OutlinedTextField(
                                 value = startingDate,
-                                onValueChange = { startingDate = it },
+                                onValueChange = {},
                                 singleLine = true,
+                                readOnly = true,
                                 isError = showInlineErrors && startingDate.isBlank(),
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        DatePickerDialog(
+                                            context,
+                                            { _, year, month, dayOfMonth ->
+                                                startingDate = String.format(
+                                                    Locale.getDefault(),
+                                                    "%04d-%02d-%02d",
+                                                    year,
+                                                    month + 1,
+                                                    dayOfMonth
+                                                )
+                                            },
+                                            startingDateCalendar.get(Calendar.YEAR),
+                                            startingDateCalendar.get(Calendar.MONTH),
+                                            startingDateCalendar.get(Calendar.DAY_OF_MONTH)
+                                        ).show()
+                                    },
                                 shape = RoundedCornerShape(16.dp),
                                 colors = planFieldColors(),
                                 label = {

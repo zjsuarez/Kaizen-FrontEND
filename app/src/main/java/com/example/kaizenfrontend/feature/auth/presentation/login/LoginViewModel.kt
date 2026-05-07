@@ -7,6 +7,8 @@ import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.di.hiltServiceEntryPoint
 import com.example.kaizenfrontend.feature.auth.data.repository.AuthRepositoryImpl
 import com.example.kaizenfrontend.feature.auth.domain.usecase.LoginUseCase
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthInputValidator
+import com.example.kaizenfrontend.feature.auth.domain.validation.AuthValidationResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,13 +45,19 @@ class LoginViewModel(context: Context) : ViewModel() {
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     fun login(email: String, password: String) {
-        if (email.isBlank() || password.isBlank()) {
-            _uiState.value = LoginUiState.Error(appContext.getString(com.example.kaizenfrontend.R.string.auth_error_fill_all_fields))
+        val normalizedEmail = AuthInputValidator.normalizeEmail(email)
+        val validationResult = AuthInputValidator.validateLogin(
+            email = normalizedEmail,
+            password = password
+        )
+
+        if (validationResult != AuthValidationResult.Valid) {
+            _uiState.value = LoginUiState.Error(validationResult.toMessage())
             return
         }
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            val result = loginUseCase(email, password)
+            val result = loginUseCase(normalizedEmail, password)
             if (result.isSuccess) {
                 // Token is returned directly from the repository — no SessionManager read needed.
                 val token = result.getOrThrow()
@@ -66,6 +74,16 @@ class LoginViewModel(context: Context) : ViewModel() {
                 }
             }
         }
+    }
+
+    private fun AuthValidationResult.toMessage(): String = when (this) {
+        AuthValidationResult.Valid -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_login_failed)
+        AuthValidationResult.EmptyFields -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_fill_all_fields)
+        AuthValidationResult.InvalidEmail -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_invalid_email)
+        AuthValidationResult.EmailTooLong -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_email_too_long)
+        AuthValidationResult.PasswordTooShort -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_password_too_short)
+        AuthValidationResult.PasswordTooLong -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_password_too_long)
+        AuthValidationResult.PasswordsDoNotMatch -> appContext.getString(com.example.kaizenfrontend.R.string.auth_error_passwords_do_not_match)
     }
 
     /**

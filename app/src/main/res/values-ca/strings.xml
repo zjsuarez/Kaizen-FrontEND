@@ -234,6 +234,10 @@
     <string name="auth_error_google_login_failed">Error d\'inici de sessió amb Google</string>
     <string name="auth_error_unexpected_credential_type">Tipus de credencial inesperat</string>
     <string name="auth_error_google_sign_in_failed">Error de Google Sign-In</string>
+    <string name="auth_error_invalid_email">Introdueix una adreça de correu vàlida</string>
+    <string name="auth_error_email_too_long">El correu electrònic ha de tenir 255 caràcters o menys</string>
+    <string name="auth_error_password_too_short">La contrasenya ha de tenir almenys 8 caràcters</string>
+    <string name="auth_error_password_too_long">La contrasenya ha de tenir 20 caràcters o menys</string>
     <string name="auth_error_passwords_do_not_match">Les contrasenyes no coincideixen</string>
     <string name="auth_error_registration_failed">Error de registre</string>
 
