@@ -212,34 +212,13 @@ class StatisticsRepository @Inject constructor(
 
     suspend fun getMuscleFrequency(): Result<MuscleFrequency> {
         return try {
-            // Attempt 1: expect wrapped object { "muscles": [...] } (or alternate keys via @SerializedName)
-            val wrappedResponse = apiService.getMuscleFrequency()
-            Log.d("StatisticsRepo", "getMuscleFrequency wrapped: code=${wrappedResponse.code()} muscles=${wrappedResponse.body()?.muscles?.size}")
-            if (wrappedResponse.isSuccessful && wrappedResponse.body() != null) {
-                val domain = wrappedResponse.body()!!.toDomain()
-                if (domain.muscles.isNotEmpty()) {
-                    Log.d("StatisticsRepo", "getMuscleFrequency: wrapped form succeeded with ${domain.muscles.size} items")
-                    return Result.success(domain)
-                }
-                // muscles came back empty — body parsed but key didn't match. Fall through to raw list.
-                Log.w("StatisticsRepo", "getMuscleFrequency: wrapped body was empty muscles — trying raw list fallback")
-            }
-
-            // Attempt 2: bare JSON array response  e.g. ResponseEntity<List<MuscleFrequencyProjection>>
-            val listResponse = apiService.getMuscleFrequencyAsList()
-            Log.d("StatisticsRepo", "getMuscleFrequency list fallback: code=${listResponse.code()} size=${listResponse.body()?.size}")
-            if (listResponse.isSuccessful && !listResponse.body().isNullOrEmpty()) {
-                val items = listResponse.body()!!.map {
-                    MuscleFrequencyItem(
-                        muscleGroup = it.muscleGroup ?: "Unknown",
-                        hitCount = it.hitCount ?: 0,
-                        percentage = it.percentage ?: 0.0
-                    )
-                }
-                Log.d("StatisticsRepo", "getMuscleFrequency: raw list fallback succeeded with ${items.size} items")
-                Result.success(MuscleFrequency(muscles = items))
+            val response = apiService.getMuscleFrequency()
+            Log.d("StatisticsRepo", "getMuscleFrequency: code=${response.code()} muscles=${response.body()?.muscles?.size}")
+            if (response.isSuccessful && response.body() != null) {
+                val domain = response.body()!!.toDomain()
+                Result.success(domain)
             } else {
-                val msg = "GET /api/statistics/muscle-frequency failed: ${listResponse.code()}"
+                val msg = "GET /api/statistics/muscle-frequency failed: ${response.code()}"
                 Log.w("StatisticsRepo", msg)
                 Result.failure(Exception(msg))
             }
@@ -344,30 +323,16 @@ class StatisticsRepository @Inject constructor(
 
     suspend fun getPrPeakTime(): Result<PrPeakTime> {
         return try {
-            val wrappedResponse = apiService.getPrPeakTime()
+            val response = apiService.getPrPeakTime()
             Log.d(
                 "StatisticsRepo",
-                "getPrPeakTime wrapped: code=${wrappedResponse.code()} size=${wrappedResponse.body()?.dataPoints?.size}"
+                "getPrPeakTime: code=${response.code()} size=${response.body()?.dataPoints?.size}"
             )
-            if (wrappedResponse.isSuccessful && wrappedResponse.body() != null) {
-                val domain = wrappedResponse.body()!!.toDomain()
-                if (domain.dataPoints.isNotEmpty()) {
-                    return Result.success(domain)
-                }
-            }
-
-            val listResponse = apiService.getPrPeakTimeAsList()
-            Log.d(
-                "StatisticsRepo",
-                "getPrPeakTime list fallback: code=${listResponse.code()} size=${listResponse.body()?.size}"
-            )
-            if (listResponse.isSuccessful && !listResponse.body().isNullOrEmpty()) {
-                val points = listResponse.body()!!
-                    .mapNotNull { it.toDomainPointOrNull() }
-                    .sortedBy { it.date }
-                Result.success(PrPeakTime(dataPoints = points))
+            if (response.isSuccessful && response.body() != null) {
+                val domain = response.body()!!.toDomain()
+                Result.success(domain)
             } else {
-                val msg = "GET /api/statistics/pr-peak-time failed: ${listResponse.code()}"
+                val msg = "GET /api/statistics/pr-peak-time failed: ${response.code()}"
                 Log.w("StatisticsRepo", msg)
                 Result.failure(Exception(msg))
             }

@@ -1,0 +1,461 @@
+================================================================================
+CHANGELOG — Kaizen FrontEND
+================================================================================
+
+[2026-05-01] WorkoutsScreen — Critical Bug-Squashing Session
+  Scope: CreatePlanDialog.kt, RoutineWizardScreen.kt, WorkoutsViewModel.kt
+  Author: Antigravity AI Agent (Claude Sonnet)
+
+  Bug 1 — Nested BottomSheet Gesture Collision (Unclickable Tooltips):
+    Root cause: InfoTooltip was rendered as a ModalBottomSheet nested inside
+    the CreatePlanBottomSheet/RoutineWizardScreen ModalBottomSheet. M3 routes
+    all pointer events to the topmost sheet overlay; the parent sheet consumed
+    touch events before the child sheet's Info IconButton could receive them.
+    Fix: Deleted tooltipSheetState. Replaced the nested ModalBottomSheet with
+    an AlertDialog (containerColor = ShadowGrey, RoundedCornerShape(16.dp)).
+    AlertDialog uses a different system window layer than BottomSheet, so no
+    gesture conflict occurs. Single "Got it" TextButton dismisses it.
+    Affects: CreatePlanDialog.kt, RoutineWizardScreen.kt.
+
+  Bug 2 — Highlander Bug Regression (New Plans Default isActive = true):
+    Root cause: CreatePlanUseCase has isActive: Boolean = true as its default
+    parameter. WorkoutsViewModel.createPlan() never passed isActive explicitly,
+    so every new plan was born active — bypassing setPlanAsActive() logic.
+    Fix: In WorkoutsViewModel.createPlan(), snapshot the current UiState before
+    setting it to Loading. If plans list is non-empty → isActive = false.
+    If plans list is empty (first-ever plan) → isActive = true.
+
+  Bug 3 — IME Jitter (BottomSheet keyboard jump on first keystroke):
+    Root cause: The content Column inside both ModalBottomSheets had both
+    navigationBarsPadding() AND imePadding() applied. M3 ModalBottomSheet
+    already manages windowInsets (navigation bars) internally. Double-applying
+    insets caused the sheet height to be recalculated twice per frame when the
+    keyboard appeared — first from the sheet's own inset adjustment, then from
+    the explicit imePadding() — producing a one-frame jitter.
+    Fix: Removed navigationBarsPadding() from the content Column.
+    Moved imePadding() to be the last modifier before padding(), after
+    verticalScroll(), so inset compensation only triggers one layout pass.
+    Affects: CreatePlanDialog.kt, RoutineWizardScreen.kt content Columns.
+
+  New String Keys (en/es/ca):
+    workouts_tooltip_got_it    ("Got it")
+
+[2026-05-01] WorkoutsScreen — Final UX Polish (Deferred Low-Severity Items)
+  Scope: WorkoutsScreen.kt, PlanDetailsSheetContent.kt, strings.xml (en/es/ca)
+  Author: Antigravity AI Agent (Claude Sonnet)
+
+  1. Killed 2-tap FAB dropdown (WorkoutsScreen.kt):
+     - Removed showFabMenu state variable entirely.
+     - Removed Box/DropdownMenu wrapper and both DropdownMenuItems.
+     - Edit-mode FAB is now a single-action button: CrayolaBlue FAB with
+       Icons.Outlined.PlaylistAdd → directly opens showCreatePlanDialog = true.
+     - "Done" Button click no longer references showFabMenu = false.
+     - Routine creation is exclusively handled by the inline "Add Routine to
+       [Plan]" contextual button at the bottom of the routine list.
+
+  2. Explicit Close affordance in PlanDetailsSheetContent (PlanDetailsSheetContent.kt):
+     - Added onDismiss: () -> Unit parameter to PlanDetailsSheetContent.
+     - Added onDismiss: () -> Unit parameter to PlanDetailsHeader.
+     - In PlanDetailsHeader non-edit Row: added a leading Close IconButton
+       (Icons.Default.Close, workouts_close_plan_details_cd) on the LEFT side
+       of the header row. The Edit IconButton remains on the RIGHT.
+     - Layout: [Close ←] [Title (weight 1f)] [→ Edit]
+     - Call-site in WorkoutsScreen.kt: onDismiss = { selectedPlanForDetails = null }.
+
+  New String Keys (en/es/ca):
+    workouts_close_plan_details_cd    ("Close plan details")
+
+[2026-05-01] PlanContextBar Active Badge + PlanDetailsSheetContent Toggle Removal
+  Scope: WorkoutsScreen.kt, PlanDetailsSheetContent.kt
+  Author: Antigravity AI Agent (Claude Sonnet)
+
+  1. PlanContextBar — ACTIVE badge when plan is active:
+     - Previously: when plan.isActive == true, the "Set Active" button
+       disappeared leaving a visual void with no positive confirmation.
+     - Fix: A CrayolaBlue pill Surface with text "ACTIVE" (workouts_plan_active_badge)
+       is rendered in the action zone when plan.isActive == true, providing
+       clear inline confirmation aligned with the industrial dark aesthetic.
+
+  2. Zombie Highlander Bug — Active toggle removed from PlanDetailsSheetContent:
+     - Root cause: PlanDetailsHeader still contained an Active/Inactive Button
+       (lines 286–298 of PlanDetailsSheetContent.kt). Tapping it called
+       onToggleActive → planDetailsViewModel.toggleActive() → savePlanEdits(),
+       which only updated ONE plan, bypassing the setPlanAsActive() Highlander
+       logic entirely. This allowed multiple plans to be simultaneously active.
+     - Fix: Removed onToggleActive parameter and the toggle Button entirely
+       from PlanDetailsSheetContent and PlanDetailsHeader.
+     - Removed isActive parameter from PlanDetailsHeader (no longer needed there).
+     - Updated PlanDetailsSheetContent call-site in WorkoutsScreen.kt:
+       removed onToggleActive = { ... } argument.
+     - Plan activation is now exclusively owned by PlanContextBar.setPlanAsActive()
+       which routes through the correct ViewModel function.
+
+[2026-05-01] WorkoutsScreen — Navigation Audit & Redundancy Cleanup
+  Scope: WorkoutsScreen.kt, PlanDetailsSheetContent.kt, strings.xml (en/es/ca)
+  Author: Antigravity AI Agent (Claude Sonnet)
+
+  1. TRAINING PLANS micro-header above tab row:
+     - Added an 11sp SemiBold LightGrey all-caps label with wide letter-spacing
+       above PlanScrollableTabRow to provide immediate context that the tabs
+       represent Training Plans, not generic navigation sections.
+
+  2. Replaced FocusPlanOverviewCard with PlanContextBar:
+     - Deleted FocusPlanOverviewCard (was repeating plan name visible in the
+       active tab, wasting ~80dp of vertical space).
+     - New PlanContextBar is a lean Row (no Surface/card chrome) showing:
+       Left: schedule label + routine count as subtitle metadata.
+       Right: IconButton(Edit) to open PlanDetailsSheetContent.
+       Right: compact TextButton "Set Active" only when plan.isActive == false.
+     - Active state dot on the tab is the primary active indicator; the
+       PlanContextBar right side is the action zone.
+
+  3. Removed AddRoutineButton from PlanDetailsSheetContent:
+     - Deleted the inline "+ Add Routine" button from the edit-mode LazyColumn
+       footer inside PlanDetailsSheetContent (lines 207-211).
+     - Removed the onAddRoutineClick parameter from PlanDetailsSheetContent
+       composable signature and all call-sites.
+     - Routine creation is now exclusively the responsibility of the inline
+       "Add Routine to [Plan]" button at the bottom of the main routine list.
+
+  New String Keys (en/es/ca):
+    workouts_training_plans_header    ("TRAINING PLANS")
+
+[2026-05-01] Single Active Plan — State Management Bug Fixes
+  Scope: WorkoutsViewModel.kt, WorkoutsScreen.kt
+  Author: Antigravity AI Agent (Claude Sonnet)
+
+  Bug 1 — Highlander Bug (Multiple Active Plans):
+    Root cause: The previous onSetActive lambda called savePlanEdits() with only
+    the target plan's isActive flipped. savePlanEdits() maps state.plans, only
+    replacing the one plan whose ID matches — leaving all other previously-active
+    plans with isActive = true in the local state and on the backend.
+    Fix: New dedicated ViewModel function setPlanAsActive(planId: String).
+    Logic:
+      1. Snapshot currentState before any mutation to capture plansToDeactivate
+         (plans where isActive == true AND id != planId).
+      2. Optimistic local update: state.plans.map { plan.copy(isActive = plan.id == planId) }
+         — a single expression that atomically deactivates ALL plans except the
+         target and activates the target.
+      3. Backend sync in a coroutine: first deactivate all previously-active plans
+         (forEach { updatePlanUseCase(..., isActive = false) }), then activate
+         the target. Canonical response from the activate call is merged back.
+
+  Bug 2 — Stale UI (Recomposition Failure):
+    Root cause: The old onSetActive = { viewModel.savePlanEdits(selectedPlan.copy(isActive=true)) }
+    passed a plan whose isActive was already false in the composable scope. The
+    optimistic update in savePlanEdits() only replaced that one element in the
+    list. However the lambda also captured selectedPlan by reference at the last
+    composition — if the list equals check passed due to object identity being
+    reused (Kotlin's inline copy semantics), StateFlow's distinctUntilChanged
+    operator silently dropped the emission.
+    Fix: Using the new setPlanAsActive(selectedPlan.id), the optimistic update
+    maps EVERY element in the list (producing a structurally new list regardless
+    of which plans changed), guaranteeing that WorkoutsUiState.Success.equals()
+    returns false and StateFlow emits the updated state to all collectors.
+
+  Files changed:
+    WorkoutsViewModel.kt  — new setPlanAsActive() function added (lines after savePlanEdits)
+    WorkoutsScreen.kt     — onSetActive lambda updated to call setPlanAsActive()
+
+[2026-05-01] WorkoutsScreen — Plan Navigation & Active State Refinement
+  Scope: WorkoutsScreen.kt, strings.xml (en/es/ca)
+  Author: Antigravity AI Agent (Claude Sonnet)
+
+  1. Single Active Plan enforcement:
+     - FocusPlanOverviewCard now shows a CrayolaBlue "ACTIVE" pill badge when
+       the viewed plan isActive == true.
+     - When the plan is NOT active, a secondary "Set as Active Plan" TextButton
+       CTA is shown below the overview card. Tapping it calls savePlanEdits()
+       with the plan's isActive flipped to true. No ViewModel change needed —
+       uses the existing savePlanEdits() hook.
+     - Note: backend enforcement of single-active is assumed. The UI only
+       sends the activation intent; deactivation of other plans is a server-side
+       concern.
+
+  2. Plan Selector tab bar — active indicator dot:
+     - PlanScrollableTabRow: each Tab that corresponds to the active plan
+       (plan.isActive == true) now renders a 6 dp CrayolaBlue filled dot below
+       the plan name inside the tab content slot.
+     - The dot is independent from the selected/focus indicator (the blue
+       underline bar). A plan can be both focused (underline) and active (dot)
+       simultaneously.
+
+  3. Inline "Add Routine to [Plan]" contextual button:
+     - In the non-edit-mode routine list view, after the LazyColumn of routines
+       (when routines are present), a dashed-border OutlinedButton is rendered
+       as the last item via a LazyColumn footer item.
+     - Text: "Add Routine to [plan.name]" (localized with %s placeholder).
+     - Tapping opens the Create Routine Wizard pre-linked to selectedFocusPlanId
+       (same as the FAB path — no new wiring needed).
+     - When there are NO routines (FocusNoRoutineState), this button is not
+       shown separately since that state already has the primary CTA.
+
+  New String Keys (en/es/ca):
+    workouts_plan_active_badge        ("ACTIVE")
+    workouts_set_as_active_plan       ("Set as Active Plan")
+    workouts_add_routine_to_plan      ("Add Routine to %s")
+
+[2026-05-01] WorkoutsScreen UX Overhaul — QA Bug Fix Pass
+  Scope: CreatePlanDialog.kt, RoutineWizardScreen.kt, RoutineWizardViewModel.kt,
+         WorkoutsScreen.kt, strings.xml (en/es/ca)
+  Author: Antigravity AI Agent (Claude Sonnet)
+
+  Bug #1 — Accidental BottomSheet Dismissal (Data Loss Risk):
+    Root cause: confirmValueChange not set; onDismissRequest fired immediately
+    on outside tap or downward swipe with no gate.
+    Fix — CreatePlanBottomSheet: Tracks hasDirtyState (name/description/date
+    changed). confirmValueChange = { value -> if block swipe to Hidden when
+    dirty }. onDismissRequest shows AlertDialog ("Discard changes?") with
+    "Keep Editing" (dismiss dialog) and "Discard" (onDismiss) actions.
+    Fix — RoutineWizardScreen ModalBottomSheet in WorkoutsScreen.kt: Same
+    pattern using routineWizardViewModel.uiState.hasDirtyState (name not blank
+    OR exercises not empty). confirmValueChange + discardDialog shown via
+    showRoutineDiscardDialog local state.
+
+  Bug #2 — Crash on Exercise Selection (Step 3):
+    Root cause: In the refactored RoutineWizardScreen, the wizard content
+    Column was given `.verticalScroll(rememberScrollState())`. WizardStep3Exercises
+    contains a LazyColumn with `.fillMaxSize()`. Nesting a LazyColumn inside a
+    verticalScroll parent is illegal in Compose — the LazyColumn cannot resolve
+    its intrinsic height and throws an IllegalStateException at layout time.
+    Fix: Removed `.verticalScroll` from the wizard content Column in
+    RoutineWizardScreen. The ModalBottomSheet handles its own scrolling natively.
+    WizardStep3Exercises fillMaxSize Columns replaced with fillMaxWidth to be
+    safe in both scroll and non-scroll parents.
+
+  Bug #3 — Blank Schedule UI for Cycle/Weekly Plans:
+    Root cause: Same as Bug #2. The verticalScroll Column measured all children
+    with infinite height constraint. The horizontalScroll Rows inside
+    WeeklyDaysSelector/CycleDaysSelector reported 0 measured height under that
+    constraint, making them invisible. WeeklyDaysSelector was also receiving
+    a zero-height Box container from the AnimatedContent.
+    Fix: Removing verticalScroll (Bug #2 fix) resolves this. Added an explicit
+    ReadOnlyInheritedScheduleCard fallback in WizardStep2Schedule for any
+    unhandled planInterval state to guarantee the schedule section always
+    renders something meaningful.
+
+  Bug #4 — "Link to Plan" Defaults to First Plan Instead of Active Plan:
+    Root cause: RoutineWizardViewModel.resetWizard() always calls
+    cachedPlans.firstOrNull() regardless of which plan the user was viewing.
+    Fix — RoutineWizardViewModel: resetWizard(preferredPlanId: String? = null)
+    now resolves: preferredPlanId match → active plan fallback → first plan.
+    Fix — WorkoutsScreen.kt: LaunchedEffect passes selectedFocusPlanId to
+    routineWizardViewModel.resetWizard(preferredPlanId = selectedFocusPlanId).
+
+  New String Keys (en/es/ca):
+    workouts_discard_dialog_title
+    workouts_discard_dialog_message
+    workouts_discard_keep_editing
+    workouts_discard_confirm
+    workouts_inherited_schedule_label
+    workouts_add_first_exercise
+    workouts_add_exercise
+    workouts_no_exercises_yet
+    workouts_step3_title
+
+[2026-05-01] WorkoutsScreen UX Overhaul — Step 3 (Routine Wizard Refactor)
+  Scope: RoutineWizardScreen.kt, strings.xml (en/es/ca)
+  Author: Antigravity AI Agent (Claude Sonnet)
+
+  Summary:
+    Full rewrite of RoutineWizardScreen.kt targeting all five UX debt items
+    scoped to the Routine creation wizard. No ViewModel, data-layer, or
+    WorkoutsScreen.kt changes required. All new strings fully translated.
+
+  Changes — Progressive Disclosure (Info Tooltips):
+    - RoutineWizardTopBar now uses stringResource for all previously hardcoded
+      strings ("Create Routine", "Close wizard", "Previous step").
+    - WizardStep2Schedule section header has InfoTooltipIcon. Sheet explains
+      the inherited plan schedule type (Weekly / Cycle / Interval) in plain
+      language so users understand what day-picker they are looking at.
+    - WeeklyDaysSelector "Select days" header has InfoTooltipIcon explaining
+      that selecting multiple days means this routine runs on all of them.
+    - All tooltip state is hoisted to RoutineWizardScreen to avoid nested sheet
+      conflicts (single InfoTooltipSheet instance, content keyed by which icon
+      was tapped).
+
+  Changes — Form Ergonomics (Step 1):
+    - Routine name field: placeholder = "e.g., Push Day" (new key).
+    - Description field: label = "Description (Optional)" (reuses Step 2 key).
+    - Static label Texts above each field removed; replaced with inline
+      label = { Text(...) } on OutlinedTextField.
+    - All previously hardcoded English strings replaced with stringResource().
+
+  Changes — Plan Selector (Link to Plan — visual dropdown card):
+    - Replaced the vertical list of plain clickable Surface cards with a
+      collapsible PlanDropdownCard:
+      · Shows the currently selected plan name + schedule label in a
+        single-row Surface (chevron icon indicates it's tappable).
+      · Tapping expands an AnimatedVisibility panel listing all plans as
+        selectable rows — each with name, schedule label, and a CrayolaBlue
+        checkmark for the active selection.
+      · Collapses again after a plan is chosen.
+      · Error state (red border + error text) when no plan selected.
+    - This eliminates the "plain text field" debt item while keeping the
+      existing viewModel.selectPlan() wiring completely unchanged.
+
+  Changes — Contextual Scheduling SegmentCards (Step 2):
+    - Long verbose paragraph helpers ("This routine repeats on…") replaced
+      by the existing SelectedScheduleInfoText (already contextual from
+      Step 2 pattern) shown at the bottom of the step, keyed to the live
+      plan interval type.
+    - The scheduleTitle text ("Step 2: Pick weekdays" etc.) replaced with
+      clean localized section headers + InfoTooltipIcon.
+
+  New String Keys Added (en/es/ca):
+    workouts_routine_name_eg            ("e.g., Push Day")
+    workouts_select_plan_label          ("Link to Plan")
+    workouts_select_plan_cd             ("Expand plan selector")
+    workouts_select_plan_error          ("Please select a plan")
+    workouts_step2_schedule_title       ("Schedule")
+    workouts_select_days_label          ("Training Days")
+    workouts_select_cycle_days_label    ("Cycle Days")
+    workouts_tooltip_routine_schedule   (tooltip body)
+    workouts_tooltip_weekly_days        (tooltip body)
+    workouts_wizard_close_cd            ("Close wizard")
+    workouts_wizard_prev_cd             ("Previous step")
+
+  Files Conceptually Modified (code blocks in chat):
+    - RoutineWizardScreen.kt  (full file replacement)
+    - values/strings.xml, values-es/strings.xml, values-ca/strings.xml
+
+[2026-05-01] WorkoutsScreen UX Overhaul — Step 2 (Plan Wizard Refactor)
+  Scope: CreatePlanDialog.kt, strings.xml (en/es/ca)
+  Author: Antigravity AI Agent (Claude Sonnet)
+
+  Summary:
+    Full rewrite of CreatePlanBottomSheet (CreatePlanDialog.kt) targeting all
+    five UX debt items scoped to the Plan creation wizard. No ViewModel or
+    data-layer files modified. All new strings fully translated (en/es/ca).
+
+  Changes — Progressive Disclosure (Info Tooltips):
+    - Added InfoTooltipIcon composable: an Icons.Outlined.Info icon next to
+      any complex section header. Tapping it opens a ModalBottomSheet
+      (InfoTooltipSheet) containing the explanation text, replacing verbose
+      inline paragraphs that previously cluttered the form.
+    - "Plan Schedule Mode" header now has an InfoTooltipIcon. The sheet
+      explains the difference between Cycle and Frequency modes.
+    - "Cycle Setup" sub-header also has its own InfoTooltipIcon explaining
+      Weekly vs Custom cycles.
+    - Two separate tooltip content strings added for each explanation.
+
+  Changes — Form Ergonomics:
+    - Plan name field: placeholder = "e.g., Push Pull Legs" (new string key).
+    - Description field: label updated to "Description (Optional)" — marking
+      it clearly non-required (new string key).
+    - Starting date field: placeholder = "yyyy-MM-dd" (existing behavior
+      clarified visually; pre-filled with today's date, no change).
+    - The static label Texts above each field replaced with inline
+      `label = { Text(...) }` on OutlinedTextField for cleaner alignment.
+
+  Changes — Contextual Scheduling (Segmented Cards):
+    - The two schedule-type cards (Cycle / Frequency) are now 3 horizontal
+      ScheduleSegmentCard items: Weekly, Interval, Cycle — displayed in a
+      single horizontal Row with equal weight.
+    - "Weekly" = PlanIntervalType.CYCLE + CycleMode.WEEKLY (shortcut).
+    - "Interval" = PlanIntervalType.FREQUENCY.
+    - "Cycle" = PlanIntervalType.CYCLE + CycleMode.CUSTOM.
+    - Only the selected card is highlighted (CrayolaBlue border + 0.18f bg).
+    - The Custom cycle length stepper (CycleLengthSelector) is only shown
+      when "Cycle" (custom) is selected — true progressive disclosure.
+    - SelectedScheduleInfoText retained but moved inside an AnimatedContent
+      so it slides in contextually when the selection changes.
+    - Eliminated the separate CycleModeCard row (Weekly/Custom sub-selection);
+      the top-level 3-card row encodes this choice directly.
+
+  New String Keys Added (en/es/ca):
+    workouts_plan_name_eg          ("e.g., Push Pull Legs")
+    workouts_description_optional  ("Description (Optional)")
+    workouts_schedule_weekly       ("Weekly")
+    workouts_schedule_interval     ("Interval")
+    workouts_schedule_cycle        ("Cycle")
+    workouts_schedule_weekly_sub   ("7-day Mon–Sun")
+    workouts_schedule_interval_sub ("Rest days per routine")
+    workouts_schedule_cycle_sub    ("Custom loop length")
+    workouts_tooltip_schedule_mode (tooltip body for Schedule Mode)
+    workouts_tooltip_cycle_setup   (tooltip body for Cycle Setup)
+    workouts_tooltip_close_cd      ("Close tooltip")
+
+  Files Conceptually Modified (code blocks in chat):
+    - CreatePlanDialog.kt  (full composable body replacement)
+    - values/strings.xml, values-es/strings.xml, values-ca/strings.xml
+
+[2026-05-01] WorkoutsScreen UX Overhaul — Step 1 (Navigation + Empty States)
+  Scope: WorkoutsScreen.kt, WorkoutsEmptyState.kt, strings.xml (en/es/ca)
+  Author: Antigravity AI Agent (Claude Sonnet)
+
+  Summary:
+    Performed a targeted UX refactor of the WorkoutsScreen focusing on the
+    main plan navigation and primary empty states. No ViewModel or data-layer
+    files were modified. All new text strings are fully translated (en/es/ca).
+
+  Changes — Plan Navigation (FocusPlanSelectorRow → PlanScrollableTabRow):
+    - Replaced the horizontal LazyRow of pill-shaped chip filters with a
+      Material 3 ScrollableTabRow.
+    - Active tab: PureWhite text + CrayolaBlue underline indicator (3 dp
+      height, full-width match via tabIndicatorOffset).
+    - Inactive tabs: LightGrey text, no indicator.
+    - Tab background: transparent; containerColor = Onyx (matches screen bg).
+    - EdgePaddingValues = 0.dp to eliminate default Material inset.
+    - The divider (HorizontalDivider) below the tab row uses a very subtle
+      white alpha (0.06f) to preserve the dark aesthetic.
+
+  Changes — Routine Card (RoutineCard → enhanced RoutineScanCard):
+    - Renamed composable to RoutineScanCard (same signature, drop-in
+      replacement called at both use-sites in WorkoutsScreen).
+    - "X exercises • Y sets" subtitle: derived from routine.exercises list.
+      Format: "%d exercises • %d sets" (localized). Falls back gracefully if
+      exercises is empty (shows nothing instead of "0 exercises • 0 sets").
+    - Schedule badge: small pill-shaped Surface in bottom-right of card,
+      styled with CrayolaBlue alpha background + CrayolaBlue text, showing
+      the nextOccurrenceText if present (e.g., "Mon · Wed · Fri", "Every 3d").
+      Badge is only rendered when nextOccurrenceText is non-null/non-blank.
+    - Removed in-column nextOccurrenceText Text; badge is now the schedule
+      affordance.
+    - Left side icon upgraded from FitnessCenter to Icons.Outlined.FitnessCenter
+      for a lighter industrial feel.
+
+  Changes — Empty State (WorkoutsEmptyState.kt refactor):
+    - Removed verbose two-paragraph description and two OnboardingStepItem rows.
+    - New layout: large low-opacity icon (Icons.Outlined.Layers, 112 dp,
+      tint = CrayolaBlue at 0.18f alpha) + bold short title + single CTA.
+    - Title string key: workouts_empty_title (kept, reused existing).
+    - New short subtitle string key: workouts_empty_subtitle (new).
+    - CTA: workouts_empty_create_plan_button (kept, reused existing).
+    - Eliminated OnboardingStepItem helper composable (no longer needed).
+
+  Changes — FocusNoRoutineState (empty routines state):
+    - Replaced the two-line Text + TextButton layout with a vertically
+      centered column: large dimmed FitnessCenter icon + bold short title +
+      CrayolaBlue contained Button (full-width, 52 dp height).
+    - New string key: workouts_no_routines_in_plan_cta (new).
+    - Existing strings workouts_focus_no_routine and
+      workouts_focus_no_routine_first_journey repurposed as the title.
+
+  New String Keys Added (en/es/ca):
+    workouts_empty_subtitle
+    workouts_routine_exercise_sets_summary  ("%1$d exercises • %2$d sets")
+    workouts_tab_plans                      (tab label, = plan name — dynamic,
+                                             no static key needed)
+    workouts_no_routines_in_plan_cta
+    workouts_schedule_badge_cd              (accessibility CD for badge)
+
+  Files Conceptually Modified (code blocks delivered in chat, not file-edited):
+    - app/src/main/java/.../feature/workouts/presentation/WorkoutsScreen.kt
+        · FocusPlanSelectorRow → PlanScrollableTabRow
+        · RoutineCard → RoutineScanCard (exercise/set summary + schedule badge)
+        · FocusNoRoutineState (action-oriented empty state)
+    - app/src/main/java/.../feature/workouts/presentation/components/
+        WorkoutsEmptyState.kt  (full rewrite of composable body)
+    - app/src/main/res/values/strings.xml         (en — new keys appended)
+    - app/src/main/res/values-es/strings.xml      (es — new keys appended)
+    - app/src/main/res/values-ca/strings.xml      (ca — new keys appended)
+
+  Known Limitations / Next Steps:
+    - Step 2 will cover: Plan Wizard (SegmentedCards for scheduling,
+      smart TextFields with placeholder + optional label, Info tooltips via
+      ModalBottomSheet).
+    - Step 3 will cover: Routine Wizard (plan selector dropdown card,
+      scheduling SegmentedCards, progressive disclosure tooltips).
+
+================================================================================

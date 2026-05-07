@@ -152,11 +152,6 @@ interface StatisticsApiService {
     @GET("/api/statistics/muscle-frequency")
     suspend fun getMuscleFrequency(): Response<MuscleFrequencyResponseDto>
 
-    // Fallback: some Spring Boot controllers return a bare JSON array instead of a wrapper object.
-    // We call both and use whichever yields data.
-    @GET("/api/statistics/muscle-frequency")
-    suspend fun getMuscleFrequencyAsList(): Response<List<MuscleFrequencyItemDto>>
-
     // Efficiency & Fatigue (The Brain)
     @GET("/api/statistics/fatigue")
     suspend fun getFatigueCorrelation(): Response<FatigueCorrelationResponseDto>
@@ -176,8 +171,4 @@ interface StatisticsApiService {
 
         @GET("/api/statistics/pr-peak-time")
         suspend fun getPrPeakTime(): Response<PrPeakTimeResponseDto>
-
-        // Fallback for APIs returning a bare array of point objects
-        @GET("/api/statistics/pr-peak-time")
-        suspend fun getPrPeakTimeAsList(): Response<List<PrPeakTimePointDto>>
 }
