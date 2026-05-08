@@ -93,6 +93,12 @@ object ActiveWorkoutManager {
         return snapshot
     }
 
+    fun discardWorkout() {
+        stopElapsedTicker()
+        stopRestTimer()
+        _currentWorkout.value = null
+    }
+
     // ── Elapsed time ticker ─────────────────────────────────────────────
 
     private fun startElapsedTicker() {
@@ -195,7 +201,7 @@ object ActiveWorkoutManager {
                 ex.copy(
                     sets = ex.sets.map setMap@{ set ->
                         if (set.id != setId) return@setMap set
-                        val normalizedWeight = weight?.let(WorkoutInputSanitizer::normalizeSessionNumberInput)
+                        val normalizedWeight = weight?.let(WorkoutInputSanitizer::normalizeWeightInput)
                         val normalizedReps = reps?.let(WorkoutInputSanitizer::normalizeSessionNumberInput)
                         val normalizedRpe = rpe?.let {
                             WorkoutInputSanitizer.normalizeEffortInput(it, set.rpe)

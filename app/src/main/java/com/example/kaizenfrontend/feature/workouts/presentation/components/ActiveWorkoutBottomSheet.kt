@@ -36,6 +36,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -77,6 +79,7 @@ import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
+import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 import com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveExerciseState
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
@@ -113,6 +116,7 @@ private fun String.isIncompleteLoggedValue(): Boolean =
 fun ActiveWorkoutBottomSheet(
     onDismiss: () -> Unit,
     onFinish: () -> Unit,
+    onDiscard: () -> Unit,
     onAddExercise: () -> Unit,
     onNavigateToZenMode: (initialPage: Int) -> Unit = {}
 ) {
@@ -138,47 +142,76 @@ fun ActiveWorkoutBottomSheet(
     }
 
     if (showIncompleteSetsDialog) {
-        AlertDialog(
-            onDismissRequest = { showIncompleteSetsDialog = false },
-            containerColor = ShadowGrey,
-            title = {
-                Text(
-                    text = stringResource(R.string.workouts_incomplete_sets_dialog_title),
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(R.string.workouts_incomplete_sets_dialog_message),
-                    color = LightGrey,
-                    fontSize = 14.sp
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showIncompleteSetsDialog = false
-                        onFinish()
+        Dialog(onDismissRequest = { showIncompleteSetsDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = ShadowGrey
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.workouts_incomplete_sets_dialog_title),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = stringResource(R.string.workouts_incomplete_sets_dialog_message),
+                            color = LightGrey,
+                            fontSize = 14.sp
+                        )
                     }
-                ) {
-                    Text(
-                        text = stringResource(R.string.workouts_incomplete_sets_dialog_confirm),
-                        color = CrayolaBlue,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showIncompleteSetsDialog = false }) {
-                    Text(
-                        text = stringResource(R.string.workouts_discard_keep_editing),
-                        color = LightGrey,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    HorizontalDivider(color = LightGrey.copy(alpha = 0.15f))
+                    TextButton(
+                        onClick = { showIncompleteSetsDialog = false },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(0.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.workouts_discard_keep_editing),
+                            color = LightGrey,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
+                    HorizontalDivider(color = LightGrey.copy(alpha = 0.15f))
+                    TextButton(
+                        onClick = {
+                            showIncompleteSetsDialog = false
+                            onFinish()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(0.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.workouts_incomplete_sets_dialog_confirm),
+                            color = CrayolaBlue,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
+                    HorizontalDivider(color = LightGrey.copy(alpha = 0.15f))
+                    TextButton(
+                        onClick = {
+                            showIncompleteSetsDialog = false
+                            onDiscard()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.workouts_discard_confirm),
+                            color = SubtleRed,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
                 }
             }
-        )
+        }
     }
 
     ModalBottomSheet(
@@ -767,6 +800,7 @@ internal fun WorkoutSetRow(
             onValueChange = onWeightChange,
             suffix = weightUnit,
             placeholder = stringResource(id = R.string.workouts_em_dash),
+            keyboardType = KeyboardType.Decimal,
             modifier = Modifier.weight(1f)
         )
 
@@ -834,6 +868,7 @@ internal fun SetInputField(
     suffix: String,
     placeholder: String,
     enabled: Boolean = true,
+    keyboardType: KeyboardType = KeyboardType.Number,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -858,7 +893,7 @@ internal fun SetInputField(
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.End
                 ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                 singleLine = true,
                 cursorBrush = SolidColor(CrayolaBlue),
                 modifier = Modifier.weight(1f),
