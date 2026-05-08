@@ -8,6 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 
 class DashboardRepository @Inject constructor(
@@ -35,11 +37,12 @@ class DashboardRepository @Inject constructor(
             Result.failure(e)
         }
     }
-    suspend fun logBodyWeight(weight: Double): Result<Unit> {
+    suspend fun logBodyWeight(weight: Double, bodyFatPercentage: Double? = null): Result<Unit> {
         return try {
-            val response = apiService.logBodyWeight(
-                com.example.kaizenfrontend.feature.dashboard.data.remote.api.BodyMeasurementRequest(weightKg = weight)
-            )
+            val plainText = "text/plain".toMediaTypeOrNull()
+            val weightPart = weight.toString().toRequestBody(plainText)
+            val bodyFatPart = bodyFatPercentage?.toString()?.toRequestBody(plainText)
+            val response = apiService.logBodyWeight(weightPart, bodyFatPart)
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
