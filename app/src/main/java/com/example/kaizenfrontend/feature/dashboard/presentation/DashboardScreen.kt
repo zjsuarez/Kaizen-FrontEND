@@ -492,6 +492,11 @@ fun DashboardScreen(
                 showActiveWorkoutSheet = false
                 zenModeInitialPage = null // close Zen Mode if open
             },
+            onDiscard = {
+                com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.discardWorkout()
+                showActiveWorkoutSheet = false
+                zenModeInitialPage = null
+            },
             onAddExercise = { /* TODO: open exercise catalog — Task 4+ */ },
             onNavigateToZenMode = { page ->
                 zenModeInitialPage = page
