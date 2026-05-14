@@ -511,14 +511,17 @@ fun DashboardScreen(
         WorkoutSummaryBottomSheet(
             workoutSnapshot = snapshot,
             saveStatusFlow = viewModel.workoutSaveStatus,
+            photoUploadStatusFlow = viewModel.photoUploadStatus,
             weightUnit = weightUnit,
             onDismiss = {
                 finishedWorkoutSnapshot = null
                 viewModel.resetWorkoutSaveStatus()
+                viewModel.resetPhotoUploadStatus()
             },
             onRetry = {
                 viewModel.saveWorkout(snapshot)
-            }
+            },
+            onPhotoSelected = { uri -> viewModel.uploadProgressPhoto(uri) }
         )
     }
 

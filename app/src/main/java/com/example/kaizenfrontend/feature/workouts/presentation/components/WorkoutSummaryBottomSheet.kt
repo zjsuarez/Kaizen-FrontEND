@@ -1,5 +1,10 @@
 package com.example.kaizenfrontend.feature.workouts.presentation.components
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -13,7 +18,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,12 +37,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Notes
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.BottomSheetDefaults
@@ -44,6 +54,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -51,7 +62,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,9 +72,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -76,10 +92,13 @@ import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.core.ui.theme.SubtleRed
+import com.example.kaizenfrontend.feature.dashboard.presentation.PhotoUploadStatus
 import com.example.kaizenfrontend.feature.dashboard.presentation.WorkoutSaveStatus
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.withContext
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
@@ -128,12 +147,15 @@ private data class ConfettiParticle(
 fun WorkoutSummaryBottomSheet(
     workoutSnapshot: ActiveWorkoutState,
     saveStatusFlow: StateFlow<WorkoutSaveStatus>,
+    photoUploadStatusFlow: StateFlow<PhotoUploadStatus>,
     weightUnit: String,
     onDismiss: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onPhotoSelected: (Uri) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val saveStatus by saveStatusFlow.collectAsState()
+    val photoUploadStatus by photoUploadStatusFlow.collectAsState()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -145,9 +167,11 @@ fun WorkoutSummaryBottomSheet(
         WorkoutSummaryContent(
             snapshot = workoutSnapshot,
             saveStatus = saveStatus,
+            photoUploadStatus = photoUploadStatus,
             weightUnit = weightUnit,
             onDismiss = onDismiss,
-            onRetry = onRetry
+            onRetry = onRetry,
+            onPhotoSelected = onPhotoSelected
         )
     }
 }
@@ -160,9 +184,11 @@ fun WorkoutSummaryBottomSheet(
 private fun WorkoutSummaryContent(
     snapshot: ActiveWorkoutState,
     saveStatus: WorkoutSaveStatus,
+    photoUploadStatus: PhotoUploadStatus,
     weightUnit: String,
     onDismiss: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onPhotoSelected: (Uri) -> Unit
 ) {
     // ── Compute summary stats ─────────────────────────────────
     val totalSets = snapshot.exercises.sumOf { it.sets.size }
@@ -175,6 +201,18 @@ private fun WorkoutSummaryContent(
             (w * r)
         }
     }
+
+    // ── Progress photo state ──────────────────────────────────
+    var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let {
+                selectedPhotoUri = it
+                onPhotoSelected(it)
+            }
+        }
+    )
 
     // ── Staggered entrance animations ─────────────────────────
     val heroAlpha = remember { Animatable(0f) }
@@ -373,9 +411,25 @@ private fun WorkoutSummaryContent(
             }
         }
 
+        // ── 4. Progress Photo ────────────────────────────────────
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ProgressPhotoSection(
+            photoUri = selectedPhotoUri,
+            uploadStatus = photoUploadStatus,
+            onPickPhoto = { photoPickerLauncher.launch("image/*") },
+            onRemovePhoto = { selectedPhotoUri = null },
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    alpha = ctaAlpha.value
+                    translationY = (1f - ctaAlpha.value) * 20f
+                }
+        )
+
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── 4. Save Status Indicator ─────────────────────────────
+        // ── 5. Save Status Indicator ─────────────────────────────
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -456,6 +510,189 @@ private fun WorkoutSummaryContent(
                             text = "Done",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 16.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Progress Photo Section
+// ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun ProgressPhotoSection(
+    photoUri: Uri?,
+    uploadStatus: PhotoUploadStatus,
+    onPickPhoto: () -> Unit,
+    onRemovePhoto: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    LaunchedEffect(photoUri) {
+        bitmap = photoUri?.let { uri ->
+            withContext(Dispatchers.IO) {
+                try {
+                    val opts = BitmapFactory.Options().apply { inSampleSize = 4 }
+                    context.contentResolver.openInputStream(uri)?.use {
+                        BitmapFactory.decodeStream(it, null, opts)
+                    }
+                } catch (e: Exception) { null }
+            }
+        }
+    }
+
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.PhotoCamera,
+                    contentDescription = null,
+                    tint = LightGrey,
+                    modifier = Modifier.size(15.dp)
+                )
+                Text(
+                    text = "Progress Photo",
+                    color = LightGrey,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Text(
+                text = "optional",
+                color = LightGrey.copy(alpha = 0.4f),
+                fontSize = 11.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (photoUri == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(76.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(ShadowGrey.copy(alpha = 0.5f))
+                    .clickable { onPickPhoto() },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddPhotoAlternate,
+                        contentDescription = null,
+                        tint = LightGrey.copy(alpha = 0.5f),
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Text(
+                        text = "Tap to add progress photo",
+                        color = LightGrey.copy(alpha = 0.5f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(ShadowGrey.copy(alpha = 0.7f), RoundedCornerShape(14.dp))
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Thumbnail
+                val bmp = bitmap
+                if (bmp != null) {
+                    Image(
+                        bitmap = bmp.asImageBitmap(),
+                        contentDescription = "Progress photo",
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(ShadowGrey),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = LightGrey,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
+
+                // Upload status
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    when (uploadStatus) {
+                        is PhotoUploadStatus.Uploading -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    color = CrayolaBlue,
+                                    strokeWidth = 2.dp
+                                )
+                                Text("Uploading…", color = CrayolaBlue, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                        is PhotoUploadStatus.Success -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = null, tint = MalachiteGreen, modifier = Modifier.size(14.dp))
+                                Text("Photo saved!", color = MalachiteGreen, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                        is PhotoUploadStatus.Error -> {
+                            Text(
+                                text = "Upload failed — tap to retry",
+                                color = SubtleRed,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.clickable { onPickPhoto() }
+                            )
+                        }
+                        else -> {
+                            Text("Photo selected", color = LightGrey.copy(alpha = 0.6f), fontSize = 13.sp)
+                        }
+                    }
+                }
+
+                // Remove button (hidden while uploading)
+                if (uploadStatus !is PhotoUploadStatus.Uploading) {
+                    IconButton(
+                        onClick = onRemovePhoto,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Remove photo",
+                            tint = LightGrey.copy(alpha = 0.5f),
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
