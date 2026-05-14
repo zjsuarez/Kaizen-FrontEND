@@ -11,7 +11,7 @@ import java.util.Locale
 class SaveWorkoutUseCase(
     private val repository: WorkoutRepository
 ) {
-    suspend operator fun invoke(state: ActiveWorkoutState, unitSystem: String = "METRIC"): Result<Unit> {
+    suspend operator fun invoke(state: ActiveWorkoutState, unitSystem: String = "METRIC", measurementId: String? = null): Result<Unit> {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
         val startTimeStr = dateFormat.format(Date(state.startTime))
         val endTimeStr = dateFormat.format(Date(state.startTime + state.elapsedTimeGlobal))
@@ -54,6 +54,7 @@ class SaveWorkoutUseCase(
             startTime = startTimeStr,
             endTime = endTimeStr,
             notes = state.notes,
+            measurementId = measurementId,
             sets = sets
         )
 

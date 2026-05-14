@@ -1,7 +1,8 @@
 package com.example.kaizenfrontend.feature.dashboard.data.remote.api
 
-import com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.DashboardResponse
 import com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse
+import com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.DashboardResponse
+import com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.MeasurementCreatedResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -28,7 +29,7 @@ interface DashboardApiService {
     @POST("/api/measurements")
     suspend fun uploadProgressPhoto(
         @Part progressPhoto: MultipartBody.Part
-    ): Response<Unit>
+    ): Response<MeasurementCreatedResponse>
 
     @GET("/api/measurements")
     suspend fun getWeightHistory(): Response<List<BodyMeasurementResponse>>

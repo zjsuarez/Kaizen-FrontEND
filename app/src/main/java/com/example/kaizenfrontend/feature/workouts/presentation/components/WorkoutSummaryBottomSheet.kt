@@ -151,6 +151,7 @@ fun WorkoutSummaryBottomSheet(
     weightUnit: String,
     onDismiss: () -> Unit,
     onRetry: () -> Unit,
+    onSave: () -> Unit,
     onPhotoSelected: (Uri) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -171,6 +172,7 @@ fun WorkoutSummaryBottomSheet(
             weightUnit = weightUnit,
             onDismiss = onDismiss,
             onRetry = onRetry,
+            onSave = onSave,
             onPhotoSelected = onPhotoSelected
         )
     }
@@ -188,6 +190,7 @@ private fun WorkoutSummaryContent(
     weightUnit: String,
     onDismiss: () -> Unit,
     onRetry: () -> Unit,
+    onSave: () -> Unit,
     onPhotoSelected: (Uri) -> Unit
 ) {
     // ── Compute summary stats ─────────────────────────────────
@@ -443,7 +446,7 @@ private fun WorkoutSummaryContent(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── 5. CTA Button ────────────────────────────────────
+            // ── 6. CTA Button ────────────────────────────────────
             when (saveStatus) {
                 is WorkoutSaveStatus.Error -> {
                     Button(
@@ -493,21 +496,30 @@ private fun WorkoutSummaryContent(
                 }
                 else -> {
                     Button(
-                        onClick = onDismiss,
-                        enabled = saveStatus !is WorkoutSaveStatus.Saving,
+                        onClick = {
+                            when (saveStatus) {
+                                is WorkoutSaveStatus.Idle -> onSave()
+                                is WorkoutSaveStatus.Success -> onDismiss()
+                                else -> {}
+                            }
+                        },
+                        enabled = saveStatus !is WorkoutSaveStatus.Saving && photoUploadStatus !is PhotoUploadStatus.Uploading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = CrayolaBlue,
+                            containerColor = if (saveStatus is WorkoutSaveStatus.Success) MalachiteGreen else CrayolaBlue,
                             contentColor = PureWhite,
                             disabledContainerColor = CrayolaBlue.copy(alpha = 0.4f),
                             disabledContentColor = PureWhite.copy(alpha = 0.5f)
                         )
                     ) {
                         Text(
-                            text = "Done",
+                            text = when (saveStatus) {
+                                is WorkoutSaveStatus.Success -> "Done"
+                                else -> "Save Workout"
+                            },
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 16.sp
                         )

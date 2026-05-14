@@ -58,12 +58,12 @@ class DashboardRepository @Inject constructor(
         photoBytes: ByteArray,
         mimeType: String,
         fileName: String
-    ): Result<Unit> {
+    ): Result<String> {
         return try {
             val photoBody = photoBytes.toRequestBody(mimeType.toMediaTypeOrNull())
             val photoPart = MultipartBody.Part.createFormData("progressPhoto", fileName, photoBody)
             val response = apiService.uploadProgressPhoto(photoPart)
-            if (response.isSuccessful) Result.success(Unit)
+            if (response.isSuccessful) Result.success(response.body()!!.id)
             else Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
         } catch (e: Exception) {
             Result.failure(e)

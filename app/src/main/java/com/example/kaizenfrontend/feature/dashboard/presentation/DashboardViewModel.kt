@@ -62,6 +62,8 @@ constructor(
     private val _photoUploadStatus = MutableStateFlow<PhotoUploadStatus>(PhotoUploadStatus.Idle)
     val photoUploadStatus: StateFlow<PhotoUploadStatus> = _photoUploadStatus.asStateFlow()
 
+    private val _capturedMeasurementId = MutableStateFlow<String?>(null)
+
     private val _weightHistory =
             MutableStateFlow<
                     List<
@@ -249,7 +251,8 @@ constructor(
         _workoutSaveStatus.value = WorkoutSaveStatus.Saving
         viewModelScope.launch {
             val unitSystem = sessionManager.getUserUnitSystem() ?: "METRIC"
-            val result = saveWorkoutUseCase(state, unitSystem)
+            val measurementId = _capturedMeasurementId.value
+            val result = saveWorkoutUseCase(state, unitSystem, measurementId)
             if (result.isSuccess) {
                 android.util.Log.d("KAIZEN", "Workout saved successfully! Updating dashboard...")
                 _workoutSaveStatus.value = WorkoutSaveStatus.Success
@@ -279,7 +282,10 @@ constructor(
                 val fileName = "progress_${System.currentTimeMillis()}.jpg"
                 repository.uploadProgressPhoto(bytes, mimeType, fileName)
                     .fold(
-                        onSuccess = { _photoUploadStatus.value = PhotoUploadStatus.Success },
+                        onSuccess = { id ->
+                            _capturedMeasurementId.value = id
+                            _photoUploadStatus.value = PhotoUploadStatus.Success
+                        },
                         onFailure = { _photoUploadStatus.value = PhotoUploadStatus.Error(it.message ?: "Upload failed") }
                     )
             } catch (e: Exception) {
@@ -290,6 +296,7 @@ constructor(
 
     fun resetPhotoUploadStatus() {
         _photoUploadStatus.value = PhotoUploadStatus.Idle
+        _capturedMeasurementId.value = null
     }
 
     companion object {
