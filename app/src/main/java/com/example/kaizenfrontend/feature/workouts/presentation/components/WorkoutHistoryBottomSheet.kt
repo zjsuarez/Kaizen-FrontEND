@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FitnessCenter
@@ -39,6 +40,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.kaizenfrontend.core.ui.theme.*
@@ -72,6 +75,7 @@ fun WorkoutHistoryBottomSheet(
     isLoading: Boolean,
     error: String?,
     effortMetric: String,
+    photoUrlByMeasurementId: Map<String, String>,
     onDismiss: () -> Unit,
     onRefresh: () -> Unit
 ) {
@@ -106,12 +110,14 @@ fun WorkoutHistoryBottomSheet(
                     routinesByPlanId = routinesByPlanId,
                     isLoading = isLoading,
                     error = error,
+                    photoUrlByMeasurementId = photoUrlByMeasurementId,
                     onWorkoutClick = { nav = HistoryNav.Detail(it) },
                     onRefresh = onRefresh
                 )
                 is HistoryNav.Detail -> WorkoutDetailContent(
                     workout = currentNav.workout,
                     effortMetric = effortMetric,
+                    photoUrlByMeasurementId = photoUrlByMeasurementId,
                     onBack = { nav = HistoryNav.List }
                 )
             }
@@ -130,6 +136,7 @@ private fun HistoryListContent(
     routinesByPlanId: Map<String, List<Routine>>,
     isLoading: Boolean,
     error: String?,
+    photoUrlByMeasurementId: Map<String, String>,
     onWorkoutClick: (WorkoutResponseDto) -> Unit,
     onRefresh: () -> Unit
 ) {
@@ -278,8 +285,11 @@ private fun HistoryListContent(
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(filteredWorkouts, key = { it.id }) { workout ->
+                    val hasPhoto = workout.measurementId != null &&
+                        photoUrlByMeasurementId.containsKey(workout.measurementId)
                     WorkoutHistoryCard(
                         workout = workout,
+                        hasPhoto = hasPhoto,
                         onClick = { onWorkoutClick(workout) }
                     )
                 }
@@ -295,6 +305,7 @@ private fun HistoryListContent(
 @Composable
 private fun WorkoutHistoryCard(
     workout: WorkoutResponseDto,
+    hasPhoto: Boolean,
     onClick: () -> Unit
 ) {
     val completedSets = workout.sets.size
@@ -336,27 +347,47 @@ private fun WorkoutHistoryCard(
                     fontSize = 12.sp
                 )
             }
-            if (prCount > 0) {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFFFD740).copy(alpha = 0.15f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        Icons.Outlined.EmojiEvents,
-                        contentDescription = null,
-                        tint = Color(0xFFFFD740),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = "$prCount PR${if (prCount > 1) "s" else ""}",
-                        color = Color(0xFFFFD740),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (hasPhoto) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(CrayolaBlue.copy(alpha = 0.12f))
+                            .padding(horizontal = 7.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            Icons.Outlined.PhotoCamera,
+                            contentDescription = "Has progress photo",
+                            tint = CrayolaBlue,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+                if (prCount > 0) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFFFD740).copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            Icons.Outlined.EmojiEvents,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD740),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "$prCount PR${if (prCount > 1) "s" else ""}",
+                            color = Color(0xFFFFD740),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
@@ -393,12 +424,22 @@ private fun StatPill(icon: ImageVector, text: String) {
 private fun WorkoutDetailContent(
     workout: WorkoutResponseDto,
     effortMetric: String,
+    photoUrlByMeasurementId: Map<String, String>,
     onBack: () -> Unit
 ) {
     val totalVolumeKg = workout.sets.sumOf { (it.weightKg ?: 0.0) * (it.reps ?: 0) }
     val prCount = workout.sets.count { it.isPR }
     val exerciseGroups = workout.sets.groupBy { resolveSetExerciseName(it) }
     val durationMin = workoutDurationMinutes(workout.startTime, workout.endTime)
+    val photoUrl = workout.measurementId?.let { photoUrlByMeasurementId[it] }
+    var showPhotoDialog by remember { mutableStateOf(false) }
+
+    if (showPhotoDialog && !photoUrl.isNullOrBlank()) {
+        FullScreenPhotoDialog(
+            photoUrl = photoUrl,
+            onDismiss = { showPhotoDialog = false }
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -476,10 +517,24 @@ private fun WorkoutDetailContent(
             }
         }
 
-        // Progress photo
-        if (!workout.progressPhotoUrl.isNullOrBlank()) {
+        // Progress photo button
+        if (!photoUrl.isNullOrBlank()) {
             item {
-                ProgressPhotoBlock(photoUrl = workout.progressPhotoUrl)
+                OutlinedButton(
+                    onClick = { showPhotoDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CrayolaBlue),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CrayolaBlue.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        Icons.Outlined.PhotoCamera,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("View Progress Photo", fontSize = 14.sp)
+                }
             }
         }
 
@@ -608,31 +663,40 @@ private fun SetRow(set: WorkoutSetResponseDto, effortMetric: String) {
 }
 
 @Composable
-private fun ProgressPhotoBlock(photoUrl: String) {
+private fun FullScreenPhotoDialog(photoUrl: String, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(Icons.Outlined.PhotoCamera, contentDescription = null, tint = LightGrey, modifier = Modifier.size(15.dp))
-            Text("Progress Photo", color = LightGrey, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-        }
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(photoUrl)
-                .crossfade(true)
-                .build(),
-            contentDescription = "Progress photo",
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(14.dp)),
-            contentScale = ContentScale.Crop
-        )
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.95f))
+                .clickable { onDismiss() }
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(photoUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Progress photo",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                contentScale = ContentScale.Fit
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.5f))
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = PureWhite)
+            }
+        }
     }
 }
 
