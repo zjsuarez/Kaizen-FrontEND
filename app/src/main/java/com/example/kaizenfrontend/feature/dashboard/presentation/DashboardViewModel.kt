@@ -1,6 +1,7 @@
 package com.example.kaizenfrontend.feature.dashboard.presentation
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.Constraints
@@ -35,6 +36,13 @@ sealed class WorkoutSaveStatus {
     data class Error(val message: String) : WorkoutSaveStatus()
 }
 
+sealed class PhotoUploadStatus {
+    data object Idle : PhotoUploadStatus()
+    data object Uploading : PhotoUploadStatus()
+    data object Success : PhotoUploadStatus()
+    data class Error(val message: String) : PhotoUploadStatus()
+}
+
 @HiltViewModel
 class DashboardViewModel
 @Inject
@@ -50,6 +58,11 @@ constructor(
 
     private val _workoutSaveStatus = MutableStateFlow<WorkoutSaveStatus>(WorkoutSaveStatus.Idle)
     val workoutSaveStatus: StateFlow<WorkoutSaveStatus> = _workoutSaveStatus.asStateFlow()
+
+    private val _photoUploadStatus = MutableStateFlow<PhotoUploadStatus>(PhotoUploadStatus.Idle)
+    val photoUploadStatus: StateFlow<PhotoUploadStatus> = _photoUploadStatus.asStateFlow()
+
+    private val _capturedMeasurementId = MutableStateFlow<String?>(null)
 
     private val _weightHistory =
             MutableStateFlow<
@@ -238,7 +251,8 @@ constructor(
         _workoutSaveStatus.value = WorkoutSaveStatus.Saving
         viewModelScope.launch {
             val unitSystem = sessionManager.getUserUnitSystem() ?: "METRIC"
-            val result = saveWorkoutUseCase(state, unitSystem)
+            val measurementId = _capturedMeasurementId.value
+            val result = saveWorkoutUseCase(state, unitSystem, measurementId)
             if (result.isSuccess) {
                 android.util.Log.d("KAIZEN", "Workout saved successfully! Updating dashboard...")
                 _workoutSaveStatus.value = WorkoutSaveStatus.Success
@@ -253,6 +267,36 @@ constructor(
 
     fun resetWorkoutSaveStatus() {
         _workoutSaveStatus.value = WorkoutSaveStatus.Idle
+    }
+
+    fun uploadProgressPhoto(uri: Uri) {
+        _photoUploadStatus.value = PhotoUploadStatus.Uploading
+        viewModelScope.launch {
+            try {
+                val bytes = appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: run {
+                        _photoUploadStatus.value = PhotoUploadStatus.Error("Could not read image")
+                        return@launch
+                    }
+                val mimeType = appContext.contentResolver.getType(uri) ?: "image/jpeg"
+                val fileName = "progress_${System.currentTimeMillis()}.jpg"
+                repository.uploadProgressPhoto(bytes, mimeType, fileName)
+                    .fold(
+                        onSuccess = { id ->
+                            _capturedMeasurementId.value = id
+                            _photoUploadStatus.value = PhotoUploadStatus.Success
+                        },
+                        onFailure = { _photoUploadStatus.value = PhotoUploadStatus.Error(it.message ?: "Upload failed") }
+                    )
+            } catch (e: Exception) {
+                _photoUploadStatus.value = PhotoUploadStatus.Error(e.message ?: "Upload failed")
+            }
+        }
+    }
+
+    fun resetPhotoUploadStatus() {
+        _photoUploadStatus.value = PhotoUploadStatus.Idle
+        _capturedMeasurementId.value = null
     }
 
     companion object {

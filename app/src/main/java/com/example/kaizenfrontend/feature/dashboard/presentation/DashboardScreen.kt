@@ -487,7 +487,6 @@ fun DashboardScreen(
                 val snapshot = com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.finishWorkout(effortMetric)
                 snapshot?.let {
                     finishedWorkoutSnapshot = it
-                    viewModel.saveWorkout(it)
                 }
                 showActiveWorkoutSheet = false
                 zenModeInitialPage = null // close Zen Mode if open
@@ -511,14 +510,18 @@ fun DashboardScreen(
         WorkoutSummaryBottomSheet(
             workoutSnapshot = snapshot,
             saveStatusFlow = viewModel.workoutSaveStatus,
+            photoUploadStatusFlow = viewModel.photoUploadStatus,
             weightUnit = weightUnit,
             onDismiss = {
                 finishedWorkoutSnapshot = null
                 viewModel.resetWorkoutSaveStatus()
+                viewModel.resetPhotoUploadStatus()
             },
             onRetry = {
                 viewModel.saveWorkout(snapshot)
-            }
+            },
+            onSave = { viewModel.saveWorkout(snapshot) },
+            onPhotoSelected = { uri -> viewModel.uploadProgressPhoto(uri) }
         )
     }
 

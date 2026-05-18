@@ -72,6 +72,9 @@ import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.material.icons.filled.History
+import com.example.kaizenfrontend.feature.workouts.presentation.components.WorkoutHistoryBottomSheet
 
 
 
@@ -96,6 +99,19 @@ fun WorkoutsScreen(
     var pendingDelete by remember { mutableStateOf<DeleteTarget?>(null) }
     var showRoutineDetailsExerciseCatalog by remember { mutableStateOf(false) }
     var selectedFocusPlanId by rememberSaveable { mutableStateOf<String?>(null) }
+    var showHistorySheet by remember { mutableStateOf(false) }
+    val historyViewModel: WorkoutHistoryViewModel = viewModel(
+        factory = WorkoutHistoryViewModelFactory(LocalContext.current.applicationContext)
+    )
+    val historyWorkouts by historyViewModel.workouts.collectAsState()
+    val historyLoading by historyViewModel.isLoading.collectAsState()
+    val historyError by historyViewModel.error.collectAsState()
+    val historyPhotoUrls by historyViewModel.photoUrlByMeasurementId.collectAsState()
+    val localContext = LocalContext.current
+    val effortMetric = remember {
+        com.example.kaizenfrontend.core.data.local.SessionManager(localContext)
+            .getUserEffortMetric() ?: "RPE"
+    }
 
     Box(
         modifier = Modifier
@@ -626,6 +642,43 @@ fun WorkoutsScreen(
                     }
                 }
             }
+        }
+
+        // History FAB — bottom right, above nav bar, only visible when workouts exist
+        AnimatedVisibility(
+            visible = historyWorkouts.isNotEmpty(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 20.dp, bottom = 24.dp)
+        ) {
+            FloatingActionButton(
+                onClick = { showHistorySheet = true },
+                containerColor = ShadowGrey,
+                contentColor = CrayolaBlue,
+                modifier = Modifier.size(52.dp),
+                shape = CircleShape
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "Workout History",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        if (showHistorySheet) {
+            val successState = uiState as? WorkoutsUiState.Success
+            WorkoutHistoryBottomSheet(
+                workouts = historyWorkouts,
+                plans = successState?.plans ?: emptyList(),
+                routinesByPlanId = successState?.routinesByPlanId ?: emptyMap(),
+                isLoading = historyLoading,
+                error = historyError,
+                effortMetric = effortMetric,
+                photoUrlByMeasurementId = historyPhotoUrls,
+                onDismiss = { showHistorySheet = false },
+                onRefresh = { historyViewModel.loadWorkouts() }
+            )
         }
     }
 }

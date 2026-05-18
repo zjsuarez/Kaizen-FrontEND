@@ -7,6 +7,8 @@ data class WorkoutResponseDto(
     val startTime: String?,
     val endTime: String?,
     val notes: String?,
+    val measurementId: String?,
+    val progressPhotoUrl: String?,
     val sets: List<WorkoutSetResponseDto>
 )
 
