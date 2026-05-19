@@ -417,11 +417,40 @@ private fun StatPill(icon: ImageVector, text: String) {
 }
 
 // ──────────────────────────────────────────────────────────────
+// Standalone reusable: wraps detail in a ModalBottomSheet for use from other screens
+// ──────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WorkoutDetailBottomSheet(
+    workout: WorkoutResponseDto,
+    effortMetric: String,
+    photoUrlByMeasurementId: Map<String, String> = emptyMap(),
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = com.example.kaizenfrontend.core.ui.theme.Onyx,
+        scrimColor = Color.Black.copy(alpha = 0.7f),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = com.example.kaizenfrontend.core.ui.theme.LightGrey.copy(alpha = 0.4f)) }
+    ) {
+        WorkoutDetailContent(
+            workout = workout,
+            effortMetric = effortMetric,
+            photoUrlByMeasurementId = photoUrlByMeasurementId,
+            onBack = onDismiss
+        )
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
 // Workout detail
 // ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun WorkoutDetailContent(
+internal fun WorkoutDetailContent(
     workout: WorkoutResponseDto,
     effortMetric: String,
     photoUrlByMeasurementId: Map<String, String>,
@@ -431,7 +460,10 @@ private fun WorkoutDetailContent(
     val prCount = workout.sets.count { it.isPR }
     val exerciseGroups = workout.sets.groupBy { resolveSetExerciseName(it) }
     val durationMin = workoutDurationMinutes(workout.startTime, workout.endTime)
-    val photoUrl = workout.measurementId?.let { photoUrlByMeasurementId[it] }
+    // Prefer the URL embedded in the workout DTO (returned by the detail endpoint).
+    // Fall back to the measurements map for list-based contexts where progressPhotoUrl is absent.
+    val photoUrl = workout.progressPhotoUrl?.takeIf { it.isNotBlank() }
+        ?: workout.measurementId?.let { photoUrlByMeasurementId[it] }
     var showPhotoDialog by remember { mutableStateOf(false) }
 
     if (showPhotoDialog && !photoUrl.isNullOrBlank()) {

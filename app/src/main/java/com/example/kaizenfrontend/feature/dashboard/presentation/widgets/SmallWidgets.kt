@@ -6,14 +6,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -22,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,66 +39,81 @@ import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 // ──────────────────────────────────────────────────────────────
 // Streak Widget
 // ──────────────────────────────────────────────────────────────
+
 @Composable
-fun Modifier.StreakWidget(streakDays: Int?, recordStreak: Int = 12) {
+fun Modifier.StreakWidget(
+    streakDays: Int?,
+    recordStreak: Int = 12,
+    onClick: (() -> Unit)? = null
+) {
     val currentStreak = streakDays ?: 0
     val isNewRecord = currentStreak >= recordStreak && currentStreak > 0
     val iconTint = if (isNewRecord) PrGold else CrayolaBlue
 
-    KaizenWidgetContainer(modifier = this) {
-        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-            // Top: icon + label
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
+    KaizenWidgetContainer(modifier = this, onClick = onClick) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
                         imageVector = Icons.Default.LocalFireDepartment,
-                        contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_streak),
+                        contentDescription = stringResource(com.example.kaizenfrontend.R.string.dashboard_streak),
                         tint = iconTint,
                         modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_streak),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(com.example.kaizenfrontend.R.string.dashboard_streak),
                         color = LightGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         letterSpacing = 1.sp
-                )
+                    )
+                }
+                if (onClick != null) {
+                    Icon(
+                        imageVector = Icons.Default.OpenInNew,
+                        contentDescription = null,
+                        tint = LightGrey.copy(alpha = 0.35f),
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
             }
 
-            // Bottom: big number + subtitle + record
             Column {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                            text = streakDays?.toString() ?: "--",
-                            color = PureWhite,
-                            fontSize = 40.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 40.sp
+                        text = streakDays?.toString() ?: "--",
+                        color = if (isNewRecord) PrGold else PureWhite,
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 40.sp
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                            text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_days),
-                            color = LightGrey,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Normal,
-                            modifier =
-                                    Modifier.alignByBaseline()
-                            )
+                        text = stringResource(com.example.kaizenfrontend.R.string.dashboard_days),
+                        color = LightGrey,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        modifier = Modifier.alignByBaseline()
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                val recordText = if (isNewRecord) {
-                    stringResource(id = com.example.kaizenfrontend.R.string.dashboard_new_record)
-                } else {
-                    stringResource(id = com.example.kaizenfrontend.R.string.dashboard_record, recordStreak)
-                }
-                val recordWeight = if (isNewRecord) FontWeight.Bold else FontWeight.Normal
+                Spacer(Modifier.height(2.dp))
+                val recordText = if (isNewRecord)
+                    stringResource(com.example.kaizenfrontend.R.string.dashboard_new_record)
+                else
+                    stringResource(com.example.kaizenfrontend.R.string.dashboard_record, recordStreak)
                 Text(
-                        text = recordText,
-                        color = LightGrey.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
-                        fontWeight = recordWeight
+                    text = recordText,
+                    color = LightGrey.copy(alpha = 0.6f),
+                    fontSize = 11.sp,
+                    fontWeight = if (isNewRecord) FontWeight.Bold else FontWeight.Normal
                 )
             }
         }
@@ -107,168 +123,91 @@ fun Modifier.StreakWidget(streakDays: Int?, recordStreak: Int = 12) {
 // ──────────────────────────────────────────────────────────────
 // Average Time Widget
 // ──────────────────────────────────────────────────────────────
+
 @Composable
-fun AvgTimeWidget(minutes: Int?, trendDiffMinutes: Int = 0, modifier: Modifier = Modifier) {
-    KaizenWidgetContainer(modifier = modifier) {
-        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-            // Top: icon + label
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
+fun AvgTimeWidget(
+    minutes: Int?,
+    trendDiffMinutes: Int = 0,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    KaizenWidgetContainer(modifier = modifier, onClick = onClick) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
                         imageVector = Icons.Default.Timer,
-                        contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_avg_time),
+                        contentDescription = stringResource(com.example.kaizenfrontend.R.string.dashboard_avg_time),
                         tint = CrayolaBlue,
                         modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_avg_time),
-                        color = LightGrey,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 1.sp
-                )
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Column {
+                        Text(
+                            text = stringResource(com.example.kaizenfrontend.R.string.dashboard_avg_time),
+                            color = LightGrey,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Last 14 Days",
+                            color = LightGrey.copy(alpha = 0.5f),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+                }
+                if (onClick != null) {
+                    Icon(
+                        imageVector = Icons.Default.OpenInNew,
+                        contentDescription = null,
+                        tint = LightGrey.copy(alpha = 0.35f),
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
             }
 
-            // Bottom: big number + unit + trend
             Column {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                            text = minutes?.toString() ?: "--",
-                            color = PureWhite,
-                            fontSize = 40.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 40.sp
+                        text = minutes?.toString() ?: "--",
+                        color = PureWhite,
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 40.sp
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                            text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_min),
-                            color = LightGrey,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Normal,
-                            modifier = Modifier.alignByBaseline()
-                    )
-                }
-
-                // Trend indicator
-                if (trendDiffMinutes != 0) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    val isUp = trendDiffMinutes > 0
-                    // Up = slower (bad) → subtle red, Down = faster (good) → green
-                    val trendColor = if (isUp) SubtleRed else MalachiteGreen
-                    val trendIcon =
-                            if (isUp) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown
-                    val trendText =
-                            if (isUp) {
-                                stringResource(id = com.example.kaizenfrontend.R.string.dashboard_trend_up, trendDiffMinutes)
-                            } else {
-                                stringResource(id = com.example.kaizenfrontend.R.string.dashboard_trend_down, trendDiffMinutes)
-                            }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                                imageVector = trendIcon,
-                                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.statistics_trend),
-                                tint = trendColor,
-                                modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                                text = trendText,
-                                color = trendColor,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ──────────────────────────────────────────────────────────────
-// Highlighted 1RM Widget
-// ──────────────────────────────────────────────────────────────
-@SuppressLint("DefaultLocale")
-@Composable
-fun OneRmWidget(
-    exercise: String,
-    weight: Double?,
-    isNewPr: Boolean = false,
-    weightIncrease: Double = 0.0,
-    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
-) {
-    val iconTint = if (isNewPr) PrGold else CrayolaBlue
-
-    KaizenWidgetContainer(modifier = modifier) {
-        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-            // Top: icon + label
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                        imageVector = Icons.Default.FitnessCenter,
-                        contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.statistics_estimated_1rm_title),
-                        tint = iconTint,
-                        modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                        text = stringResource(id = com.example.kaizenfrontend.R.string.statistics_estimated_1rm_title),
+                        text = stringResource(com.example.kaizenfrontend.R.string.dashboard_min),
                         color = LightGrey,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 1.sp
-                )
-            }
-
-            // Bottom: weight + PR badge + exercise name
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Format: strip ".0" for clean integers
-                    val displayWeight =
-                            when {
-                                weight == null -> "--"
-                                weight % 1.0 == 0.0 -> weight.toInt().toString()
-                                else -> String.format("%.1f", weight)
-                            }
-                    Text(
-                            text = displayWeight,
-                            color = PureWhite,
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 36.sp
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                            text = stringResource(id = com.example.kaizenfrontend.R.string.settings_unit_kg),
-                            color = LightGrey,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Normal
-                    )
-
-                    // PR increase badge
-                    if (isNewPr && weightIncrease > 0.0) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        val increaseText =
-                                if (weightIncrease % 1.0 == 0.0) {
-                                    "+${weightIncrease.toInt()}"
-                                } else {
-                                    "+${String.format("%.1f", weightIncrease)}"
-                                }
-                        Text(
-                                text = increaseText,
-                                color = MalachiteGreen,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                        text = exercise,
-                        color = LightGrey,
-                        fontSize = 13.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Normal,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                )
+                        modifier = Modifier.alignByBaseline()
+                    )
+                }
+
+                if (trendDiffMinutes != 0) {
+                    Spacer(Modifier.height(2.dp))
+                    val isUp = trendDiffMinutes > 0
+                    val trendColor = if (isUp) SubtleRed else MalachiteGreen
+                    val trendIcon = if (isUp) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown
+                    val trendText = if (isUp)
+                        stringResource(com.example.kaizenfrontend.R.string.dashboard_trend_up, trendDiffMinutes)
+                    else
+                        stringResource(com.example.kaizenfrontend.R.string.dashboard_trend_down, trendDiffMinutes)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(trendIcon, null, tint = trendColor, modifier = Modifier.size(16.dp))
+                        Text(trendText, color = trendColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
             }
         }
     }
@@ -277,38 +216,21 @@ fun OneRmWidget(
 // ──────────────────────────────────────────────────────────────
 // Previews
 // ──────────────────────────────────────────────────────────────
+
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 170, heightDp = 140)
 @Composable
 private fun StreakWidgetPreview() {
-    Modifier.StreakWidget(streakDays = 5)
+    Modifier.StreakWidget(streakDays = 5, onClick = {})
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 170, heightDp = 140)
 @Composable
 private fun AvgTimeWidgetFasterPreview() {
-    AvgTimeWidget(minutes = 62, trendDiffMinutes = -3)
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 170, heightDp = 140)
-@Composable
-private fun AvgTimeWidgetSlowerPreview() {
-    AvgTimeWidget(minutes = 68, trendDiffMinutes = 5)
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 170, heightDp = 140)
-@Composable
-private fun OneRmWidgetPrPreview() {
-    OneRmWidget(exercise = "Bench Press", weight = 105.0, isNewPr = true, weightIncrease = 2.5)
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 170, heightDp = 140)
-@Composable
-private fun OneRmWidgetNoPrPreview() {
-    OneRmWidget(exercise = "Squat", weight = 140.0, isNewPr = false)
+    AvgTimeWidget(minutes = 62, trendDiffMinutes = -3, onClick = {})
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 170, heightDp = 140)
 @Composable
 private fun StreakWidgetRecordPreview() {
-    Modifier.StreakWidget(streakDays = 15)
+    Modifier.StreakWidget(streakDays = 15, onClick = {})
 }
