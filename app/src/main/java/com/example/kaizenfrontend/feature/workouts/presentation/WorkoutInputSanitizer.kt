@@ -16,6 +16,18 @@ object WorkoutInputSanitizer {
     fun normalizeSessionNumberInput(input: String): String =
         input.filter(Char::isDigit).take(MAX_SESSION_NUMBER_DIGITS)
 
+    fun normalizeWeightInput(input: String): String {
+        val filtered = input.filter { it.isDigit() || it == '.' }
+        val dotIndex = filtered.indexOf('.')
+        return if (dotIndex == -1) {
+            filtered.take(MAX_SESSION_NUMBER_DIGITS)
+        } else {
+            val intPart = filtered.substring(0, dotIndex).take(MAX_SESSION_NUMBER_DIGITS)
+            val decPart = filtered.substring(dotIndex + 1).filter(Char::isDigit).take(2)
+            "$intPart.$decPart"
+        }
+    }
+
     fun normalizeNotesInput(input: String): String =
         input.take(MAX_WORKOUT_NOTES_LENGTH)
 

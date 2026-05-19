@@ -5,6 +5,7 @@ data class WorkoutRequest(
     val startTime: String?,
     val endTime: String?,
     val notes: String?,
+    val measurementId: String?,
     val sets: List<WorkoutSetRequest>
 )
 
