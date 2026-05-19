@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,74 +28,7 @@ import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.MalachiteGreen
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
-
-// ──────────────────────────────────────────────────────────────
-// Recovery Time Widget
-// ──────────────────────────────────────────────────────────────
-
-@Composable
-fun RecoveryTimeWidget(
-    hours: Int?,
-    modifier: Modifier = Modifier
-) {
-    val isRecovered = hours != null && hours <= 0
-    val displayHours = if (isRecovered) "0" else hours?.toString() ?: "--"
-    val subtext = if (isRecovered) stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovered) else if (hours != null) stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovering) else stringResource(id = com.example.kaizenfrontend.R.string.dashboard_no_data)
-    val accentColor = if (isRecovered) MalachiteGreen else CrayolaBlue
-
-    KaizenWidgetContainer(modifier = modifier) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Left: icon + label
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.BatteryChargingFull,
-                    contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovery),
-                    tint = accentColor,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recovery),
-                    color = LightGrey,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 1.sp
-                )
-            }
-
-            // Right: metric + subtitle
-            Column(horizontalAlignment = Alignment.End) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = displayHours,
-                        color = PureWhite,
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 26.sp
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text(
-                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_hours),
-                        color = LightGrey,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Normal,
-                        modifier = Modifier.alignByBaseline()
-                    )
-                }
-                Text(
-                    text = subtext,
-                    color = LightGrey.copy(alpha = 0.6f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Normal
-                )
-            }
-        }
-    }
-}
+import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 
 // ──────────────────────────────────────────────────────────────
 // Last Session Widget
@@ -104,6 +37,7 @@ fun RecoveryTimeWidget(
 @Composable
 fun LastSessionWidget(
     routineName: String?,
+    planName: String?,
     timeLabel: String?,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
@@ -114,35 +48,52 @@ fun LastSessionWidget(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: icon + label
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.History,
-                    contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_last_session),
+                    contentDescription = stringResource(com.example.kaizenfrontend.R.string.dashboard_last_session),
                     tint = CrayolaBlue,
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(Modifier.width(6.dp))
                 Text(
-                    text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_last_session),
+                    text = stringResource(com.example.kaizenfrontend.R.string.dashboard_last_session),
                     color = LightGrey,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 1.sp
                 )
+                if (onClick != null) {
+                    Spacer(Modifier.width(5.dp))
+                    Icon(
+                        imageVector = Icons.Default.OpenInNew,
+                        contentDescription = null,
+                        tint = LightGrey.copy(alpha = 0.35f),
+                        modifier = Modifier.size(11.dp)
+                    )
+                }
             }
 
-            // Right: routine name + time label
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = routineName ?: "--",
                     color = PureWhite,
-                    fontSize = 22.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    lineHeight = 22.sp,
+                    lineHeight = 18.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (!planName.isNullOrBlank()) {
+                    Text(
+                        text = planName,
+                        color = CrayolaBlue.copy(alpha = 0.8f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Text(
                     text = timeLabel ?: "",
                     color = LightGrey.copy(alpha = 0.6f),
@@ -163,6 +114,7 @@ fun LastSessionWidget(
 fun WeightTrendWidget(
     currentWeight: Double?,
     trendLabel: String?,
+    weightTimestamp: String? = null,
     isPositive: Boolean?,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
@@ -173,36 +125,38 @@ fun WeightTrendWidget(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: icon + label
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.MonitorWeight,
-                    contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_body_weight),
+                    contentDescription = stringResource(com.example.kaizenfrontend.R.string.dashboard_body_weight),
                     tint = CrayolaBlue,
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(Modifier.width(6.dp))
                 Text(
-                    text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_body_weight),
+                    text = stringResource(com.example.kaizenfrontend.R.string.dashboard_body_weight),
                     color = LightGrey,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 1.sp
                 )
+                if (onClick != null) {
+                    Spacer(Modifier.width(5.dp))
+                    Icon(
+                        imageVector = Icons.Default.OpenInNew,
+                        contentDescription = null,
+                        tint = LightGrey.copy(alpha = 0.35f),
+                        modifier = Modifier.size(11.dp)
+                    )
+                }
             }
 
-            // Right: weight + trend
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     val displayWeight = if (currentWeight != null) {
-                        if (currentWeight % 1.0 == 0.0) {
-                            currentWeight.toInt().toString()
-                        } else {
-                            String.format("%.1f", currentWeight)
-                        }
-                    } else {
-                        "--"
-                    }
+                        if (currentWeight % 1.0 == 0.0) currentWeight.toInt().toString()
+                        else String.format("%.1f", currentWeight)
+                    } else "--"
                     Text(
                         text = displayWeight,
                         color = PureWhite,
@@ -210,9 +164,9 @@ fun WeightTrendWidget(
                         fontWeight = FontWeight.Bold,
                         lineHeight = 26.sp
                     )
-                    Spacer(modifier = Modifier.width(3.dp))
+                    Spacer(Modifier.width(3.dp))
                     Text(
-                        text = stringResource(id = com.example.kaizenfrontend.R.string.settings_unit_kg),
+                        text = stringResource(com.example.kaizenfrontend.R.string.settings_unit_kg),
                         color = LightGrey,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Normal,
@@ -220,11 +174,23 @@ fun WeightTrendWidget(
                     )
                 }
                 if (trendLabel != null) {
+                    val trendColor = when (isPositive) {
+                        true -> SubtleRed.copy(alpha = 0.8f)
+                        false -> MalachiteGreen.copy(alpha = 0.8f)
+                        null -> LightGrey.copy(alpha = 0.6f)
+                    }
                     Text(
                         text = trendLabel,
-                        color = LightGrey.copy(alpha = 0.6f),
+                        color = trendColor,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Normal
+                    )
+                }
+                if (!weightTimestamp.isNullOrBlank()) {
+                    Text(
+                        text = weightTimestamp,
+                        color = LightGrey.copy(alpha = 0.4f),
+                        fontSize = 9.sp
                     )
                 }
             }
@@ -238,26 +204,25 @@ fun WeightTrendWidget(
 
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 80)
 @Composable
-private fun RecoveryTimeWidgetPreview() {
-    RecoveryTimeWidget(hours = 48)
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 80)
-@Composable
-private fun RecoveryTimeReadyPreview() {
-    RecoveryTimeWidget(hours = 12)
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 80)
-@Composable
 private fun LastSessionWidgetPreview() {
-    LastSessionWidget(routineName = "Pull Day", timeLabel = "Yesterday")
+    LastSessionWidget(
+        routineName = "Pull Day",
+        planName = "PPL Program",
+        timeLabel = "Yesterday",
+        onClick = {}
+    )
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 80)
 @Composable
 private fun WeightTrendWidgetPreview() {
-    WeightTrendWidget(currentWeight = 82.5, trendLabel = "-0.5 kg this week", isPositive = true)
+    WeightTrendWidget(
+        currentWeight = 82.5,
+        trendLabel = "-0.5 kg",
+        weightTimestamp = "18 May",
+        isPositive = false,
+        onClick = {}
+    )
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 80)

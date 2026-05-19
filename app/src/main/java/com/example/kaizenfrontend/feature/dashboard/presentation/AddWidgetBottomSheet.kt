@@ -35,11 +35,9 @@ private val allWidgetInfos = listOf(
     WidgetInfo(WidgetType.CALENDAR, com.example.kaizenfrontend.R.string.widget_calendar_title, com.example.kaizenfrontend.R.string.widget_calendar_desc),
     WidgetInfo(WidgetType.RECENT_PRS, com.example.kaizenfrontend.R.string.widget_recent_prs_title, com.example.kaizenfrontend.R.string.widget_recent_prs_desc),
     WidgetInfo(WidgetType.WEIGHT_TREND, com.example.kaizenfrontend.R.string.widget_weight_trend_title, com.example.kaizenfrontend.R.string.widget_weight_trend_desc),
-    WidgetInfo(WidgetType.RECOVERY_TIME, com.example.kaizenfrontend.R.string.widget_recovery_time_title, com.example.kaizenfrontend.R.string.widget_recovery_time_desc),
     WidgetInfo(WidgetType.LAST_SESSION, com.example.kaizenfrontend.R.string.widget_last_session_title, com.example.kaizenfrontend.R.string.widget_last_session_desc),
     WidgetInfo(WidgetType.STREAK, com.example.kaizenfrontend.R.string.widget_streak_title, com.example.kaizenfrontend.R.string.widget_streak_desc),
     WidgetInfo(WidgetType.AVG_TIME, com.example.kaizenfrontend.R.string.widget_avg_time_title, com.example.kaizenfrontend.R.string.widget_avg_time_desc),
-    WidgetInfo(WidgetType.ONE_RM, com.example.kaizenfrontend.R.string.widget_highlighted_1rm_title, com.example.kaizenfrontend.R.string.widget_highlighted_1rm_desc),
 )
 
 // ──────────────────────────────────────────────────────────────

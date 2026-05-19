@@ -122,7 +122,8 @@ fun WorkoutsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .padding(top = 48.dp)
+                .statusBarsPadding()
+                .padding(top = 4.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -139,9 +140,9 @@ fun WorkoutsScreen(
                     Text(
                         text = stringResource(id = R.string.workouts_title),
                         color = Color.White,
-                        fontSize = 38.sp,
+                        fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
-                        maxLines = 1, // Protegemos el título de saltos raros
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
@@ -252,9 +253,7 @@ fun WorkoutsScreen(
                                 val selectedPlanRoutinesForFocus = state.routinesByPlanId[selectedPlan.id] ?: emptyList()
 
                                 Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(bottom = 8.dp),
+                                    modifier = Modifier.fillMaxSize(),
                                     verticalArrangement = Arrangement.spacedBy(0.dp)
                                 ) {
                                     // Micro-header
@@ -300,7 +299,7 @@ fun WorkoutsScreen(
                                 } else {
                                     LazyColumn(
                                         modifier = Modifier.fillMaxSize(),
-                                        contentPadding = PaddingValues(bottom = 80.dp),
+                                        contentPadding = PaddingValues(bottom = 24.dp),
                                         verticalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
                                         items(selectedPlanRoutinesForFocus, key = { it.id }) { routine ->
@@ -359,7 +358,7 @@ fun WorkoutsScreen(
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 80.dp) // Leave room for bottom nav
+                                contentPadding = PaddingValues(bottom = 24.dp)
                             ) {
                                 state.plans.forEach { plan ->
                                     item(key = "plan_${plan.id}") {

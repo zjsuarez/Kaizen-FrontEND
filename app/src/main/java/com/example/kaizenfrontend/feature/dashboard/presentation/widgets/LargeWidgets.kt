@@ -1,5 +1,6 @@
 package com.example.kaizenfrontend.feature.dashboard.presentation.widgets
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -30,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,89 +49,120 @@ import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.components.KaizenWidgetContainer
 import com.example.kaizenfrontend.core.ui.theme.CrayolaBlue
 import com.example.kaizenfrontend.core.ui.theme.LightGrey
-import com.example.kaizenfrontend.core.ui.theme.Onyx
-import com.example.kaizenfrontend.core.ui.theme.PureWhite
-import com.example.kaizenfrontend.core.ui.theme.PrGold
 import com.example.kaizenfrontend.core.ui.theme.MalachiteGreen
+import com.example.kaizenfrontend.core.ui.theme.Onyx
+import com.example.kaizenfrontend.core.ui.theme.PrGold
+import com.example.kaizenfrontend.core.ui.theme.PureWhite
+import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
 import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 import java.util.Calendar
 
-// ──────────────────────────────────────────────────────────────
-// Data class for Recent PRs
-// ──────────────────────────────────────────────────────────────
-
-data class RecentPrMock(
-        val exercise: String,
-        val weight: String,
-        val weightIncrease: String = "",
-        val timeAgo: String
+private val routineColorPalette = listOf(
+    Color(0xFF5B8DEF),
+    Color(0xFF4CAF79),
+    Color(0xFFFFB44F),
+    Color(0xFFB87FF5),
+    Color(0xFFFF7B7B),
 )
 
 // ──────────────────────────────────────────────────────────────
-// Next Workout Widget (~200dp)
+// Data model for Recent PRs widget
+// ──────────────────────────────────────────────────────────────
+
+data class RecentPrMock(
+    val exercise: String,
+    val weight: String,
+    val weightIncrease: String = "",
+    val percentageImprovement: Double? = null,
+    val timeAgo: String,
+    val workoutId: String? = null
+)
+
+// ──────────────────────────────────────────────────────────────
+// Next Workout Widget
 // ──────────────────────────────────────────────────────────────
 
 @Composable
 fun NextWorkoutWidget(
-        routineName: String?,
-        onStartClick: () -> Unit = {},
-        modifier: Modifier = Modifier,
-        onClick: (() -> Unit)? = null,
-        isGhost: Boolean = false
+    routineName: String?,
+    planName: String? = null,
+    scheduledDateLabel: String? = null,
+    isStartEnabled: Boolean = true,
+    onStartClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    isGhost: Boolean = false
 ) {
     KaizenWidgetContainer(modifier = modifier, onClick = if (isGhost) null else onClick) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-            // Header: icon + label
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_next_workout),
-                        tint = CrayolaBlue,
-                        modifier = Modifier.size(20.dp)
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = stringResource(com.example.kaizenfrontend.R.string.dashboard_next_workout),
+                    tint = CrayolaBlue,
+                    modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(Modifier.width(6.dp))
                 Text(
-                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_next_workout),
-                        color = LightGrey,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 1.sp
+                    text = stringResource(com.example.kaizenfrontend.R.string.dashboard_next_workout),
+                    color = LightGrey,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 1.sp
                 )
             }
 
-            // Body: routine name centered
+            // Routine name + plan name
             Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    contentAlignment = Alignment.Center
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = routineName ?: if (isGhost) "--" else stringResource(id = com.example.kaizenfrontend.R.string.dashboard_no_workout_scheduled),
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = routineName ?: if (isGhost) "--"
+                        else stringResource(com.example.kaizenfrontend.R.string.dashboard_no_workout_scheduled),
                         color = if (routineName != null) PureWhite else LightGrey,
-                    fontSize = if (routineName != null || isGhost) 32.sp else 16.sp,
+                        fontSize = if (routineName != null || isGhost) 24.sp else 15.sp,
                         fontWeight = FontWeight.Bold,
+                        lineHeight = 30.sp,
                         textAlign = TextAlign.Center,
-                        maxLines = 2,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis
-                )
+                    )
+                    if (!planName.isNullOrBlank() && !isGhost) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = planName,
+                            color = CrayolaBlue.copy(alpha = 0.8f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
 
-            // Footer: start button
             Button(
-                    onClick = onStartClick,
-                    enabled = !isGhost,
-                    modifier = Modifier.fillMaxWidth().height(42.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors =
-                            ButtonDefaults.buttonColors(
-                                    containerColor = CrayolaBlue,
-                                    contentColor = Onyx
-                            )
+                onClick = onStartClick,
+                enabled = !isGhost && isStartEnabled,
+                modifier = Modifier.fillMaxWidth().height(42.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CrayolaBlue,
+                    contentColor = Onyx,
+                    disabledContainerColor = ShadowGrey,
+                    disabledContentColor = LightGrey.copy(alpha = 0.5f)
+                )
             ) {
                 Text(
-                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_start_workout),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                    text = if (isStartEnabled)
+                        stringResource(com.example.kaizenfrontend.R.string.dashboard_start_workout)
+                    else scheduledDateLabel ?: "Not scheduled",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
                 )
             }
         }
@@ -136,66 +170,77 @@ fun NextWorkoutWidget(
 }
 
 // ──────────────────────────────────────────────────────────────
-// Recent PRs Widget (~250dp)
+// Recent PRs Widget
 // ──────────────────────────────────────────────────────────────
 
 @Composable
 fun RecentPrsWidget(
-        prs: List<RecentPrMock>,
-        modifier: Modifier = Modifier,
-        onClick: (() -> Unit)? = null,
-        onPrClick: (String) -> Unit = {},
-        isGhost: Boolean = false
+    prs: List<RecentPrMock>,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    onPrClick: (RecentPrMock) -> Unit = {},
+    isGhost: Boolean = false
 ) {
     KaizenWidgetContainer(modifier = modifier, onClick = if (isGhost) null else onClick) {
-        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Top) {
-            // Header: icon + label
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                        imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recent_prs),
-                        tint = CrayolaBlue,
-                        modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                        text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_recent_prs),
-                        color = LightGrey,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 1.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Body: PR list or empty state
-            if (prs.isEmpty()) {
-                Box(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        contentAlignment = Alignment.Center
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Top) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                            text = stringResource(id = com.example.kaizenfrontend.R.string.dashboard_no_recent_prs),
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = stringResource(com.example.kaizenfrontend.R.string.dashboard_recent_prs),
+                            tint = PrGold,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(com.example.kaizenfrontend.R.string.dashboard_recent_prs),
+                            color = LightGrey,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                    if (!isGhost && onClick != null) {
+                        Icon(
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = null,
+                            tint = LightGrey.copy(alpha = 0.35f),
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                if (prs.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(com.example.kaizenfrontend.R.string.dashboard_no_recent_prs),
                             color = LightGrey.copy(alpha = 0.5f),
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center,
                             lineHeight = 20.sp
-                    )
-                }
-            } else {
-                Column(
+                        )
+                    }
+                } else {
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(0.dp)
-                ) {
-                    prs.forEachIndexed { index, pr ->
-                        PrRow(pr = pr, onPrClick = onPrClick, isGhost = isGhost)
-                        if (index < prs.lastIndex) {
-                            HorizontalDivider(
+                    ) {
+                        prs.forEachIndexed { index, pr ->
+                            PrRow(pr = pr, onPrClick = onPrClick, isGhost = isGhost)
+                            if (index < prs.lastIndex) {
+                                HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 8.dp),
                                     thickness = 1.dp,
                                     color = LightGrey.copy(alpha = 0.1f)
-                            )
+                                )
+                            }
                         }
                     }
                 }
@@ -204,208 +249,211 @@ fun RecentPrsWidget(
     }
 }
 
+@SuppressLint("DefaultLocale")
 @Composable
-private fun PrRow(pr: RecentPrMock, onPrClick: (String) -> Unit, isGhost: Boolean) {
+private fun PrRow(pr: RecentPrMock, onPrClick: (RecentPrMock) -> Unit, isGhost: Boolean) {
     Row(
-        modifier =
-            Modifier.fillMaxWidth()
-                .clickable(enabled = !isGhost) { onPrClick(pr.exercise) }
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isGhost) { onPrClick(pr) }
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: exercise name
         Text(
-                text = pr.exercise,
-                color = PureWhite,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
+            text = pr.exercise,
+            color = PureWhite,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Normal,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(Modifier.width(8.dp))
 
-        // Right: weight + increase + time ago
         Column(horizontalAlignment = Alignment.End) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (pr.weightIncrease.isNotEmpty()) {
-                    Text(
-                            text = pr.weightIncrease,
-                            color = MalachiteGreen,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                // Percentage improvement badge
+                val pct = pr.percentageImprovement
+                if (pct != null) {
+                    val pctColor = if (pct >= 0) MalachiteGreen else SubtleRed
+                    val pctText = if (pct >= 0) "+${String.format("%.1f", pct)}%" else "${String.format("%.1f", pct)}%"
+                    Text(pctText, color = pctColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(4.dp))
+                } else if (pr.weightIncrease.isNotEmpty()) {
+                    Text(pr.weightIncrease, color = MalachiteGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(6.dp))
                 }
-                Text(
-                        text = pr.weight,
-                        color = PureWhite,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                )
+                Text(pr.weight, color = PureWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
-            Text(
-                    text = pr.timeAgo,
-                    color = LightGrey.copy(alpha = 0.6f),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal
+            Text(pr.timeAgo, color = LightGrey.copy(alpha = 0.6f), fontSize = 11.sp)
+        }
+
+        if (!isGhost) {
+            Spacer(Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = LightGrey.copy(alpha = 0.4f),
+                modifier = Modifier.size(16.dp)
             )
         }
     }
 }
 
 // ──────────────────────────────────────────────────────────────
-// Calendar Widget (~250dp)
+// Calendar Widget
 // ──────────────────────────────────────────────────────────────
 
 @Composable
 fun CalendarWidget(
-        trainingDays: List<Int>,
-        modifier: Modifier = Modifier,
+    completedDateMap: Map<String, String?> = emptyMap(),   // "YYYY-MM-DD" → routineName?
+    scheduledDateMap: Map<String, String?> = emptyMap(),   // "YYYY-MM-DD" → routineName?
+    activePlanName: String? = null,
+    modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     onDayClick: (Int, Boolean) -> Unit = { _, _ -> },
     isGhost: Boolean = false
 ) {
-    // TODO (Tech Debt): Fetch calendar data for selected month
-    var currentMonthOffset by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(0) }
+    var currentMonthOffset by remember { mutableStateOf(0) }
 
     val calendar = Calendar.getInstance()
-    // Apply offset to get the target month
     calendar.add(Calendar.MONTH, currentMonthOffset)
-    
     val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-    
-    // Check if we are in the current real-world month to highlight 'today'
+
     val realCalendar = Calendar.getInstance()
-    val isCurrentMonth = realCalendar.get(Calendar.MONTH) == calendar.get(Calendar.MONTH) && 
-                         realCalendar.get(Calendar.YEAR) == calendar.get(Calendar.YEAR)
+    val isCurrentMonth = realCalendar.get(Calendar.MONTH) == calendar.get(Calendar.MONTH) &&
+            realCalendar.get(Calendar.YEAR) == calendar.get(Calendar.YEAR)
     val today = if (isCurrentMonth) realCalendar.get(Calendar.DAY_OF_MONTH) else -1
 
-    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, java.util.Locale.getDefault())?.uppercase() ?: ""
+    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, java.util.Locale.getDefault())
+        ?.replaceFirstChar { it.uppercase() } ?: ""
     val year = calendar.get(Calendar.YEAR)
+    val viewedMonthNum = calendar.get(Calendar.MONTH) + 1
     val dynamicMonthLabel = "$monthName $year"
 
-    // First day of month → day-of-week offset (Mon=0 .. Sun=6)
     calendar.set(Calendar.DAY_OF_MONTH, 1)
-    val rawDow = calendar.get(Calendar.DAY_OF_WEEK) // Sun=1, Mon=2 ...
+    val rawDow = calendar.get(Calendar.DAY_OF_WEEK)
     val startOffset = if (rawDow == Calendar.SUNDAY) 6 else rawDow - 2
 
+    // Filter date maps to the currently viewed month for rendering
+    val viewedYearMonth = "$year-${viewedMonthNum.toString().padStart(2, '0')}"
+    val completedDays: Map<Int, String?> = completedDateMap.entries
+        .filter { it.key.startsWith(viewedYearMonth) }
+        .associate { it.key.substring(8, 10).toInt() to it.value }
+    val scheduledDays: Map<Int, String?> = scheduledDateMap.entries
+        .filter { it.key.startsWith(viewedYearMonth) }
+        .associate { it.key.substring(8, 10).toInt() to it.value }
+
+    // Build routine→color from ALL data so palette is stable across month navigation
+    val uniqueRoutines = (completedDateMap.values + scheduledDateMap.values)
+        .filterNotNull().distinct()
+    val routineColorMap: Map<String, Color> = uniqueRoutines.mapIndexed { index, name ->
+        name to routineColorPalette[index % routineColorPalette.size]
+    }.toMap()
+
     KaizenWidgetContainer(modifier = modifier, onClick = if (isGhost) null else onClick) {
-        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Top) {
-            // Header: icon + month name + nav chevrons
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Top) {
+            // Header row
             Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left: icon + month label
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.widget_calendar_title),
-                            tint = CrayolaBlue,
-                            modifier = Modifier.size(20.dp)
+                        imageVector = Icons.Default.CalendarMonth,
+                        contentDescription = null,
+                        tint = CrayolaBlue,
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
+                    Spacer(Modifier.width(6.dp))
+                    Column {
+                        Text(
                             text = dynamicMonthLabel,
                             color = LightGrey,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             letterSpacing = 1.sp
-                    )
-                }
-
-                // Right: month navigation
-                Row {
-                        IconButton(
-                            onClick = { currentMonthOffset-- },
-                            enabled = !isGhost,
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                        Icon(
-                                imageVector = Icons.Default.ChevronLeft,
-                                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.statistics_previous_month),
-                                tint = LightGrey,
-                                modifier = Modifier.size(20.dp)
                         )
+                        if (!activePlanName.isNullOrBlank() && !isGhost) {
+                            Text(
+                                text = activePlanName,
+                                color = CrayolaBlue.copy(alpha = 0.7f),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
-                        IconButton(
-                            onClick = { currentMonthOffset++ },
-                            enabled = !isGhost,
-                            modifier = Modifier.size(28.dp)
-                        ) {
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!isGhost && onClick != null) {
                         Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = stringResource(id = com.example.kaizenfrontend.R.string.statistics_next_month),
-                                tint = LightGrey,
-                                modifier = Modifier.size(20.dp)
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = null,
+                            tint = LightGrey.copy(alpha = 0.35f),
+                            modifier = Modifier.size(12.dp)
                         )
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    IconButton(onClick = { currentMonthOffset-- }, enabled = !isGhost, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.ChevronLeft, null, tint = LightGrey, modifier = Modifier.size(20.dp))
+                    }
+                    IconButton(onClick = { currentMonthOffset++ }, enabled = !isGhost, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.ChevronRight, null, tint = LightGrey, modifier = Modifier.size(20.dp))
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // Day-of-week header row
             val dayLabels = listOf(
-                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_mon_short),
-                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_tue_short),
-                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_wed_short),
-                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_thu_short),
-                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_fri_short),
-                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_sat_short),
-                stringResource(id = com.example.kaizenfrontend.R.string.statistics_day_sun_short)
+                stringResource(com.example.kaizenfrontend.R.string.statistics_day_mon_short),
+                stringResource(com.example.kaizenfrontend.R.string.statistics_day_tue_short),
+                stringResource(com.example.kaizenfrontend.R.string.statistics_day_wed_short),
+                stringResource(com.example.kaizenfrontend.R.string.statistics_day_thu_short),
+                stringResource(com.example.kaizenfrontend.R.string.statistics_day_fri_short),
+                stringResource(com.example.kaizenfrontend.R.string.statistics_day_sat_short),
+                stringResource(com.example.kaizenfrontend.R.string.statistics_day_sun_short)
             )
-            Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 dayLabels.forEach { label ->
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Text(
-                                text = label,
-                                color = LightGrey.copy(alpha = 0.5f),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Medium
-                        )
+                        Text(label, color = LightGrey.copy(alpha = 0.45f), fontSize = 9.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
 
-            // Calendar grid: rows of 7
             val totalCells = startOffset + daysInMonth
             val rows = (totalCells + 6) / 7
 
-            Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (row in 0 until rows) {
-                    Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                         for (col in 0 until 7) {
                             val cellIndex = row * 7 + col
                             val dayNumber = cellIndex - startOffset + 1
                             val isValidDay = dayNumber in 1..daysInMonth
-
-                            Box(
-                                    modifier = Modifier.weight(1f),
-                                    contentAlignment = Alignment.Center
-                            ) {
+                            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                 if (isValidDay) {
+                                    val isCompleted = completedDays.containsKey(dayNumber)
+                                    val isScheduled = !isCompleted && scheduledDays.containsKey(dayNumber)
+                                    val routineName = completedDays[dayNumber] ?: scheduledDays[dayNumber]
+                                    val routineColor = routineName?.let { routineColorMap[it] }
+                                        ?: if (isCompleted || isScheduled) Color(0xFF5B8DEF) else null
+                                    val isFuture = isCurrentMonth && dayNumber > today
                                     CalendarDayCell(
-                                            day = dayNumber,
-                                            isTrainingDay = dayNumber in trainingDays,
-                                            isToday = dayNumber == today,
-                                            isInteractive = !isGhost,
-                                            onClick = { onDayClick(dayNumber, dayNumber in trainingDays) }
+                                        day = dayNumber,
+                                        isCompleted = isCompleted,
+                                        isScheduled = isScheduled,
+                                        isToday = dayNumber == today,
+                                        isFuture = isFuture,
+                                        routineColor = routineColor,
+                                        isInteractive = !isGhost,
+                                        onClick = { onDayClick(dayNumber, isCompleted) }
                                     )
                                 }
                             }
@@ -414,30 +462,49 @@ fun CalendarWidget(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(Modifier.height(8.dp))
 
-            // Legend
-            Row(
+            // Legend — dynamic per routine, falls back to generic when no names are available
+            val legendEntries = routineColorMap.entries.toList()
+            if (!isGhost && legendEntries.isNotEmpty()) {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(CrayolaBlue))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(id = com.example.kaizenfrontend.R.string.statistics_push), color = LightGrey, fontSize = 9.sp)
+                ) {
+                    legendEntries.take(5).forEachIndexed { index, (name, color) ->
+                        if (index > 0) Spacer(Modifier.width(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(color))
+                            Spacer(Modifier.width(3.dp))
+                            Text(
+                                text = if (name.length > 12) name.take(10) + "…" else name,
+                                color = LightGrey,
+                                fontSize = 9.sp
+                            )
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(MalachiteGreen))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(id = com.example.kaizenfrontend.R.string.statistics_pull), color = LightGrey, fontSize = 9.sp)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(SubtleRed))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(id = com.example.kaizenfrontend.R.string.statistics_legs), color = LightGrey, fontSize = 9.sp)
+            } else if (!isGhost) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(CrayolaBlue))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Trained", color = LightGrey, fontSize = 9.sp)
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier.size(8.dp).clip(CircleShape)
+                                .border(1.dp, LightGrey.copy(alpha = 0.4f), CircleShape)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("Today", color = LightGrey, fontSize = 9.sp)
+                    }
                 }
             }
         }
@@ -447,47 +514,59 @@ fun CalendarWidget(
 @Composable
 private fun CalendarDayCell(
     day: Int,
-    isTrainingDay: Boolean,
+    isCompleted: Boolean,
+    isScheduled: Boolean,
     isToday: Boolean,
+    isFuture: Boolean,
+    routineColor: Color?,
     isInteractive: Boolean,
     onClick: () -> Unit
 ) {
-    val intensityColor = remember(day) {
-        listOf(CrayolaBlue, MalachiteGreen, SubtleRed)[day % 3]
+    val baseColor = routineColor ?: CrayolaBlue
+
+    // Background: solid for completed, faint fill for scheduled, transparent otherwise
+    val bgColor = when {
+        isCompleted -> baseColor
+        isScheduled -> baseColor.copy(alpha = 0.18f)
+        else -> Color.Transparent
     }
-    
-    val bgColor =
-            when {
-                isTrainingDay -> intensityColor
-                else -> Color.Transparent
-            }
-    val borderMod =
-            when {
-                isToday && isTrainingDay -> Modifier.border(2.dp, PureWhite, CircleShape)
-                isToday -> Modifier.border(1.5.dp, LightGrey, CircleShape)
-                else -> Modifier
-            }
+
+    // Text: dark on solid completed circles; tinted for scheduled; extremely dim for unknown future
+    val textColor = when {
+        isCompleted -> Onyx
+        isScheduled -> baseColor.copy(alpha = 0.80f)
+        isToday -> PureWhite
+        isFuture -> LightGrey.copy(alpha = 0.13f)   // almost invisible — not yet happened
+        else -> LightGrey.copy(alpha = 0.35f)         // past rest day
+    }
+
+    // Border: white ring on today-completed; routine-color ring on scheduled; blue ring on today
+    val borderMod = when {
+        isCompleted && isToday -> Modifier.border(2.dp, PureWhite, CircleShape)
+        isScheduled -> Modifier.border(1.5.dp, baseColor.copy(alpha = 0.60f), CircleShape)
+        isToday -> Modifier.border(1.5.dp, CrayolaBlue, CircleShape)
+        else -> Modifier
+    }
 
     Box(
-            modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(bgColor, CircleShape)
-                    .then(borderMod)
-                        .clickable(enabled = isInteractive, onClick = onClick),
-            contentAlignment = Alignment.Center
+        modifier = Modifier
+            .size(30.dp)
+            .clip(CircleShape)
+            .background(bgColor, CircleShape)
+            .then(borderMod)
+            .clickable(enabled = isInteractive, onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
         Text(
-                text = day.toString(),
-                color =
-                        when {
-                            isTrainingDay -> Onyx
-                            isToday -> PureWhite
-                            else -> LightGrey.copy(alpha = 0.5f)
-                        },
-                fontSize = 11.sp,
-                fontWeight = if (isTrainingDay || isToday) FontWeight.Bold else FontWeight.Normal,
-                textAlign = TextAlign.Center
+            text = day.toString(),
+            color = textColor,
+            fontSize = 11.sp,
+            fontWeight = when {
+                isCompleted || isToday -> FontWeight.Bold
+                isScheduled -> FontWeight.Medium
+                else -> FontWeight.Normal
+            },
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -499,38 +578,41 @@ private fun CalendarDayCell(
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 200)
 @Composable
 private fun NextWorkoutWidgetPreview() {
-    NextWorkoutWidget(routineName = "Pull Day")
+    NextWorkoutWidget(routineName = "Pull Day", planName = "PPL Program", scheduledDateLabel = "Today", isStartEnabled = true)
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 200)
 @Composable
-private fun NextWorkoutEmptyPreview() {
-    NextWorkoutWidget(routineName = null)
+private fun NextWorkoutDisabledPreview() {
+    NextWorkoutWidget(routineName = "Push Day", planName = "PPL Program", scheduledDateLabel = "Tomorrow", isStartEnabled = false)
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 250)
 @Composable
 private fun RecentPrsWidgetPreview() {
     RecentPrsWidget(
-            prs =
-                    listOf(
-                            RecentPrMock("Bench Press", "105 kg", "+2.5 kg", "2 days ago"),
-                            RecentPrMock("Squat", "140 kg", "+5 kg", "5 days ago"),
-                            RecentPrMock("Deadlift", "180 kg", "+2.5 kg", "1 week ago")
-                    )
+        prs = listOf(
+            RecentPrMock("Bench Press", "105 kg", percentageImprovement = 2.4, timeAgo = "2 days ago"),
+            RecentPrMock("Squat", "140 kg", percentageImprovement = -1.1, timeAgo = "5 days ago"),
+            RecentPrMock("Deadlift", "180 kg", percentageImprovement = 3.7, timeAgo = "1 week ago")
+        ),
+        onClick = {}
     )
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 250)
-@Composable
-private fun RecentPrsEmptyPreview() {
-    RecentPrsWidget(prs = emptyList())
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 280)
+@Preview(showBackground = true, backgroundColor = 0xFF0B0A0F, widthDp = 360, heightDp = 320)
 @Composable
 private fun CalendarWidgetPreview() {
     CalendarWidget(
-            trainingDays = listOf(1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29)
+        completedDateMap = mapOf(
+            "2025-05-01" to "Push", "2025-05-03" to "Pull", "2025-05-06" to "Legs",
+            "2025-05-08" to "Push", "2025-05-10" to "Pull", "2025-05-13" to "Legs",
+            "2025-05-15" to "Push", "2025-05-17" to "Pull"
+        ),
+        scheduledDateMap = mapOf(
+            "2025-05-22" to "Push", "2025-05-24" to "Pull", "2025-05-27" to "Legs"
+        ),
+        activePlanName = "PPL Program",
+        onClick = {}
     )
 }
