@@ -4,6 +4,7 @@ object WorkoutInputSanitizer {
     const val MAX_TITLE_LENGTH = 30
     const val MAX_DESCRIPTION_LENGTH = 300
     const val MAX_SESSION_NUMBER_DIGITS = 6
+    const val MAX_WEIGHT_INTEGER_DIGITS = 5
     const val MAX_WORKOUT_NOTES_LENGTH = 200
     const val MAX_EFFORT_VALUE = 10
 
@@ -20,9 +21,9 @@ object WorkoutInputSanitizer {
         val filtered = input.filter { it.isDigit() || it == '.' }
         val dotIndex = filtered.indexOf('.')
         return if (dotIndex == -1) {
-            filtered.take(MAX_SESSION_NUMBER_DIGITS)
+            filtered.take(MAX_WEIGHT_INTEGER_DIGITS)
         } else {
-            val intPart = filtered.substring(0, dotIndex).take(MAX_SESSION_NUMBER_DIGITS)
+            val intPart = filtered.substring(0, dotIndex).take(MAX_WEIGHT_INTEGER_DIGITS)
             val decPart = filtered.substring(dotIndex + 1).filter(Char::isDigit).take(2)
             "$intPart.$decPart"
         }
