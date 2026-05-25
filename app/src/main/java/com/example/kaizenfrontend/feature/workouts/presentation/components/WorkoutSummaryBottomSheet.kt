@@ -206,13 +206,23 @@ private fun WorkoutSummaryContent(
     }
 
     // ── Progress photo state ──────────────────────────────────
+    val context = LocalContext.current
     var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var photoSizeError by remember { mutableStateOf(false) }
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri ->
             uri?.let {
-                selectedPhotoUri = it
-                onPhotoSelected(it)
+                val fileSize = try {
+                    context.contentResolver.openFileDescriptor(it, "r")?.use { fd -> fd.statSize } ?: 0L
+                } catch (e: Exception) { 0L }
+                if (fileSize > 10 * 1024 * 1024L) {
+                    photoSizeError = true
+                } else {
+                    photoSizeError = false
+                    selectedPhotoUri = it
+                    onPhotoSelected(it)
+                }
             }
         }
     )
@@ -421,7 +431,8 @@ private fun WorkoutSummaryContent(
             photoUri = selectedPhotoUri,
             uploadStatus = photoUploadStatus,
             onPickPhoto = { photoPickerLauncher.launch("image/*") },
-            onRemovePhoto = { selectedPhotoUri = null },
+            onRemovePhoto = { selectedPhotoUri = null; photoSizeError = false },
+            sizeError = photoSizeError,
             modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer {
@@ -540,6 +551,7 @@ private fun ProgressPhotoSection(
     uploadStatus: PhotoUploadStatus,
     onPickPhoto: () -> Unit,
     onRemovePhoto: () -> Unit,
+    sizeError: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -585,6 +597,16 @@ private fun ProgressPhotoSection(
                 text = "optional",
                 color = LightGrey.copy(alpha = 0.4f),
                 fontSize = 11.sp
+            )
+        }
+
+        if (sizeError) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Image must be under 10 MB. Please choose a smaller file.",
+                color = SubtleRed,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
             )
         }
 
