@@ -107,6 +107,12 @@ fun WorkoutsScreen(
     val historyLoading by historyViewModel.isLoading.collectAsState()
     val historyError by historyViewModel.error.collectAsState()
     val historyPhotoUrls by historyViewModel.photoUrlByMeasurementId.collectAsState()
+
+    // Refresh history on every sheet open so the user always sees fresh data
+    LaunchedEffect(showHistorySheet) {
+        if (showHistorySheet) historyViewModel.loadWorkouts()
+    }
+
     val localContext = LocalContext.current
     val effortMetric = remember {
         com.example.kaizenfrontend.core.data.local.SessionManager(localContext)

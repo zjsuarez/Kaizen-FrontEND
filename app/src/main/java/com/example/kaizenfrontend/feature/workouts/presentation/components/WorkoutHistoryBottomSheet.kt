@@ -257,41 +257,80 @@ private fun HistoryListContent(
             )
         }
 
-        // Workout list
-        if (filteredWorkouts.isEmpty() && !isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Outlined.FitnessCenter,
-                        contentDescription = null,
-                        tint = LightGrey.copy(alpha = 0.4f),
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = if (selectedPlanId != null) "No workouts for this plan" else "No workouts yet",
-                        color = LightGrey.copy(alpha = 0.5f),
-                        fontSize = 15.sp,
-                        textAlign = TextAlign.Center
-                    )
+        // Content area
+        when {
+            // First open: nothing cached yet — show a prominent centred spinner
+            isLoading && workouts.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            color = CrayolaBlue,
+                            modifier = Modifier.size(44.dp),
+                            strokeWidth = 3.dp
+                        )
+                        Text(
+                            text = "Loading your workouts…",
+                            color = LightGrey,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                items(filteredWorkouts, key = { it.id }) { workout ->
-                    val hasPhoto = workout.measurementId != null &&
-                        photoUrlByMeasurementId.containsKey(workout.measurementId)
-                    WorkoutHistoryCard(
-                        workout = workout,
-                        hasPhoto = hasPhoto,
-                        onClick = { onWorkoutClick(workout) }
+
+            // Empty after load
+            filteredWorkouts.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Outlined.FitnessCenter,
+                            contentDescription = null,
+                            tint = LightGrey.copy(alpha = 0.4f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = if (selectedPlanId != null) "No workouts for this plan" else "No workouts yet",
+                            color = LightGrey.copy(alpha = 0.5f),
+                            fontSize = 15.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            // List — with a slim refresh bar when reloading existing data
+            else -> {
+                if (isLoading) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        color = CrayolaBlue,
+                        trackColor = ShadowGrey
                     )
+                }
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    items(filteredWorkouts, key = { it.id }) { workout ->
+                        val hasPhoto = workout.measurementId != null &&
+                            photoUrlByMeasurementId.containsKey(workout.measurementId)
+                        WorkoutHistoryCard(
+                            workout = workout,
+                            hasPhoto = hasPhoto,
+                            onClick = { onWorkoutClick(workout) }
+                        )
+                    }
                 }
             }
         }
