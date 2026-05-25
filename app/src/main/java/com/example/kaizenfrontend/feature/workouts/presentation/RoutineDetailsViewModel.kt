@@ -62,7 +62,7 @@ class RoutineDetailsViewModel(
         }
     }
 
-    fun addExercise(exercise: Exercise, targetSets: Int = 3, targetReps: Int = 10) {
+    fun addExercise(exercise: Exercise, targetSets: Int = 1, targetReps: Int = 10) {
         _uiState.update { current ->
             if (current.exercises.any { it.exercise.id == exercise.id }) {
                 current
@@ -75,6 +75,20 @@ class RoutineDetailsViewModel(
                     )
                 )
             }
+        }
+    }
+
+    fun updateExerciseSets(exerciseId: String, targetSets: Int) {
+        _uiState.update { current ->
+            current.copy(
+                exercises = current.exercises.map { routineExercise ->
+                    if (routineExercise.exercise.id == exerciseId) {
+                        routineExercise.copy(targetSets = targetSets.coerceAtLeast(1))
+                    } else {
+                        routineExercise
+                    }
+                }
+            )
         }
     }
 

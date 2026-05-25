@@ -416,6 +416,7 @@ Add metrics to start tracking your progress.</string>
     <string name="workouts_set">SET</string>
     <string name="workouts_weight">WEIGHT</string>
     <string name="workouts_add_set_button">+ Add Set</string>
+    <string name="workouts_remove_set">Remove Set</string>
     <string name="workouts_change_set_type_cd">Change set type</string>
     <string name="workouts_em_dash">—</string>
     <string name="workouts_mark_incomplete_cd">Mark incomplete</string>
