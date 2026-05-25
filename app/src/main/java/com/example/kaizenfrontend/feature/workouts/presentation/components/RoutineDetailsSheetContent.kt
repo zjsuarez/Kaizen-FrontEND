@@ -19,12 +19,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -76,6 +78,7 @@ fun RoutineDetailsSheetContent(
     onWeekDayToggle: (java.time.DayOfWeek) -> Unit,
     onCycleDayToggle: (Int) -> Unit,
     onRestDaysChange: (Int) -> Unit,
+    onUpdateExerciseSets: (exerciseId: String, targetSets: Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val lazyListState = rememberLazyListState()
@@ -166,6 +169,9 @@ fun RoutineDetailsSheetContent(
                                     )
                                 },
                                 onRemoveClick = { onRemoveExercise(exercise.exercise.id) },
+                                onSetCountChange = { newSets ->
+                                    onUpdateExerciseSets(exercise.exercise.id, newSets)
+                                },
                                 onDragHandleDragStart = {
                                     draggingExerciseId = exercise.exercise.id
                                     draggingItemOffsetY = 0f
@@ -421,6 +427,7 @@ private fun RoutineExerciseCard(
     isDragging: Boolean,
     onHistoryClick: () -> Unit,
     onRemoveClick: () -> Unit,
+    onSetCountChange: (Int) -> Unit,
     onDragHandleDragStart: () -> Unit,
     onDragHandleDrag: (Float) -> Unit,
     onDragHandleDragEnd: () -> Unit
@@ -542,15 +549,62 @@ private fun RoutineExerciseCard(
                 }
             }
 
-            Text(
-                text = if (exercise.targetReps > 0) {
-                    stringResource(id = R.string.workouts_sets_x_reps, exercise.targetSets, exercise.targetReps)
-                } else {
-                    stringResource(id = R.string.workouts_sets_count, exercise.targetSets)
-                },
-                color = LightGrey,
-                fontSize = 13.sp
-            )
+            if (isEditMode) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Sets:",
+                        color = LightGrey,
+                        fontSize = 13.sp
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(ShadowGrey, RoundedCornerShape(8.dp))
+                            .clickable { onSetCountChange(exercise.targetSets - 1) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Remove,
+                            contentDescription = stringResource(id = R.string.workouts_decrease_cd),
+                            tint = LightGrey,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Text(
+                        text = "${exercise.targetSets}",
+                        color = CrayolaBlue,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(CrayolaBlue.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                            .clickable { onSetCountChange(exercise.targetSets + 1) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = stringResource(id = R.string.workouts_increase_cd),
+                            tint = CrayolaBlue,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = if (exercise.targetReps > 0) {
+                        stringResource(id = R.string.workouts_sets_x_reps, exercise.targetSets, exercise.targetReps)
+                    } else {
+                        stringResource(id = R.string.workouts_sets_count, exercise.targetSets)
+                    },
+                    color = LightGrey,
+                    fontSize = 13.sp
+                )
+            }
         }
     }
 }

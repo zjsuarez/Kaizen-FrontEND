@@ -625,7 +625,8 @@ fun WorkoutsScreen(
                                 onAddExerciseClick = { showRoutineDetailsExerciseCatalog = true },
                                 onWeekDayToggle = routineDetailsViewModel::toggleWeekDay,
                                 onCycleDayToggle = routineDetailsViewModel::toggleCycleDay,
-                                onRestDaysChange = routineDetailsViewModel::updateRestDaysBetweenWorkouts
+                                onRestDaysChange = routineDetailsViewModel::updateRestDaysBetweenWorkouts,
+                                onUpdateExerciseSets = routineDetailsViewModel::updateExerciseSets
                             )
                         }
 
