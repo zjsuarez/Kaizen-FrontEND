@@ -788,11 +788,59 @@ internal fun WorkoutSetRow(
             
             DropdownMenu(
                 expanded = dropdownExpanded,
-                onDismissRequest = { dropdownExpanded = false }
+                onDismissRequest = { dropdownExpanded = false },
+                containerColor = ShadowGrey,
+                shape = RoundedCornerShape(16.dp)
             ) {
                 com.example.kaizenfrontend.feature.workouts.domain.model.SetType.values().forEach { type ->
+                    val isSelected = type == set.type
                     DropdownMenuItem(
-                        text = { Text(text = type.getDisplayName()) },
+                        text = {
+                            Text(
+                                text = type.getDisplayName(),
+                                color = if (isSelected) CrayolaBlue else PureWhite,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                fontSize = 14.sp
+                            )
+                        },
+                        leadingIcon = {
+                            val badge = when (type) {
+                                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.NORMAL -> "${set.setNumber}"
+                                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.WARMUP -> "W"
+                                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.DROP_SET -> "D"
+                                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.FAILURE -> "F"
+                                com.example.kaizenfrontend.feature.workouts.domain.model.SetType.MYO_REP -> "M"
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .background(
+                                        color = if (type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.NORMAL)
+                                            LightGrey.copy(alpha = 0.12f)
+                                        else
+                                            CrayolaBlue.copy(alpha = 0.15f),
+                                        shape = RoundedCornerShape(6.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = badge,
+                                    color = if (type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.NORMAL) LightGrey else CrayolaBlue,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        },
+                        trailingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = CrayolaBlue,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        } else null,
                         onClick = {
                             onTypeChange(type)
                             dropdownExpanded = false
@@ -800,14 +848,14 @@ internal fun WorkoutSetRow(
                     )
                 }
                 if (onRemoveSet != null) {
-                    androidx.compose.material3.HorizontalDivider(
-                        color = LightGrey.copy(alpha = 0.15f)
-                    )
+                    HorizontalDivider(color = PureWhite.copy(alpha = 0.08f))
                     DropdownMenuItem(
                         text = {
                             Text(
                                 text = stringResource(id = R.string.workouts_remove_set),
-                                color = com.example.kaizenfrontend.core.ui.theme.SubtleRed
+                                color = SubtleRed,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
                             )
                         },
                         onClick = {
