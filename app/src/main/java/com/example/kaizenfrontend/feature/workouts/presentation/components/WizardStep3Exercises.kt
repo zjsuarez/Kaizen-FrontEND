@@ -1,6 +1,7 @@
 package com.example.kaizenfrontend.feature.workouts.presentation.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -19,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -67,6 +70,7 @@ fun WizardStep3Exercises(
     selectedExercises: List<RoutineExercise>,
     onAddExerciseClick: () -> Unit,
     onRemoveExercise: (String) -> Unit,
+    onUpdateExerciseSets: (exerciseId: String, targetSets: Int) -> Unit,
     showEmptyError: Boolean
 ) {
     Column(
@@ -140,7 +144,10 @@ fun WizardStep3Exercises(
                 items(selectedExercises, key = { it.exercise.id }) { routineExercise ->
                     SelectedExerciseCard(
                         routineExercise = routineExercise,
-                        onRemoveClick = { onRemoveExercise(routineExercise.exercise.id) }
+                        onRemoveClick = { onRemoveExercise(routineExercise.exercise.id) },
+                        onSetCountChange = { newSets ->
+                            onUpdateExerciseSets(routineExercise.exercise.id, newSets)
+                        }
                     )
                 }
             }
@@ -437,7 +444,8 @@ private fun CatalogExerciseRow(
 @Composable
 private fun SelectedExerciseCard(
     routineExercise: RoutineExercise,
-    onRemoveClick: () -> Unit
+    onRemoveClick: () -> Unit,
+    onSetCountChange: (Int) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -478,12 +486,52 @@ private fun SelectedExerciseCard(
                 fontSize = 12.sp
             )
 
-            Text(
-                text = "${routineExercise.targetSets} sets x ${routineExercise.targetReps} reps",
-                color = CrayolaBlue,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Sets:",
+                    color = LightGrey,
+                    fontSize = 13.sp
+                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(ShadowGrey, RoundedCornerShape(8.dp))
+                        .clickable { onSetCountChange(routineExercise.targetSets - 1) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Remove,
+                        contentDescription = stringResource(id = R.string.workouts_decrease_cd),
+                        tint = LightGrey,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Text(
+                    text = "${routineExercise.targetSets}",
+                    color = CrayolaBlue,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.widthIn(min = 20.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(CrayolaBlue.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                        .clickable { onSetCountChange(routineExercise.targetSets + 1) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(id = R.string.workouts_increase_cd),
+                        tint = CrayolaBlue,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
     }
 }

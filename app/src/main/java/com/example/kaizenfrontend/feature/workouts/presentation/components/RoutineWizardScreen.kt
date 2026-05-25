@@ -167,6 +167,7 @@ fun RoutineWizardScreen(
                         selectedExercises = uiState.selectedExercises,
                         onAddExerciseClick = { showExerciseCatalog = true },
                         onRemoveExercise = viewModel::removeExercise,
+                        onUpdateExerciseSets = { id, sets -> viewModel.updateExerciseSets(id, sets) },
                         showEmptyError = showInlineErrors && uiState.selectedExercises.isEmpty()
                     )
                 }

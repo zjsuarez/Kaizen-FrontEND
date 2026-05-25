@@ -286,6 +286,7 @@ internal fun ActiveWorkoutSheetContent(
             weightUnit = weightUnit,
             onToggleExpansion = { ActiveWorkoutManager.toggleExerciseExpansion(it) },
             onAddSet = { ActiveWorkoutManager.addSet(it) },
+            onRemoveSet = { exerciseId, setId -> ActiveWorkoutManager.removeSet(exerciseId, setId) },
             onUpdateSetData = { exerciseId, setId, weight, reps, rpe, type ->
                 ActiveWorkoutManager.updateSetData(exerciseId, setId, weight, reps, rpe, type)
             },
@@ -494,6 +495,7 @@ private fun ExerciseList(
     weightUnit: String,
     onToggleExpansion: (String) -> Unit,
     onAddSet: (String) -> Unit,
+    onRemoveSet: (exerciseId: String, setId: String) -> Unit,
     onUpdateSetData: (exerciseId: String, setId: String, weight: String?, reps: String?, rpe: String?, type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType?) -> Unit,
     onToggleSetCompletion: (exerciseId: String, setId: String) -> Unit,
     onNavigateToZenMode: (Int) -> Unit,
@@ -513,6 +515,7 @@ private fun ExerciseList(
                 weightUnit = weightUnit,
                 onToggleExpand = { onToggleExpansion(exercise.id) },
                 onAddSet = { onAddSet(exercise.id) },
+                onRemoveSet = { setId -> onRemoveSet(exercise.id, setId) },
                 onUpdateSetData = { setId, weight, reps, rpe, type ->
                     onUpdateSetData(exercise.id, setId, weight, reps, rpe, type)
                 },
@@ -545,6 +548,7 @@ private fun ActiveExerciseRow(
     weightUnit: String,
     onToggleExpand: () -> Unit,
     onAddSet: () -> Unit,
+    onRemoveSet: (setId: String) -> Unit,
     onUpdateSetData: (setId: String, weight: String?, reps: String?, rpe: String?, type: com.example.kaizenfrontend.feature.workouts.domain.model.SetType?) -> Unit,
     onToggleSetCompletion: (setId: String) -> Unit,
     onZenModeClick: () -> Unit
@@ -684,7 +688,10 @@ private fun ActiveExerciseRow(
                         onRepsChange = { onUpdateSetData(set.id, null, it, null, null) },
                         onRpeChange = { onUpdateSetData(set.id, null, null, it, null) },
                         onTypeChange = { onUpdateSetData(set.id, null, null, null, it) },
-                        onToggleComplete = { onToggleSetCompletion(set.id) }
+                        onToggleComplete = { onToggleSetCompletion(set.id) },
+                        onRemoveSet = if (exercise.sets.size > 1) {
+                            { onRemoveSet(set.id) }
+                        } else null
                     )
                 }
 
@@ -725,7 +732,8 @@ internal fun WorkoutSetRow(
     onRepsChange: (String) -> Unit,
     onRpeChange: (String) -> Unit,
     onTypeChange: (com.example.kaizenfrontend.feature.workouts.domain.model.SetType) -> Unit,
-    onToggleComplete: () -> Unit
+    onToggleComplete: () -> Unit,
+    onRemoveSet: (() -> Unit)? = null
 ) {
     // Animated alpha for completion fade
     val rowAlpha by animateFloatAsState(
@@ -788,6 +796,23 @@ internal fun WorkoutSetRow(
                         onClick = {
                             onTypeChange(type)
                             dropdownExpanded = false
+                        }
+                    )
+                }
+                if (onRemoveSet != null) {
+                    androidx.compose.material3.HorizontalDivider(
+                        color = LightGrey.copy(alpha = 0.15f)
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(id = R.string.workouts_remove_set),
+                                color = com.example.kaizenfrontend.core.ui.theme.SubtleRed
+                            )
+                        },
+                        onClick = {
+                            dropdownExpanded = false
+                            onRemoveSet()
                         }
                     )
                 }
