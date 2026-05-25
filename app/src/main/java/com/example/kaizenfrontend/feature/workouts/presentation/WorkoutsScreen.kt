@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -618,6 +619,10 @@ fun WorkoutsScreen(
                                     )
                                     viewModel.saveRoutineEdits(updatedRoutine)
                                 },
+                                onDeleteClick = {
+                                    viewModel.deleteRoutine(selectedRoutine.id)
+                                    selectedRoutineForDetails = null
+                                },
                                 onTitleChange = routineDetailsViewModel::updateTitle,
                                 onDescriptionChange = routineDetailsViewModel::updateDescription,
                                 onRemoveExercise = routineDetailsViewModel::removeExercise,
@@ -1138,6 +1143,7 @@ private fun PlanHeaderItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .zIndex(if (isDragging) 1f else 0f)
             .graphicsLayer {
                 translationY = animatedDragOffset
                 scaleX = liftedScale
@@ -1158,10 +1164,28 @@ private fun PlanHeaderItem(
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = plan.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = plan.name,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
                 if (plan.isActive) {
-                    Text(text = stringResource(id = R.string.workouts_active_suffix), color = CrayolaBlue, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = stringResource(id = R.string.workouts_active_suffix),
+                        color = CrayolaBlue,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
             if (plan.description.isNotBlank()) {
@@ -1256,6 +1280,7 @@ private fun RoutineScanCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 5.dp, horizontal = 8.dp)
+            .zIndex(if (isDragging) 1f else 0f)
             .graphicsLayer {
                 translationY = animatedDragOffset
                 scaleX = liftedScale
