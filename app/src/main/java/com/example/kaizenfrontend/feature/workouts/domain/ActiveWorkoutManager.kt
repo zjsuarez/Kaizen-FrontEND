@@ -2,6 +2,7 @@ package com.example.kaizenfrontend.feature.workouts.domain
 
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveExerciseState
 import com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState
+import com.example.kaizenfrontend.feature.workouts.domain.model.Exercise
 import com.example.kaizenfrontend.feature.workouts.domain.model.WorkoutSetState
 import com.example.kaizenfrontend.feature.workouts.presentation.WorkoutInputSanitizer
 import kotlinx.coroutines.CoroutineScope
@@ -244,6 +245,23 @@ object ActiveWorkoutManager {
     fun updateNotes(notes: String) {
         mutate {
             it.copy(notes = WorkoutInputSanitizer.normalizeNotesInput(notes))
+        }
+    }
+
+    // ── Add exercise ────────────────────────────────────────────────────
+
+    /**
+     * Appends a new exercise (with one empty set) to the active workout.
+     */
+    fun addExercise(exercise: Exercise) {
+        mutateExercises { exercises ->
+            exercises + ActiveExerciseState(
+                id = exercise.id,
+                exerciseName = exercise.name,
+                isCustom = exercise.isCustom,
+                sets = listOf(WorkoutSetState(setNumber = 1)),
+                isExpanded = true
+            )
         }
     }
 

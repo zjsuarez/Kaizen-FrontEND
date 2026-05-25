@@ -64,6 +64,7 @@ import com.example.kaizenfrontend.core.data.local.SessionManager
 import com.example.kaizenfrontend.core.ui.theme.*
 import com.example.kaizenfrontend.core.ui.components.ActiveWorkoutOverlay
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ActiveWorkoutBottomSheet
+import com.example.kaizenfrontend.feature.workouts.presentation.components.ExerciseCatalogBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.WorkoutDetailBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.WorkoutSummaryBottomSheet
 import com.example.kaizenfrontend.feature.workouts.presentation.components.ZenModeScreen
@@ -176,6 +177,7 @@ fun DashboardScreen(
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showAddWidgetSheet by remember { mutableStateOf(false) }
     var showActiveWorkoutSheet by remember { mutableStateOf(false) }
+    var showAddExerciseCatalog by remember { mutableStateOf(false) }
     var zenModeInitialPage by remember { mutableStateOf<Int?>(null) }
     var finishedWorkoutSnapshot by remember {
         mutableStateOf<com.example.kaizenfrontend.feature.workouts.domain.model.ActiveWorkoutState?>(null)
@@ -538,8 +540,19 @@ fun DashboardScreen(
                     showActiveWorkoutSheet = false
                     zenModeInitialPage = null
                 },
-                onAddExercise = {},
+                onAddExercise = { showAddExerciseCatalog = true },
                 onNavigateToZenMode = { page -> zenModeInitialPage = page }
+            )
+        }
+
+        // ── Add exercise to active workout ─────────────────────────
+        if (showAddExerciseCatalog) {
+            ExerciseCatalogBottomSheet(
+                onDismissRequest = { showAddExerciseCatalog = false },
+                onExerciseSelected = { exercise ->
+                    com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.addExercise(exercise)
+                    showAddExerciseCatalog = false
+                }
             )
         }
 

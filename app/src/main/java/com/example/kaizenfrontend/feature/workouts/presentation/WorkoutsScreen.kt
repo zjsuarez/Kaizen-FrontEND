@@ -107,6 +107,12 @@ fun WorkoutsScreen(
     val historyLoading by historyViewModel.isLoading.collectAsState()
     val historyError by historyViewModel.error.collectAsState()
     val historyPhotoUrls by historyViewModel.photoUrlByMeasurementId.collectAsState()
+
+    // Refresh history on every sheet open so the user always sees fresh data
+    LaunchedEffect(showHistorySheet) {
+        if (showHistorySheet) historyViewModel.loadWorkouts()
+    }
+
     val localContext = LocalContext.current
     val effortMetric = remember {
         com.example.kaizenfrontend.core.data.local.SessionManager(localContext)
@@ -644,7 +650,9 @@ fun WorkoutsScreen(
             }
         }
 
-        // History FAB — bottom right, above nav bar, only visible when workouts exist
+        // History FAB — only shown once we know workouts exist.
+        // When a refresh is in progress the icon swaps to a spinner so the button
+        // stays put instead of blinking, but new users with no workouts never see it.
         AnimatedVisibility(
             visible = historyWorkouts.isNotEmpty(),
             modifier = Modifier
@@ -652,17 +660,25 @@ fun WorkoutsScreen(
                 .padding(end = 20.dp, bottom = 24.dp)
         ) {
             FloatingActionButton(
-                onClick = { showHistorySheet = true },
+                onClick = { if (!historyLoading) showHistorySheet = true },
                 containerColor = ShadowGrey,
                 contentColor = CrayolaBlue,
                 modifier = Modifier.size(52.dp),
                 shape = CircleShape
             ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = "Workout History",
-                    modifier = Modifier.size(24.dp)
-                )
+                if (historyLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = CrayolaBlue,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "Workout History",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
 
