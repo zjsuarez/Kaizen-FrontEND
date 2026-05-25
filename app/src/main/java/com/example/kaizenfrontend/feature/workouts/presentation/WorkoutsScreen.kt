@@ -107,6 +107,12 @@ fun WorkoutsScreen(
     val historyLoading by historyViewModel.isLoading.collectAsState()
     val historyError by historyViewModel.error.collectAsState()
     val historyPhotoUrls by historyViewModel.photoUrlByMeasurementId.collectAsState()
+
+    // Refresh history on every sheet open so the user always sees fresh data
+    LaunchedEffect(showHistorySheet) {
+        if (showHistorySheet) historyViewModel.loadWorkouts()
+    }
+
     val localContext = LocalContext.current
     val effortMetric = remember {
         com.example.kaizenfrontend.core.data.local.SessionManager(localContext)
@@ -122,7 +128,8 @@ fun WorkoutsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .padding(top = 48.dp)
+                .statusBarsPadding()
+                .padding(top = 4.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -139,9 +146,9 @@ fun WorkoutsScreen(
                     Text(
                         text = stringResource(id = R.string.workouts_title),
                         color = Color.White,
-                        fontSize = 38.sp,
+                        fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
-                        maxLines = 1, // Protegemos el título de saltos raros
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
@@ -252,9 +259,7 @@ fun WorkoutsScreen(
                                 val selectedPlanRoutinesForFocus = state.routinesByPlanId[selectedPlan.id] ?: emptyList()
 
                                 Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(bottom = 8.dp),
+                                    modifier = Modifier.fillMaxSize(),
                                     verticalArrangement = Arrangement.spacedBy(0.dp)
                                 ) {
                                     // Micro-header
@@ -300,7 +305,7 @@ fun WorkoutsScreen(
                                 } else {
                                     LazyColumn(
                                         modifier = Modifier.fillMaxSize(),
-                                        contentPadding = PaddingValues(bottom = 80.dp),
+                                        contentPadding = PaddingValues(bottom = 24.dp),
                                         verticalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
                                         items(selectedPlanRoutinesForFocus, key = { it.id }) { routine ->
@@ -359,7 +364,7 @@ fun WorkoutsScreen(
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 80.dp) // Leave room for bottom nav
+                                contentPadding = PaddingValues(bottom = 24.dp)
                             ) {
                                 state.plans.forEach { plan ->
                                     item(key = "plan_${plan.id}") {
@@ -626,7 +631,8 @@ fun WorkoutsScreen(
                                 onAddExerciseClick = { showRoutineDetailsExerciseCatalog = true },
                                 onWeekDayToggle = routineDetailsViewModel::toggleWeekDay,
                                 onCycleDayToggle = routineDetailsViewModel::toggleCycleDay,
-                                onRestDaysChange = routineDetailsViewModel::updateRestDaysBetweenWorkouts
+                                onRestDaysChange = routineDetailsViewModel::updateRestDaysBetweenWorkouts,
+                                onUpdateExerciseSets = routineDetailsViewModel::updateExerciseSets
                             )
                         }
 
@@ -644,7 +650,9 @@ fun WorkoutsScreen(
             }
         }
 
-        // History FAB — bottom right, above nav bar, only visible when workouts exist
+        // History FAB — only shown once we know workouts exist.
+        // When a refresh is in progress the icon swaps to a spinner so the button
+        // stays put instead of blinking, but new users with no workouts never see it.
         AnimatedVisibility(
             visible = historyWorkouts.isNotEmpty(),
             modifier = Modifier
@@ -652,17 +660,25 @@ fun WorkoutsScreen(
                 .padding(end = 20.dp, bottom = 24.dp)
         ) {
             FloatingActionButton(
-                onClick = { showHistorySheet = true },
+                onClick = { if (!historyLoading) showHistorySheet = true },
                 containerColor = ShadowGrey,
                 contentColor = CrayolaBlue,
                 modifier = Modifier.size(52.dp),
                 shape = CircleShape
             ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = "Workout History",
-                    modifier = Modifier.size(24.dp)
-                )
+                if (historyLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = CrayolaBlue,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "Workout History",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
 

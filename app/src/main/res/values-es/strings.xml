@@ -414,6 +414,7 @@ Añade métricas para empezar a seguir tu progreso.</string>
     <string name="workouts_set">SERIE</string>
     <string name="workouts_weight">PESO</string>
     <string name="workouts_add_set_button">+ Añadir serie</string>
+    <string name="workouts_remove_set">Eliminar serie</string>
     <string name="workouts_change_set_type_cd">Cambiar tipo de serie</string>
     <string name="workouts_em_dash">—</string>
     <string name="workouts_mark_incomplete_cd">Marcar incompleta</string>

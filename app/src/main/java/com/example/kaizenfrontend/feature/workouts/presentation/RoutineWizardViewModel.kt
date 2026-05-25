@@ -161,7 +161,7 @@ class RoutineWizardViewModel(
         _uiState.update { it.copy(restDaysBetweenWorkouts = value.coerceAtLeast(1)) }
     }
 
-    fun addExercise(exercise: Exercise, targetSets: Int = 3, targetReps: Int = 10) {
+    fun addExercise(exercise: Exercise, targetSets: Int = 1, targetReps: Int = 10) {
         _uiState.update { current ->
             if (current.selectedExercises.any { it.exercise.id == exercise.id }) {
                 current
@@ -174,6 +174,20 @@ class RoutineWizardViewModel(
                     )
                 )
             }
+        }
+    }
+
+    fun updateExerciseSets(exerciseId: String, targetSets: Int) {
+        _uiState.update { current ->
+            current.copy(
+                selectedExercises = current.selectedExercises.map { routineExercise ->
+                    if (routineExercise.exercise.id == exerciseId) {
+                        routineExercise.copy(targetSets = targetSets.coerceAtLeast(1))
+                    } else {
+                        routineExercise
+                    }
+                }
+            )
         }
     }
 

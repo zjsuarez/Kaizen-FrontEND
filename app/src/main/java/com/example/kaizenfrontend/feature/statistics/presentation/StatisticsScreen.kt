@@ -19,6 +19,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -74,18 +75,19 @@ fun StatisticsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Onyx)
+            .statusBarsPadding()
     ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp),
-            contentPadding = PaddingValues(top = 48.dp, bottom = 24.dp)
+            contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp)
         ) {
             item {
                 Text(
                     text = stringResource(id = R.string.statistics_title),
                     color = PureWhite,
-                    fontSize = 38.sp,
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold
                 )
             }

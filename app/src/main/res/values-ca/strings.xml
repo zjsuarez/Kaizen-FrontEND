@@ -414,6 +414,7 @@ Afegeix mètriques per començar a seguir el teu progrés.</string>
     <string name="workouts_set">SÈRIE</string>
     <string name="workouts_weight">PES</string>
     <string name="workouts_add_set_button">+ Afegir sèrie</string>
+    <string name="workouts_remove_set">Eliminar sèrie</string>
     <string name="workouts_change_set_type_cd">Canviar tipus de sèrie</string>
     <string name="workouts_em_dash">—</string>
     <string name="workouts_mark_incomplete_cd">Marcar incompleta</string>

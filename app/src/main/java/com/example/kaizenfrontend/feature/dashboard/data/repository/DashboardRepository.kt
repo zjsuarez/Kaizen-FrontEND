@@ -3,7 +3,10 @@ package com.example.kaizenfrontend.feature.dashboard.data.repository
 import com.example.kaizenfrontend.feature.dashboard.data.local.dao.DashboardDao
 import com.example.kaizenfrontend.feature.dashboard.data.local.entity.DashboardEntity
 import com.example.kaizenfrontend.feature.dashboard.data.remote.api.DashboardApiService
+import com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse
 import com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.DashboardResponse
+import com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.RecentPrDTO
+import com.example.kaizenfrontend.feature.workouts.data.remote.dto.WorkoutResponseDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -29,7 +32,6 @@ class DashboardRepository @Inject constructor(
                 withContext(Dispatchers.IO) {
                     dashboardDao.insertDashboard(DashboardEntity(1, response.body()!!))
                 }
-
                 Result.success(Unit)
             } else {
                 Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
@@ -38,17 +40,15 @@ class DashboardRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
     suspend fun logBodyWeight(weight: Double, bodyFatPercentage: Double? = null): Result<Unit> {
         return try {
             val plainText = "text/plain".toMediaTypeOrNull()
             val weightPart = weight.toString().toRequestBody(plainText)
             val bodyFatPart = bodyFatPercentage?.toString()?.toRequestBody(plainText)
             val response = apiService.logBodyWeight(weightPart, bodyFatPart)
-            if (response.isSuccessful) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
-            }
+            if (response.isSuccessful) Result.success(Unit)
+            else Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -70,14 +70,31 @@ class DashboardRepository @Inject constructor(
         }
     }
 
-    suspend fun getWeightHistory(): Result<List<com.example.kaizenfrontend.feature.dashboard.data.remote.dto.response.BodyMeasurementResponse>> {
+    suspend fun getWeightHistory(): Result<List<BodyMeasurementResponse>> {
         return try {
             val response = apiService.getWeightHistory()
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
-            } else {
-                Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
-            }
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!)
+            else Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getWorkoutById(workoutId: String): Result<WorkoutResponseDto> {
+        return try {
+            val response = apiService.getWorkoutById(workoutId)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!)
+            else Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPrHistory(exerciseName: String): Result<List<RecentPrDTO>> {
+        return try {
+            val response = apiService.getPrHistory(exerciseName)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!)
+            else Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -86,11 +103,8 @@ class DashboardRepository @Inject constructor(
     suspend fun saveWidgetOrder(widgetOrder: List<String>): Result<Unit> {
         return try {
             val response = apiService.saveWidgetPreferences(widgetOrder)
-            if (response.isSuccessful) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("PUT /api/preferences/dashboard failed: ${response.code()}"))
-            }
+            if (response.isSuccessful) Result.success(Unit)
+            else Result.failure(Exception("PUT /api/preferences/dashboard failed: ${response.code()}"))
         } catch (e: Exception) {
             Result.failure(e)
         }

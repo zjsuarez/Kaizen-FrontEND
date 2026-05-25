@@ -110,10 +110,11 @@ fun SettingsScreen(
             .background(Onyx)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
-            .padding(top = 48.dp, bottom = 24.dp),
+            .statusBarsPadding()
+            .padding(top = 4.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        Text(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_title), color = PureWhite, fontSize = 38.sp, fontWeight = FontWeight.Bold)
+        Text(text = stringResource(id = com.example.kaizenfrontend.R.string.settings_title), color = PureWhite, fontSize = 30.sp, fontWeight = FontWeight.Bold)
 
         SettingsAppSection(onLanguageClick = { showLanguageDialog = true })
 
@@ -223,8 +224,9 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> U
 @Composable
 private fun RestTimerDialog(currentSeconds: Int, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
     var input by remember { mutableStateOf(currentSeconds.toString()) }
-    val context = LocalContext.current
     var error by remember { mutableStateOf<String?>(null) }
+    val errorValidSeconds = stringResource(id = com.example.kaizenfrontend.R.string.error_valid_seconds)
+    val errorMaxRest = stringResource(id = com.example.kaizenfrontend.R.string.error_max_rest)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -259,8 +261,8 @@ private fun RestTimerDialog(currentSeconds: Int, onDismiss: () -> Unit, onConfir
             TextButton(onClick = {
                 val seconds = input.toIntOrNull()
                 when {
-                    seconds == null || seconds <= 0 -> error = context.getString(com.example.kaizenfrontend.R.string.error_valid_seconds)
-                    seconds > 600 -> error = context.getString(com.example.kaizenfrontend.R.string.error_max_rest)
+                    seconds == null || seconds <= 0 -> error = errorValidSeconds
+                    seconds > 600 -> error = errorMaxRest
                     else -> onConfirm(seconds)
                 }
             }) { Text(stringResource(id = com.example.kaizenfrontend.R.string.settings_save), color = CrayolaBlue, fontWeight = FontWeight.SemiBold) }
