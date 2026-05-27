@@ -414,6 +414,7 @@ Afegeix mètriques per començar a seguir el teu progrés.</string>
     <string name="workouts_set">SÈRIE</string>
     <string name="workouts_weight">PES</string>
     <string name="workouts_add_set_button">+ Afegir sèrie</string>
+    <string name="workouts_remove_set">Eliminar sèrie</string>
     <string name="workouts_change_set_type_cd">Canviar tipus de sèrie</string>
     <string name="workouts_em_dash">—</string>
     <string name="workouts_mark_incomplete_cd">Marcar incompleta</string>
@@ -471,7 +472,7 @@ Afegeix mètriques per començar a seguir el teu progrés.</string>
     <string name="workouts_step3_title">Exercicis</string>
     <string name="workouts_no_exercises_yet">Encara no hi ha exercicis seleccionats</string>
     <string name="workouts_add_first_exercise">Afegir primer exercici</string>
-...
+    <string name="workouts_add_exercise">Afegir exercici</string>
     <string name="workouts_add_at_least_one_exercise">Afegeix almenys un exercici per continuar</string>
     <string name="workouts_inherited_schedule_label">Programació heretada del Pla</string>
     <string name="workouts_plan_active_badge">ACTIU</string>

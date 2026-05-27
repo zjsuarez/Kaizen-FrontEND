@@ -18,6 +18,7 @@ import com.example.kaizenfrontend.feature.dashboard.data.repository.DashboardRep
 import com.example.kaizenfrontend.feature.dashboard.worker.DashboardSyncWorker
 import com.example.kaizenfrontend.feature.user.data.repository.UserRepositoryImpl
 import com.example.kaizenfrontend.feature.workouts.data.remote.dto.WorkoutResponseDto
+import com.example.kaizenfrontend.core.WorkoutStalenessFlag
 import com.example.kaizenfrontend.core.data.BuiltinExerciseCatalog
 import com.example.kaizenfrontend.feature.workouts.domain.ActiveExerciseInit
 import com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager
@@ -290,6 +291,7 @@ class DashboardViewModel @Inject constructor(
             val result = saveWorkoutUseCase(state, unitSystem, measurementId)
             if (result.isSuccess) {
                 _workoutSaveStatus.value = WorkoutSaveStatus.Success
+                WorkoutStalenessFlag.isStatisticsStale = true
                 refreshDashboardData()
             } else {
                 _workoutSaveStatus.value = WorkoutSaveStatus.Error(

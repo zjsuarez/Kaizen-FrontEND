@@ -414,6 +414,7 @@ Añade métricas para empezar a seguir tu progreso.</string>
     <string name="workouts_set">SERIE</string>
     <string name="workouts_weight">PESO</string>
     <string name="workouts_add_set_button">+ Añadir serie</string>
+    <string name="workouts_remove_set">Eliminar serie</string>
     <string name="workouts_change_set_type_cd">Cambiar tipo de serie</string>
     <string name="workouts_em_dash">—</string>
     <string name="workouts_mark_incomplete_cd">Marcar incompleta</string>
@@ -473,7 +474,7 @@ Añade métricas para empezar a seguir tu progreso.</string>
     <string name="workouts_add_first_exercise">Añadir primer ejercicio</string>
     <string name="workouts_add_exercise">Añadir ejercicio</string>
     <string name="workouts_add_at_least_one_exercise">Añade al menos un ejercicio para continuar</string>
-    ...
+    <string name="workouts_inherited_schedule_label">Horario heredado del plan</string>
     <string name="workouts_plan_active_badge">ACTIVO</string>
     <string name="workouts_set_as_active_plan">Establecer como plan activo</string>
     <string name="workouts_add_routine_to_plan">Añadir rutina a %s</string>

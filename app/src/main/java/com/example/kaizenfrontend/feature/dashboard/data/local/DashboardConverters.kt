@@ -15,9 +15,18 @@ class DashboardConverters {
     }
 
     @TypeConverter
+    @Suppress("SENSELESS_COMPARISON")
     fun toDashboardResponse(json: String?): DashboardResponse? {
         if (json == null) return null
         val type = object : TypeToken<DashboardResponse>() {}.type
-        return gson.fromJson(json, type)
+        val response: DashboardResponse = gson.fromJson(json, type)
+        // Gson skips Kotlin default values, so list fields absent in old cached JSON come back null.
+        return response.copy(
+            trainingDaysThisMonth = response.trainingDaysThisMonth ?: emptyList(),
+            trainingDayDetails = response.trainingDayDetails ?: emptyList(),
+            recentPrs = response.recentPrs ?: emptyList(),
+            streakCalendar = response.streakCalendar ?: emptyList(),
+            recentWorkoutSummaries = response.recentWorkoutSummaries ?: emptyList()
+        )
     }
 }
