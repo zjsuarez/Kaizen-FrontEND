@@ -152,14 +152,6 @@ fun WorkoutsScreen(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = stringResource(id = R.string.workouts_subtitle_library),
-                        color = LightGrey,
-                        fontSize = 14.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp, end = 8.dp) // Un poco de aire por la derecha
-                    )
                 }
 
                 // Mantenemos este Spacer pequeño por seguridad

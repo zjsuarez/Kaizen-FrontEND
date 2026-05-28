@@ -38,6 +38,8 @@ fun SettingsScreen(
     val context = LocalContext.current
     val viewModel = remember { SettingsViewModel(context) }
     val uiState by viewModel.uiState.collectAsState()
+    val hasActiveWorkout by com.example.kaizenfrontend.feature.workouts.domain.ActiveWorkoutManager.currentWorkout.collectAsState()
+    val workoutActive = hasActiveWorkout != null
 
     LaunchedEffect(Unit) {
         viewModel.refreshUserProfile()
@@ -135,7 +137,8 @@ fun SettingsScreen(
             onRestClick = { showRestDialog = true },
             showSaveButton = uiState.hasUnsavedChanges,
             isSaving = uiState.isSavingPrefs,
-            onSaveClick = { viewModel.savePreferences() }
+            onSaveClick = { viewModel.savePreferences() },
+            workoutActive = workoutActive
         )
 
         SettingsDataPrivacySection(
@@ -400,7 +403,8 @@ private fun SettingsPreferencesSection(
     onRestClick: () -> Unit,
     showSaveButton: Boolean,
     isSaving: Boolean,
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    workoutActive: Boolean = false
 ) {
     val unitKg = stringResource(id = com.example.kaizenfrontend.R.string.settings_unit_kg)
     val unitLb = stringResource(id = com.example.kaizenfrontend.R.string.settings_unit_lb)
@@ -414,6 +418,7 @@ private fun SettingsPreferencesSection(
             SegmentedToggle(
                 options = listOf(unitKg, unitLb),
                 selected = unitDisplay,
+                enabled = !workoutActive,
                 onSelect = { onUnitToggle(if (it == unitLb) "IMPERIAL" else "METRIC") }
             )
         }
@@ -427,6 +432,7 @@ private fun SettingsPreferencesSection(
             SegmentedToggle(
                 options = listOf(effortRir, effortRpe, effortNone),
                 selected = effortDisplay,
+                enabled = !workoutActive,
                 onSelect = {
                     onEffortToggle(
                         when (it) {
@@ -440,14 +446,25 @@ private fun SettingsPreferencesSection(
         }
         SettingsDivider()
         PreferenceRow(label = stringResource(id = com.example.kaizenfrontend.R.string.settings_default_rest)) {
+            val restBorderColor = if (workoutActive) LightGrey.copy(alpha = 0.3f) else CrayolaBlue
+            val restTextColor = if (workoutActive) LightGrey.copy(alpha = 0.3f) else CrayolaBlue
             Box(
                 modifier = Modifier
-                    .border(1.dp, CrayolaBlue, RoundedCornerShape(10.dp))
-                    .clickable { onRestClick() }
+                    .border(1.dp, restBorderColor, RoundedCornerShape(10.dp))
+                    .clickable(enabled = !workoutActive) { onRestClick() }
                     .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
-                Text(text = defaultRest, color = CrayolaBlue, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Text(text = defaultRest, color = restTextColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
+        }
+        if (workoutActive) {
+            SettingsDivider()
+            Text(
+                text = stringResource(id = com.example.kaizenfrontend.R.string.settings_prefs_locked_by_workout),
+                color = LightGrey.copy(alpha = 0.5f),
+                fontSize = 12.sp,
+                modifier = androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+            )
         }
         if (showSaveButton) {
             SettingsDivider()
@@ -523,7 +540,12 @@ private fun PreferenceRow(label: String, control: @Composable () -> Unit) {
 }
 
 @Composable
-private fun SegmentedToggle(options: List<String>, selected: String, onSelect: (String) -> Unit) {
+private fun SegmentedToggle(
+    options: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    enabled: Boolean = true
+) {
     Row(
         modifier = Modifier
             .background(Onyx, RoundedCornerShape(10.dp))
@@ -532,16 +554,22 @@ private fun SegmentedToggle(options: List<String>, selected: String, onSelect: (
     ) {
         options.forEach { option ->
             val isSelected = option == selected
+            val activeColor = if (enabled) CrayolaBlue else CrayolaBlue.copy(alpha = 0.3f)
+            val textColor = when {
+                isSelected && enabled -> PureWhite
+                isSelected -> PureWhite.copy(alpha = 0.3f)
+                else -> LightGrey.copy(alpha = if (enabled) 1f else 0.3f)
+            }
             Box(
                 modifier = Modifier
-                    .background(if (isSelected) CrayolaBlue else Color.Transparent, RoundedCornerShape(8.dp))
-                    .clickable { onSelect(option) }
+                    .background(if (isSelected) activeColor else Color.Transparent, RoundedCornerShape(8.dp))
+                    .clickable(enabled = enabled) { onSelect(option) }
                     .padding(horizontal = 14.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = option,
-                    color = if (isSelected) PureWhite else LightGrey,
+                    color = textColor,
                     fontSize = 13.sp,
                     maxLines = 1,
                     softWrap = false,

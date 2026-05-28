@@ -124,6 +124,9 @@ fun ActiveWorkoutBottomSheet(
     val sessionManager = androidx.compose.runtime.remember { com.example.kaizenfrontend.core.data.local.SessionManager(context) }
     val effortMetric = androidx.compose.runtime.remember { sessionManager.getUserEffortMetric() ?: "RPE" }
     val unitSystem = androidx.compose.runtime.remember { sessionManager.getUserUnitSystem() ?: "METRIC" }
+    val defaultRestSeconds = androidx.compose.runtime.remember {
+        sessionManager.getUserDefaultRest()?.removeSuffix(" s")?.trim()?.toLongOrNull() ?: 90L
+    }
     val weightUnit = if (unitSystem == "IMPERIAL") "lbs" else "kg"
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -231,8 +234,7 @@ fun ActiveWorkoutBottomSheet(
                 if (state.isRestTimerRunning) {
                     ActiveWorkoutManager.pauseRestTimer()
                 } else {
-                    // Resume or start a default 90-second timer
-                    val seconds = if (state.restTimer > 0) state.restTimer else 90L
+                    val seconds = if (state.restTimer > 0) state.restTimer else defaultRestSeconds
                     ActiveWorkoutManager.startRestTimer(seconds)
                 }
             },
