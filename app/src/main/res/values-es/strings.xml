@@ -41,6 +41,7 @@
     <string name="settings_manage_api_permissions">Gestionar Permisos de API</string>
     
     <string name="settings_default_rest_timer_title">Temporizador de Descanso</string>
+    <string name="settings_prefs_locked_by_workout">Termina tu entrenamiento activo para editar esto</string>
     <string name="settings_set_rest_time">Configura el tiempo en segundos</string>
     <string name="settings_seconds">Segundos</string>
     
