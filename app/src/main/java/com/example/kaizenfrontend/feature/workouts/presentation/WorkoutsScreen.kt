@@ -437,6 +437,7 @@ fun WorkoutsScreen(
                             onDismiss = { showCreatePlanDialog = false },
                             onCreate = { name, desc, start, interval, cycleLength ->
                                 showCreatePlanDialog = false
+                                isEditMode = false
                                 viewModel.createPlan(name, desc, start, interval, cycleLength)
                             }
                         )
@@ -518,6 +519,7 @@ fun WorkoutsScreen(
                                         startingDate = startingDate,
                                         routineExercises = selectedExercises
                                     )
+                                    isEditMode = false
                                 },
                                 onWizardClosed = { showCreateRoutineWizard = false }
                             )

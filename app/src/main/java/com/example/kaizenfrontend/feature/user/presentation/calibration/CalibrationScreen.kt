@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kaizenfrontend.core.ui.theme.*
+import kotlinx.coroutines.launch
 
 private fun normalizeCalibrationNumberInput(input: String): String =
     input.filter { it.isDigit() }.take(3)
@@ -86,7 +89,7 @@ fun CalibrationScreen(onStartClick: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            CalibrationSectionLabel(text = "SELECT EFFORT MEASURE")
+            EffortMeasureSectionLabel()
             CalibrationSegmentedControl(
                 options = listOf("RIR", "RPE", "NONE"),
                 selectedOption = selectedEffort,
@@ -146,6 +149,51 @@ private fun CalibrationSectionLabel(text: String) {
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(bottom = 12.dp)
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EffortMeasureSectionLabel() {
+    val tooltipState = rememberTooltipState(isPersistent = true)
+    val scope = rememberCoroutineScope()
+
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberRichTooltipPositionProvider(),
+        tooltip = {
+            RichTooltip(
+                title = { Text("Effort Metrics") },
+                text = {
+                    Text(
+                        "RIR (Reps In Reserve): how many more reps you could do before failure.\n\n" +
+                        "RPE (Rate of Perceived Exertion): a 1–10 scale of how hard the set felt.\n\n" +
+                        "NONE: no effort metric tracked."
+                    )
+                }
+            )
+        },
+        state = tooltipState
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 12.dp)
+        ) {
+            Text(
+                text = "SELECT EFFORT MEASURE",
+                color = LabelGray,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Icon(
+                imageVector = Icons.Outlined.Info,
+                contentDescription = "What is effort measure?",
+                tint = LabelGray,
+                modifier = Modifier
+                    .size(14.dp)
+                    .clickable { scope.launch { tooltipState.show() } }
+            )
+        }
+    }
 }
 
 @Composable
