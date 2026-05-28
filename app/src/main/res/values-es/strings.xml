@@ -41,6 +41,7 @@
     <string name="settings_manage_api_permissions">Gestionar Permisos de API</string>
     
     <string name="settings_default_rest_timer_title">Temporizador de Descanso</string>
+    <string name="settings_prefs_locked_by_workout">Termina tu entrenamiento activo para editar esto</string>
     <string name="settings_set_rest_time">Configura el tiempo en segundos</string>
     <string name="settings_seconds">Segundos</string>
     
@@ -474,7 +475,7 @@ Añade métricas para empezar a seguir tu progreso.</string>
     <string name="workouts_add_first_exercise">Añadir primer ejercicio</string>
     <string name="workouts_add_exercise">Añadir ejercicio</string>
     <string name="workouts_add_at_least_one_exercise">Añade al menos un ejercicio para continuar</string>
-    ...
+    <string name="workouts_inherited_schedule_label">Horario heredado del plan</string>
     <string name="workouts_plan_active_badge">ACTIVO</string>
     <string name="workouts_set_as_active_plan">Establecer como plan activo</string>
     <string name="workouts_add_routine_to_plan">Añadir rutina a %s</string>

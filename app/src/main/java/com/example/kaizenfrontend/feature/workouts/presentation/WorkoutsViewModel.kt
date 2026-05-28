@@ -50,6 +50,8 @@ class WorkoutsViewModel(
     private val _uiState = MutableStateFlow<WorkoutsUiState>(WorkoutsUiState.Loading)
     val uiState: StateFlow<WorkoutsUiState> = _uiState.asStateFlow()
 
+    private val _isActivatingPlan = MutableStateFlow(false)
+
     init {
         loadData()
     }
@@ -229,12 +231,19 @@ class WorkoutsViewModel(
     }
 
     fun setPlanAsActive(planId: String) {
-        // Snapshot state BEFORE mutation to capture who needs deactivating
+        // Gate: drop the tap if a previous activation is still in-flight
+        if (_isActivatingPlan.value) return
+
         val currentSuccess = _uiState.value as? WorkoutsUiState.Success ?: return
         val planToActivate = currentSuccess.plans.firstOrNull { it.id == planId } ?: return
+        // Skip if already the active plan
+        if (planToActivate.isActive) return
         val plansToDeactivate = currentSuccess.plans.filter { it.isActive && it.id != planId }
 
-        // Optimistic local update
+        // Lock before any async work
+        _isActivatingPlan.value = true
+
+        // Optimistic local update: exactly one plan active, guaranteed
         _uiState.update { state ->
             if (state !is WorkoutsUiState.Success) return@update state
             state.copy(
@@ -244,34 +253,37 @@ class WorkoutsViewModel(
             )
         }
 
-        // Backend persistence
         viewModelScope.launch {
-            // Step 1: deactivate every previously-active plan
-            plansToDeactivate.forEach { plan ->
-                updatePlanUseCase(
-                    planId      = plan.id,
-                    name        = plan.name,
-                    description = plan.description,
-                    isActive    = false
-                )
-            }
-
-            // Step 2: activate the target plan
-            val result = updatePlanUseCase(
-                planId      = planId,
-                name        = planToActivate.name,
-                description = planToActivate.description,
-                isActive    = true
-            )
-
-            // Step 3: merge canonical backend response (server may adjust fields)
-            result.getOrNull()?.let { canonical ->
-                _uiState.update { state ->
-                    if (state !is WorkoutsUiState.Success) return@update state
-                    state.copy(
-                        plans = state.plans.map { if (it.id == canonical.id) canonical else it }
+            try {
+                // Deactivate every previously-active plan first
+                plansToDeactivate.forEach { plan ->
+                    updatePlanUseCase(
+                        planId      = plan.id,
+                        name        = plan.name,
+                        description = plan.description,
+                        isActive    = false
                     )
                 }
+
+                // Activate the target plan
+                val result = updatePlanUseCase(
+                    planId      = planId,
+                    name        = planToActivate.name,
+                    description = planToActivate.description,
+                    isActive    = true
+                )
+
+                // Merge canonical backend response
+                result.getOrNull()?.let { canonical ->
+                    _uiState.update { state ->
+                        if (state !is WorkoutsUiState.Success) return@update state
+                        state.copy(
+                            plans = state.plans.map { if (it.id == canonical.id) canonical else it }
+                        )
+                    }
+                }
+            } finally {
+                _isActivatingPlan.value = false
             }
         }
     }
@@ -290,14 +302,20 @@ class WorkoutsViewModel(
     }
 
     fun deleteRoutine(routineId: String) {
-        viewModelScope.launch {
-            _uiState.value = WorkoutsUiState.Loading
-            val result = deleteRoutineUseCase(routineId)
-            if (result.isSuccess) {
-                loadData()
-            } else {
-                _uiState.value = WorkoutsUiState.Error(result.exceptionOrNull()?.message ?: "Failed to delete routine")
+        // Optimistic removal keeps LazyColumn stable; no Loading flash
+        _uiState.update { state ->
+            if (state !is WorkoutsUiState.Success) return@update state
+            val updatedMap = state.routinesByPlanId.mapValues { (_, routines) ->
+                routines.filter { it.id != routineId }
             }
+            val updatedUnassigned = state.unassignedRoutines.filter { it.id != routineId }
+            state.copy(
+                routinesByPlanId = updatedMap,
+                unassignedRoutines = updatedUnassigned
+            )
+        }
+        viewModelScope.launch {
+            deleteRoutineUseCase(routineId)
         }
     }
 

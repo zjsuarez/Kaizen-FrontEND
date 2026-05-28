@@ -124,6 +124,9 @@ fun ActiveWorkoutBottomSheet(
     val sessionManager = androidx.compose.runtime.remember { com.example.kaizenfrontend.core.data.local.SessionManager(context) }
     val effortMetric = androidx.compose.runtime.remember { sessionManager.getUserEffortMetric() ?: "RPE" }
     val unitSystem = androidx.compose.runtime.remember { sessionManager.getUserUnitSystem() ?: "METRIC" }
+    val defaultRestSeconds = androidx.compose.runtime.remember {
+        sessionManager.getUserDefaultRest()?.removeSuffix(" s")?.trim()?.toLongOrNull() ?: 90L
+    }
     val weightUnit = if (unitSystem == "IMPERIAL") "lbs" else "kg"
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -231,8 +234,7 @@ fun ActiveWorkoutBottomSheet(
                 if (state.isRestTimerRunning) {
                     ActiveWorkoutManager.pauseRestTimer()
                 } else {
-                    // Resume or start a default 90-second timer
-                    val seconds = if (state.restTimer > 0) state.restTimer else 90L
+                    val seconds = if (state.restTimer > 0) state.restTimer else defaultRestSeconds
                     ActiveWorkoutManager.startRestTimer(seconds)
                 }
             },
@@ -667,14 +669,16 @@ private fun ActiveExerciseRow(
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center
                     )
-                    Text(
-                        text = effortMetric,
-                        color = LightGrey.copy(alpha = 0.5f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center
-                    )
+                    if (effortMetric != "NONE") {
+                        Text(
+                            text = effortMetric,
+                            color = LightGrey.copy(alpha = 0.5f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                     // Spacer for the check button column
                     Spacer(modifier = Modifier.width(36.dp))
                 }
@@ -890,15 +894,16 @@ internal fun WorkoutSetRow(
                             set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.MYO_REP ||
                             set.type == com.example.kaizenfrontend.feature.workouts.domain.model.SetType.DROP_SET
 
-        // RIR input
-        SetInputField(
-            value = if (isRirDisabled) "0" else set.rpe,
-            onValueChange = onRpeChange,
-            suffix = effortMetric,
-            placeholder = stringResource(id = R.string.workouts_em_dash),
-            enabled = !isRirDisabled,
-            modifier = Modifier.weight(1f)
-        )
+        if (effortMetric != "NONE") {
+            SetInputField(
+                value = if (isRirDisabled) "0" else set.rpe,
+                onValueChange = onRpeChange,
+                suffix = effortMetric,
+                placeholder = stringResource(id = R.string.workouts_em_dash),
+                enabled = !isRirDisabled,
+                modifier = Modifier.weight(1f)
+            )
+        }
 
         // Completion toggle
         Box(

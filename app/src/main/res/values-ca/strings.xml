@@ -41,6 +41,7 @@
     <string name="settings_manage_api_permissions">Gestionar Permisos d\'API</string>
     
     <string name="settings_default_rest_timer_title">Temporitzador de Descans</string>
+    <string name="settings_prefs_locked_by_workout">Acaba el teu entrenament actiu per editar-ho</string>
     <string name="settings_set_rest_time">Configura el temps en segons</string>
     <string name="settings_seconds">Segons</string>
     
@@ -472,7 +473,7 @@ Afegeix mètriques per començar a seguir el teu progrés.</string>
     <string name="workouts_step3_title">Exercicis</string>
     <string name="workouts_no_exercises_yet">Encara no hi ha exercicis seleccionats</string>
     <string name="workouts_add_first_exercise">Afegir primer exercici</string>
-...
+    <string name="workouts_add_exercise">Afegir exercici</string>
     <string name="workouts_add_at_least_one_exercise">Afegeix almenys un exercici per continuar</string>
     <string name="workouts_inherited_schedule_label">Programació heretada del Pla</string>
     <string name="workouts_plan_active_badge">ACTIU</string>

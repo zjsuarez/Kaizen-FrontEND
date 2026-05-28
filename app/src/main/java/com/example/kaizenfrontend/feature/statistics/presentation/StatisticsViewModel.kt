@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.annotation.StringRes
 import com.example.kaizenfrontend.R
+import com.example.kaizenfrontend.core.WorkoutStalenessFlag
 import com.example.kaizenfrontend.feature.statistics.data.repository.StatisticsRepository
 import com.example.kaizenfrontend.feature.statistics.data.repository.TrendPoint
 import com.example.kaizenfrontend.feature.statistics.data.repository.WeeklyVolumePoint
@@ -260,6 +261,13 @@ class StatisticsViewModel @Inject constructor(
         rangeUpdateJob?.cancel()
         rangeUpdateJob = viewModelScope.launch {
             applyRangeAndUpdateModels(newRange)
+        }
+    }
+
+    fun refreshIfStale() {
+        if (WorkoutStalenessFlag.isStatisticsStale) {
+            WorkoutStalenessFlag.isStatisticsStale = false
+            refreshStatistics()
         }
     }
 

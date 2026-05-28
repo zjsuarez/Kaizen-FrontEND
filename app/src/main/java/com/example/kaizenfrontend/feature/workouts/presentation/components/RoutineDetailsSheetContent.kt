@@ -21,11 +21,13 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -36,12 +38,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +64,7 @@ import com.example.kaizenfrontend.core.ui.theme.LightGrey
 import com.example.kaizenfrontend.core.ui.theme.Onyx
 import com.example.kaizenfrontend.core.ui.theme.PureWhite
 import com.example.kaizenfrontend.core.ui.theme.ShadowGrey
+import com.example.kaizenfrontend.core.ui.theme.SubtleRed
 import com.example.kaizenfrontend.feature.workouts.domain.model.RoutineExercise
 import com.example.kaizenfrontend.feature.workouts.presentation.RoutineDetailsState
 import kotlinx.coroutines.launch
@@ -70,6 +75,7 @@ fun RoutineDetailsSheetContent(
     onEditClick: () -> Unit,
     onStartClick: () -> Unit,
     onDoneClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onRemoveExercise: (String) -> Unit,
@@ -86,6 +92,44 @@ fun RoutineDetailsSheetContent(
     var draggingExerciseId by remember { mutableStateOf<String?>(null) }
     var draggingItemOffsetY by remember { mutableFloatStateOf(0f) }
     var historyTarget by remember { mutableStateOf<ExerciseHistoryTarget?>(null) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            containerColor = ShadowGrey,
+            title = {
+                Text(
+                    text = stringResource(id = R.string.workouts_delete_routine_title),
+                    color = PureWhite,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(id = R.string.workouts_delete_routine_message, state.title),
+                    color = LightGrey
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(text = stringResource(id = R.string.settings_cancel), color = LightGrey)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    onDeleteClick()
+                }) {
+                    Text(
+                        text = stringResource(id = R.string.workouts_delete),
+                        color = SubtleRed,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        )
+    }
 
     Surface(
         modifier = modifier
@@ -106,6 +150,7 @@ fun RoutineDetailsSheetContent(
                     onEditClick = onEditClick,
                     onStartClick = onStartClick,
                     onDoneClick = onDoneClick,
+                    onDeleteClick = { showDeleteConfirm = true },
                     onTitleChange = onTitleChange
                 )
             }
@@ -261,6 +306,7 @@ private fun RoutineDetailsHeader(
     onEditClick: () -> Unit,
     onStartClick: () -> Unit,
     onDoneClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     onTitleChange: (String) -> Unit
 ) {
     Row(
@@ -292,15 +338,27 @@ private fun RoutineDetailsHeader(
         }
 
         if (isEditMode) {
-            OutlinedButton(
-                onClick = onDoneClick,
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, PureWhite),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = PureWhite
-                )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = stringResource(id = R.string.workouts_done), fontWeight = FontWeight.SemiBold)
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = stringResource(id = R.string.workouts_delete_routine_cd),
+                        tint = SubtleRed
+                    )
+                }
+                OutlinedButton(
+                    onClick = onDoneClick,
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, PureWhite),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = PureWhite
+                    )
+                ) {
+                    Text(text = stringResource(id = R.string.workouts_done), fontWeight = FontWeight.SemiBold)
+                }
             }
         } else {
             Row(
@@ -434,6 +492,12 @@ private fun RoutineExerciseCard(
 ) {
     var showMenu by remember(exercise.exercise.id) { mutableStateOf(false) }
 
+    // rememberUpdatedState ensures the long-lived pointerInput coroutine always
+    // reads the latest callbacks after each recomposition (stale-closure fix).
+    val latestOnDragStart by rememberUpdatedState(onDragHandleDragStart)
+    val latestOnDrag by rememberUpdatedState(onDragHandleDrag)
+    val latestOnDragEnd by rememberUpdatedState(onDragHandleDragEnd)
+
     val cardColor = if (isDragging) Color(0xFF32313A) else ShadowGrey
     val cardBorderModifier = if (isDragging) {
         Modifier.border(1.dp, CrayolaBlue, RoundedCornerShape(16.dp))
@@ -485,18 +549,12 @@ private fun RoutineExerciseCard(
                                 .size(40.dp)
                                 .pointerInput(exercise.exercise.id, isEditMode) {
                                     detectDragGesturesAfterLongPress(
-                                        onDragStart = {
-                                            onDragHandleDragStart()
-                                        },
-                                        onDragEnd = {
-                                            onDragHandleDragEnd()
-                                        },
-                                        onDragCancel = {
-                                            onDragHandleDragEnd()
-                                        },
+                                        onDragStart = { latestOnDragStart() },
+                                        onDragEnd = { latestOnDragEnd() },
+                                        onDragCancel = { latestOnDragEnd() },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
-                                            onDragHandleDrag(dragAmount.y)
+                                            latestOnDrag(dragAmount.y)
                                         }
                                     )
                                 },

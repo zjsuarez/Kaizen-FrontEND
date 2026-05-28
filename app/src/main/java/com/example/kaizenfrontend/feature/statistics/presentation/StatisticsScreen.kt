@@ -60,6 +60,7 @@ fun StatisticsScreen(
     val fatigueProducer = viewModel.fatigueModelProducer
 
     DisposableEffect(lifecycleOwner, viewModel) {
+        viewModel.refreshIfStale()
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.refreshStatistics()

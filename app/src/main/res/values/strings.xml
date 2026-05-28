@@ -42,6 +42,7 @@
     
     <!-- Rest Dialog -->
     <string name="settings_default_rest_timer_title">Default Rest Timer</string>
+    <string name="settings_prefs_locked_by_workout">Finish your active workout to edit these</string>
     <string name="settings_set_rest_time">Set rest time in seconds</string>
     <string name="settings_seconds">Seconds</string>
     
