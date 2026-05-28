@@ -54,6 +54,12 @@ class CalibrationViewModel(context: Context) : ViewModel() {
             _uiState.value = result.fold(
                 onSuccess = {
                     sessionManager.saveCalibrationComplete(true)
+                    sessionManager.saveUserPreferences(
+                        email = sessionManager.getUserEmail() ?: "",
+                        unitSystem = unitSystemVal,
+                        effortMetric = selectedEffort,
+                        defaultRest = sessionManager.getUserDefaultRest() ?: "90 s"
+                    )
                     CalibrationUiState.Success
                 },
                 onFailure = { CalibrationUiState.Error(it.message ?: "Failed to save settings") }
